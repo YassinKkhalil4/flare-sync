@@ -1,11 +1,6 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Send, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import ConversationList from '../components/Messaging/ConversationList';
 import MessageView from '../components/Messaging/MessageView';
@@ -74,13 +69,13 @@ const generateMockMessages = (conversationId: string) => {
     {
       id: `${conversationId}-2`,
       sender: 'me',
-      content: 'Hello! Thanks for reaching out. I'd love to hear more about what you have in mind.',
+      content: 'Hello! Thanks for reaching out. I\'d love to hear more about what you have in mind.',
       timestamp: '2023-04-05T10:35:00Z'
     },
     {
       id: `${conversationId}-3`,
       sender: partnerType === 'brand' ? conversation.partner.id : 'me',
-      content: `We're launching a new product next month and looking for creators like you to help promote it.`,
+      content: 'We\'re launching a new product next month and looking for creators like you to help promote it.',
       timestamp: '2023-04-05T10:40:00Z'
     },
     {
