@@ -13,6 +13,11 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import SocialConnect from "./pages/SocialConnect";
+import Messaging from "./pages/Messaging";
+import CreatorProfile from "./pages/CreatorProfile";
+import BrandDeals from "./pages/BrandDeals";
+import Plans from "./pages/Plans";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +38,31 @@ const App = () => (
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/social-connect" element={
+              <ProtectedRoute>
+                <SocialConnect />
+              </ProtectedRoute>
+            } />
+            <Route path="/messages" element={
+              <ProtectedRoute>
+                <Messaging />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <CreatorProfile />
+              </ProtectedRoute>
+            } />
+            <Route path="/deals" element={
+              <ProtectedRoute>
+                <BrandDeals />
+              </ProtectedRoute>
+            } />
+            <Route path="/plans" element={
+              <ProtectedRoute>
+                <Plans />
               </ProtectedRoute>
             } />
             
