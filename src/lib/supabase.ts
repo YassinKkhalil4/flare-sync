@@ -20,12 +20,22 @@ const createMockClient = () => {
       getUser: async () => ({ data: { user: null }, error: null }),
       getSession: async () => ({ data: { session: null }, error: null }),
       signIn: async () => ({ data: null, error: new Error('Mock client - authentication not available') }),
-      signOut: async () => ({ error: null })
+      signOut: async () => ({ error: null }),
+      onAuthStateChange: () => ({ data: { subscription: null }, error: null })
     },
     from: () => ({
-      select: () => ({ data: [], error: null }),
+      select: () => ({
+        data: [], 
+        error: null,
+        eq: () => ({ data: [], error: null }),
+        neq: () => ({ data: [], error: null }),
+        order: () => ({ data: [], error: null }),
+        limit: () => ({ data: [], error: null }),
+        single: () => ({ data: null, error: null }),
+        maybeSingle: () => ({ data: null, error: null })
+      }),
       insert: () => ({ data: null, error: null }),
-      update: () => ({ data: null, error: null }),
+      update: () => ({ data: null, error: null, eq: () => ({ data: null, error: null, select: () => ({ data: null, error: null, single: () => ({ data: null, error: null }) }) }) }),
       delete: () => ({ data: null, error: null }),
       eq: () => ({ data: [], error: null }),
       neq: () => ({ data: [], error: null }),
@@ -33,7 +43,13 @@ const createMockClient = () => {
       limit: () => ({ data: [], error: null }),
       single: () => ({ data: null, error: null }),
       maybeSingle: () => ({ data: null, error: null })
-    })
+    }),
+    storage: {
+      from: () => ({
+        upload: async () => ({ data: null, error: null }),
+        getPublicUrl: () => ({ data: { publicUrl: '' }, error: null })
+      })
+    }
   };
   return mockClient as unknown as ReturnType<typeof createClient<Database>>;
 };
@@ -45,3 +61,4 @@ export const supabase = (supabaseUrl && supabaseAnonKey)
 
 // Export a function to check if we're using a real Supabase client
 export const isRealSupabaseClient = () => Boolean(supabaseUrl && supabaseAnonKey);
+

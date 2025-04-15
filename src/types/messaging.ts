@@ -39,3 +39,10 @@ export interface SocialProfile {
     engagement: number;
   };
 }
+
+export interface SocialService {
+  getProfiles: () => Promise<SocialProfile[]>;
+  connectPlatform: (platform: string, code?: string, state?: string) => Promise<SocialProfile>;
+  disconnectPlatform: (platformId: string) => Promise<void>;
+  syncPlatform: (platformId: string) => Promise<SocialProfile>;
+}

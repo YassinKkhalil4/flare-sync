@@ -33,6 +33,25 @@ const useMockMessagingData = () => {
       await new Promise(resolve => setTimeout(resolve, 200));
       // Mock implementation would update the local state
       return;
+    },
+    
+    createConversation: async (partnerData: { id: string, name: string, avatar: string, type: string }): Promise<Conversation> => {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const newConversation: Conversation = {
+        id: `new-${Date.now()}`,
+        partner: {
+          id: partnerData.id,
+          name: partnerData.name,
+          avatar: partnerData.avatar,
+          type: partnerData.type
+        },
+        lastMessage: {
+          content: 'New conversation started',
+          timestamp: new Date().toISOString(),
+          read: true
+        }
+      };
+      return newConversation;
     }
   };
 };
@@ -69,7 +88,7 @@ export const MessagingAPI = {
           
           if (messagesError) throw messagesError;
           
-          const lastMessage = messages[0] || { 
+          const lastMessage = messages && messages[0] ? messages[0] : { 
             content: 'No messages yet', 
             timestamp: new Date().toISOString(),
             read: true
@@ -185,6 +204,52 @@ export const MessagingAPI = {
     } catch (error) {
       console.error('Error marking messages as read:', error);
       return useMockMessagingData().markAsRead(conversationId);
+    }
+  },
+  
+  // Create a new conversation
+  createConversation: async (partnerData: { id: string, name: string, avatar: string, type: string }): Promise<Conversation> => {
+    if (!isRealSupabaseClient()) {
+      return useMockMessagingData().createConversation(partnerData);
+    }
+    
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error('User not authenticated');
+      
+      const newConversation = {
+        partner_id: partnerData.id,
+        partner_name: partnerData.name,
+        partner_avatar: partnerData.avatar,
+        partner_type: partnerData.type,
+        user_id: user.user.id
+      };
+      
+      const { data, error } = await supabase
+        .from('conversations')
+        .insert(newConversation)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      return {
+        id: data.id,
+        partner: {
+          id: data.partner_id,
+          name: data.partner_name,
+          avatar: data.partner_avatar,
+          type: data.partner_type
+        },
+        lastMessage: {
+          content: 'New conversation started',
+          timestamp: new Date().toISOString(),
+          read: true
+        }
+      };
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      return useMockMessagingData().createConversation(partnerData);
     }
   }
 };

@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Instagram, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Instagram, CheckCircle2, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { SocialService } from '../services/api';
@@ -15,6 +16,7 @@ const SocialConnect = () => {
   const [profiles, setProfiles] = useState<SocialProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     const fetchProfiles = async () => {
@@ -135,6 +137,42 @@ const SocialConnect = () => {
       setIsConnecting(false);
     }
   };
+  
+  const syncInstagramData = async () => {
+    setIsSyncing(true);
+    try {
+      const instagramProfile = profiles.find(p => p.platform === 'instagram');
+      if (!instagramProfile || !instagramProfile.connected) {
+        throw new Error('No connected Instagram profile found');
+      }
+      
+      // Sync data
+      const updatedProfile = await SocialService.syncPlatform(instagramProfile.id);
+      
+      // Update profiles list
+      setProfiles(prev => 
+        prev.map(profile => 
+          profile.id === updatedProfile.id 
+            ? updatedProfile
+            : profile
+        )
+      );
+      
+      toast({
+        title: "Instagram data synced",
+        description: "Your Instagram stats have been updated.",
+      });
+    } catch (error) {
+      console.error('Failed to sync Instagram data:', error);
+      toast({
+        title: "Error syncing data",
+        description: "Could not sync your Instagram data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Get Instagram profile from our profiles state
   const instagramProfile = profiles.find(p => p.platform === 'instagram');
@@ -191,9 +229,25 @@ const SocialConnect = () => {
                     <p className="text-xs text-muted-foreground">Engagement</p>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Last synced: {new Date(instagramProfile.lastSynced || '').toLocaleString()}
-                </p>
+                <div className="flex justify-between items-center mt-2">
+                  <p className="text-xs text-muted-foreground">
+                    Last synced: {new Date(instagramProfile.lastSynced || '').toLocaleString()}
+                  </p>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 p-2"
+                    onClick={syncInstagramData}
+                    disabled={isSyncing}
+                  >
+                    {isSyncing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                    <span className="ml-2">{isSyncing ? 'Syncing...' : 'Sync Data'}</span>
+                  </Button>
+                </div>
               </div>
             ) : null}
             <p className="text-sm text-muted-foreground">

@@ -26,12 +26,12 @@ const useMockSocialData = () => {
     
     connectPlatform: async (platform: string): Promise<SocialProfile> => {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      localStorage.setItem('instagram_connected', 'true');
+      localStorage.setItem(`${platform}_connected`, 'true');
       return {
-        id: 'instagram-1',
-        platform: 'instagram' as 'instagram',
+        id: `${platform}-1`,
+        platform: platform as 'instagram',
         username: 'creator_profile',
-        profileUrl: 'https://instagram.com/creator_profile',
+        profileUrl: `https://${platform}.com/creator_profile`,
         connected: true
       };
     },
@@ -40,6 +40,23 @@ const useMockSocialData = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       localStorage.removeItem('instagram_connected');
       return;
+    },
+    
+    syncPlatform: async (platformId: string): Promise<SocialProfile> => {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return {
+        id: platformId,
+        platform: 'instagram',
+        username: 'creator_profile',
+        profileUrl: 'https://instagram.com/creator_profile',
+        connected: true,
+        lastSynced: new Date().toISOString(),
+        stats: {
+          followers: Math.floor(Math.random() * 2000) + 10000,
+          posts: Math.floor(Math.random() * 10) + 70,
+          engagement: parseFloat((Math.random() * 2 + 3).toFixed(1))
+        }
+      };
     }
   };
 };
@@ -84,7 +101,7 @@ export const SocialAPI = {
   },
   
   // Connect to a social platform
-  connectPlatform: async (platform: string, code: string, state: string): Promise<SocialProfile> => {
+  connectPlatform: async (platform: string, code?: string, state?: string): Promise<SocialProfile> => {
     if (!isRealSupabaseClient()) {
       return useMockSocialData().connectPlatform(platform);
     }
@@ -129,7 +146,7 @@ export const SocialAPI = {
             access_token: 'mock_access_token'
           })
           .eq('id', existingProfile.id)
-          .select()
+          .select('*')
           .single();
         
         if (error) throw error;
@@ -139,7 +156,7 @@ export const SocialAPI = {
         const { data, error } = await supabase
           .from('social_profiles')
           .insert(profileData)
-          .select()
+          .select('*')
           .single();
         
         if (error) throw error;
@@ -182,6 +199,65 @@ export const SocialAPI = {
       console.error('Error disconnecting social platform:', error);
       // Fall back to mock implementation
       return useMockSocialData().disconnectPlatform();
+    }
+  },
+  
+  // Sync platform data (followers, posts, etc.)
+  syncPlatform: async (platformId: string): Promise<SocialProfile> => {
+    if (!isRealSupabaseClient()) {
+      return useMockSocialData().syncPlatform(platformId);
+    }
+    
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error('User not authenticated');
+      
+      // Get the platform data
+      const { data: profile, error: profileError } = await supabase
+        .from('social_profiles')
+        .select('*')
+        .eq('id', platformId)
+        .eq('user_id', user.user.id)
+        .single();
+      
+      if (profileError) throw profileError;
+      if (!profile) throw new Error('Profile not found');
+      
+      // Call Supabase edge function to sync data
+      const functionName = `sync-${profile.platform}`;
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Update profile with new data
+      const { data: updatedProfile, error: updateError } = await supabase
+        .from('social_profiles')
+        .select('*')
+        .eq('id', platformId)
+        .single();
+      
+      if (updateError) throw updateError;
+      
+      return {
+        id: updatedProfile.id,
+        platform: updatedProfile.platform as 'instagram' | 'tiktok' | 'youtube' | 'twitter',
+        username: updatedProfile.username,
+        profileUrl: updatedProfile.profile_url,
+        connected: updatedProfile.connected,
+        lastSynced: updatedProfile.last_synced,
+        stats: {
+          followers: updatedProfile.followers || 0,
+          posts: updatedProfile.posts || 0,
+          engagement: updatedProfile.engagement || 0
+        }
+      };
+    } catch (error) {
+      console.error('Error syncing platform data:', error);
+      return useMockSocialData().syncPlatform(platformId);
     }
   }
 };
