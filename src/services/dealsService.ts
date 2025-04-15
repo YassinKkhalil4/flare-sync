@@ -1,5 +1,5 @@
 
-import { supabase, isRealSupabaseClient } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 interface BrandDeal {
   id: string;
@@ -51,55 +51,9 @@ const mockDeals: BrandDeal[] = [
   }
 ];
 
-const useMockDealData = () => {
-  let deals = [...mockDeals];
-  
-  return {
-    getDeals: async (userType: 'creator' | 'brand'): Promise<BrandDeal[]> => {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return deals;
-    },
-    
-    createDeal: async (deal: Omit<BrandDeal, 'id' | 'created_at'>): Promise<BrandDeal> => {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const newDeal = {
-        ...deal,
-        id: `deal-${Date.now()}`,
-        created_at: new Date().toISOString()
-      };
-      deals.push(newDeal);
-      return newDeal;
-    },
-    
-    updateDealStatus: async (dealId: string, status: 'accepted' | 'rejected' | 'completed'): Promise<BrandDeal> => {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const index = deals.findIndex(d => d.id === dealId);
-      if (index === -1) throw new Error('Deal not found');
-      
-      deals[index] = {
-        ...deals[index],
-        status
-      };
-      
-      return deals[index];
-    },
-    
-    getDeal: async (dealId: string): Promise<BrandDeal> => {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const deal = deals.find(d => d.id === dealId);
-      if (!deal) throw new Error('Deal not found');
-      return deal;
-    }
-  };
-};
-
 export const DealsAPI = {
   // Get all deals for the current user
   getDeals: async (userType: 'creator' | 'brand'): Promise<BrandDeal[]> => {
-    if (!isRealSupabaseClient()) {
-      return useMockDealData().getDeals(userType);
-    }
-    
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('User not authenticated');
@@ -114,19 +68,15 @@ export const DealsAPI = {
       
       if (error) throw error;
       
-      return data;
+      return data || mockDeals;
     } catch (error) {
       console.error('Error fetching deals:', error);
-      return useMockDealData().getDeals(userType);
+      return mockDeals;
     }
   },
   
   // Create a new deal (as a brand)
   createDeal: async (deal: Omit<BrandDeal, 'id' | 'created_at'>): Promise<BrandDeal> => {
-    if (!isRealSupabaseClient()) {
-      return useMockDealData().createDeal(deal);
-    }
-    
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('User not authenticated');
@@ -152,16 +102,18 @@ export const DealsAPI = {
       return data;
     } catch (error) {
       console.error('Error creating deal:', error);
-      return useMockDealData().createDeal(deal);
+      // Return mock data with a generated id
+      const mockDeal = {
+        ...deal,
+        id: `deal-${Date.now()}`,
+        created_at: new Date().toISOString()
+      };
+      return mockDeal;
     }
   },
   
   // Update deal status (as a creator)
   updateDealStatus: async (dealId: string, status: 'accepted' | 'rejected' | 'completed'): Promise<BrandDeal> => {
-    if (!isRealSupabaseClient()) {
-      return useMockDealData().updateDealStatus(dealId, status);
-    }
-    
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('User not authenticated');
@@ -191,16 +143,19 @@ export const DealsAPI = {
       return data;
     } catch (error) {
       console.error('Error updating deal status:', error);
-      return useMockDealData().updateDealStatus(dealId, status);
+      // Return mock updated deal
+      const mockDeal = mockDeals.find(d => d.id === dealId);
+      if (!mockDeal) throw new Error('Deal not found');
+      
+      return {
+        ...mockDeal,
+        status
+      };
     }
   },
   
   // Get a specific deal
   getDeal: async (dealId: string): Promise<BrandDeal> => {
-    if (!isRealSupabaseClient()) {
-      return useMockDealData().getDeal(dealId);
-    }
-    
     try {
       const { data, error } = await supabase
         .from('brand_deals')
@@ -213,7 +168,11 @@ export const DealsAPI = {
       return data;
     } catch (error) {
       console.error('Error fetching deal:', error);
-      return useMockDealData().getDeal(dealId);
+      // Return mock deal
+      const mockDeal = mockDeals.find(d => d.id === dealId);
+      if (!mockDeal) throw new Error('Deal not found');
+      
+      return mockDeal;
     }
   }
 };

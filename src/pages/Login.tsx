@@ -1,131 +1,178 @@
 
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Instagram, Twitter, Facebook } from 'lucide-react';
-import Logo from '../components/Logo';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 const Login = () => {
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login } = useAuth();
+  const [name, setName] = useState('');
+  const [role, setRole] = useState<'creator' | 'brand'>('creator');
+  const [isLoading, setIsLoading] = useState(false);
+  const { login, signup, user } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setIsLoading(true);
 
     try {
-      await login(email, password);
+      if (isLogin) {
+        await login(email, password);
+        toast({
+          title: 'Login successful',
+          description: 'Welcome back to FlareSync!',
+        });
+      } else {
+        if (!name) {
+          throw new Error('Please enter your name');
+        }
+        await signup(email, password, name, role);
+        toast({
+          title: 'Signup successful',
+          description: 'Welcome to FlareSync!',
+        });
+      }
       navigate('/dashboard');
     } catch (error) {
-      console.error('Login error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
+      toast({
+        title: isLogin ? 'Login failed' : 'Signup failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
+  const toggleAuthMode = () => {
+    setIsLogin(!isLogin);
+  };
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-background to-muted p-4 sm:p-8">
-      <div className="absolute top-8 left-8">
-        <Logo />
-      </div>
-      
-      <Card className="w-full max-w-md border-muted shadow-lg">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Sign In</CardTitle>
-          <CardDescription className="text-center">
-            Enter your credentials to access your account
+    <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>{isLogin ? 'Login' : 'Create an Account'}</CardTitle>
+          <CardDescription>
+            {isLogin
+              ? 'Enter your credentials to access your account'
+              : 'Fill in the details below to create your account'}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">Email</label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="your@email.com" 
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
                 required
-                className="w-full"
               />
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label htmlFor="password" className="text-sm font-medium">Password</label>
-                <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
-              <Input 
-                id="password" 
-                type="password" 
-                placeholder="••••••••" 
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
                 required
-                className="w-full"
               />
             </div>
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></span>
-                  Signing in...
-                </>
-              ) : (
+
+            {!isLogin && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Account Type</Label>
+                  <div className="flex gap-4">
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        id="creator"
+                        name="role"
+                        value="creator"
+                        checked={role === 'creator'}
+                        onChange={() => setRole('creator')}
+                        className="mr-2"
+                      />
+                      <Label htmlFor="creator">Creator</Label>
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        type="radio"
+                        id="brand"
+                        name="role"
+                        value="brand"
+                        checked={role === 'brand'}
+                        onChange={() => setRole('brand')}
+                        className="mr-2"
+                      />
+                      <Label htmlFor="brand">Brand</Label>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+          <CardFooter className="flex flex-col">
+            <Button disabled={isLoading} type="submit" className="w-full">
+              {isLoading ? (
+                <div className="flex items-center">
+                  <svg className="animate-spin mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </div>
+              ) : isLogin ? (
                 'Sign In'
+              ) : (
+                'Create Account'
               )}
             </Button>
-          </form>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-muted"></div>
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={toggleAuthMode}
+                className="text-sm text-blue-600 hover:text-blue-800"
+              >
+                {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+              </button>
             </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button variant="outline" className="w-full">
-              <Instagram size={16} className="mr-2" />
-              Instagram
-            </Button>
-            <Button variant="outline" className="w-full">
-              <Twitter size={16} className="mr-2" />
-              Twitter
-            </Button>
-            <Button variant="outline" className="w-full">
-              <Facebook size={16} className="mr-2" />
-              Facebook
-            </Button>
-          </div>
-        </CardContent>
-        <CardFooter className="justify-center">
-          <p className="text-sm text-muted-foreground">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-primary hover:underline">
-              Sign up
-            </Link>
-          </p>
-        </CardFooter>
+          </CardFooter>
+        </form>
       </Card>
-
-      <p className="mt-6 text-center text-sm text-muted-foreground">
-        Demo credentials: demo@flaresync.com / password
-      </p>
     </div>
   );
 };
