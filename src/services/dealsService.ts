@@ -18,7 +18,7 @@ interface BrandDeal {
 }
 
 // Mock deals for development
-const mockDeals = [
+const mockDeals: BrandDeal[] = [
   {
     id: '1',
     brand_id: 'brand1',
