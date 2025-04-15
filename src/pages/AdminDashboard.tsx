@@ -1,375 +1,486 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MessagingService, SocialService } from '../services/api';
-import { Conversation, SocialProfile } from '../types/messaging';
-import { BarChart, Users, Activity, MessageSquare, Loader2, Instagram } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { formatDate } from '../utils/mockMessagingData';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Label } from '@/components/ui/label';
+import { MessagingService, SocialService } from '../services/api';
+import { supabase } from '../lib/supabase';
+import {
+  Users,
+  MessageSquare,
+  Instagram,
+  Search,
+  UserCheck,
+  UserX,
+  Trash2,
+  PieChart,
+  Settings,
+  AlertCircle,
+  Loader2,
+} from 'lucide-react';
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useToast } from '@/hooks/use-toast';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [socialProfiles, setSocialProfiles] = useState<SocialProfile[]>([]);
-  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
-  const [isLoadingSocial, setIsLoadingSocial] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState('overview');
+  const [users, setUsers] = useState([]);
+  const [conversations, setConversations] = useState([]);
+  const [socialProfiles, setSocialProfiles] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const fetchData = async () => {
-      // Fetch conversations
-      setIsLoadingConversations(true);
+    const fetchAdminData = async () => {
+      setIsLoading(true);
       try {
-        const conversationsData = await MessagingService.getConversations();
-        setConversations(conversationsData);
+        // Fetch users
+        const { data: userData, error: userError } = await supabase
+          .from('profiles')
+          .select('*');
+          
+        if (userError) throw userError;
+        
+        // Fetch conversations
+        const { data: conversationData, error: conversationError } = await supabase
+          .from('conversations')
+          .select('*');
+          
+        if (conversationError) throw conversationError;
+        
+        // Fetch social profiles
+        const { data: profileData, error: profileError } = await supabase
+          .from('social_profiles')
+          .select('*');
+          
+        if (profileError) throw profileError;
+        
+        setUsers(userData || []);
+        setConversations(conversationData || []);
+        setSocialProfiles(profileData || []);
       } catch (error) {
-        console.error('Failed to fetch conversations:', error);
+        console.error('Error fetching admin data:', error);
         toast({
-          title: 'Error',
-          description: 'Failed to load conversations data.',
+          title: 'Error loading admin data',
+          description: 'Please try again or contact support.',
           variant: 'destructive',
         });
       } finally {
-        setIsLoadingConversations(false);
-      }
-
-      // Fetch social profiles
-      setIsLoadingSocial(true);
-      try {
-        const profilesData = await SocialService.getProfiles();
-        setSocialProfiles(profilesData);
-      } catch (error) {
-        console.error('Failed to fetch social profiles:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load social media data.',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoadingSocial(false);
+        setIsLoading(false);
       }
     };
-
-    fetchData();
+    
+    fetchAdminData();
   }, [toast]);
-
-  // Count unread messages
-  const unreadCount = conversations.filter(c => !c.lastMessage.read).length;
   
-  // Get Instagram stats
-  const instagramProfile = socialProfiles.find(p => p.platform === 'instagram');
+  const handleSuspendUser = async (userId) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ suspended: true })
+        .eq('id', userId);
+        
+      if (error) throw error;
+      
+      setUsers(users.map(u => u.id === userId ? {...u, suspended: true} : u));
+      
+      toast({
+        title: 'User suspended',
+        description: 'User has been suspended successfully.',
+      });
+    } catch (error) {
+      console.error('Error suspending user:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not suspend user. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const handleRestoreUser = async (userId) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ suspended: false })
+        .eq('id', userId);
+        
+      if (error) throw error;
+      
+      setUsers(users.map(u => u.id === userId ? {...u, suspended: false} : u));
+      
+      toast({
+        title: 'User restored',
+        description: 'User has been restored successfully.',
+      });
+    } catch (error) {
+      console.error('Error restoring user:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not restore user. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const handleDeleteConversation = async (conversationId) => {
+    try {
+      // Delete messages first
+      const { error: messagesError } = await supabase
+        .from('messages')
+        .delete()
+        .eq('conversation_id', conversationId);
+        
+      if (messagesError) throw messagesError;
+      
+      // Then delete conversation
+      const { error } = await supabase
+        .from('conversations')
+        .delete()
+        .eq('id', conversationId);
+        
+      if (error) throw error;
+      
+      setConversations(conversations.filter(c => c.id !== conversationId));
+      
+      toast({
+        title: 'Conversation deleted',
+        description: 'Conversation and all its messages have been deleted.',
+      });
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not delete conversation. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="container py-12 flex justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Loading Admin Dashboard</h2>
+          <p className="text-muted-foreground">Please wait while we load your data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container max-w-6xl py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-      </div>
+    <div className="container py-6 max-w-7xl">
+      <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+      <p className="text-muted-foreground mb-6">Manage users, conversations, and platform data</p>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="messaging">Messaging</TabsTrigger>
-          <TabsTrigger value="social">Social Media</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Conversations
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <MessageSquare className="h-4 w-4 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">
-                    {isLoadingConversations ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : conversations.length}
+      <div className="flex justify-between mb-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-8">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="conversations">Conversations</TabsTrigger>
+            <TabsTrigger value="social">Social Connections</TabsTrigger>
+          </TabsList>
+          
+          {/* Overview Tab */}
+          <TabsContent value="overview">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{users.length}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {users.filter(u => u.suspended).length} suspended
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Conversations</CardTitle>
+                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{conversations.length}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Active message threads
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Connected Accounts</CardTitle>
+                  <Instagram className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">
+                    {socialProfiles.filter(p => p.connected).length}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <p className="text-xs text-muted-foreground">
+                    Instagram connections
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
             
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Unread Messages
-                </CardTitle>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>
+                  Overview of the latest platform activities
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center">
-                  <Activity className="h-4 w-4 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">
-                    {isLoadingConversations ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : unreadCount}
-                  </div>
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg">
+                      <div className="h-2 w-2 rounded-full bg-primary"></div>
+                      <div>
+                        <p className="text-sm">
+                          New user registration: <span className="font-medium">user123@email.com</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(Date.now() - i * 3600000).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+          
+          {/* Users Tab */}
+          <TabsContent value="users">
+            <div className="flex items-center gap-2 mb-4">
+              <Search className="w-4 h-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search users by email or name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1"
+              />
+            </div>
             
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Connected Platforms
-                </CardTitle>
+              <CardHeader>
+                <CardTitle>All Users</CardTitle>
+                <CardDescription>Manage user accounts and permissions</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center">
-                  <Users className="h-4 w-4 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">
-                    {isLoadingSocial ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : socialProfiles.filter(p => p.connected).length}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Instagram Followers
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <Instagram className="h-4 w-4 text-muted-foreground mr-2" />
-                  <div className="text-2xl font-bold">
-                    {isLoadingSocial || !instagramProfile?.stats ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : instagramProfile.stats.followers.toLocaleString()}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-8">
-                {isLoadingConversations ? (
-                  <div className="flex justify-center py-4">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <h3 className="font-semibold mb-3 pb-2 border-b">Recent Messages</h3>
-                      {conversations.length > 0 ? (
-                        <div className="space-y-3">
-                          {conversations.slice(0, 3).map(conversation => (
-                            <div key={conversation.id} className="flex items-center gap-3">
-                              <Avatar>
-                                <AvatarImage src={conversation.partner.avatar} />
-                                <AvatarFallback>{conversation.partner.name.charAt(0)}</AvatarFallback>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Joined</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users
+                      .filter(u => 
+                        u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        u.name?.toLowerCase().includes(searchQuery.toLowerCase())
+                      )
+                      .map((user, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={user.avatar_url || `https://api.dicebear.com/6.x/initials/svg?seed=${user.name}`} />
+                                <AvatarFallback>{user.name?.charAt(0) || 'U'}</AvatarFallback>
                               </Avatar>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium">{conversation.partner.name}</p>
-                                <p className="text-sm text-muted-foreground truncate">
-                                  {conversation.lastMessage.content}
-                                </p>
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {formatDate(conversation.lastMessage.timestamp).split(',')[0]}
-                              </div>
+                              <span>{user.name || 'Anonymous'}</span>
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">No recent messages</p>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <h3 className="font-semibold mb-3 pb-2 border-b">Social Media Activity</h3>
-                      {socialProfiles.some(p => p.connected) ? (
-                        <div className="space-y-3">
-                          {socialProfiles
-                            .filter(p => p.connected)
-                            .map(profile => (
-                              <div key={profile.id} className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                                  {profile.platform === 'instagram' && <Instagram className="h-5 w-5" />}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium capitalize">{profile.platform}</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    @{profile.username}
-                                  </p>
-                                </div>
-                                {profile.lastSynced && (
-                                  <div className="text-xs text-muted-foreground">
-                                    Last synced: {new Date(profile.lastSynced).toLocaleDateString()}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">No connected social platforms</p>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full">View All Activity</Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="messaging" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Messaging Overview</CardTitle>
-              <CardDescription>
-                Monitor and manage conversations with brands and creators
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingConversations ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <h3 className="font-semibold">All Conversations</h3>
-                  <div className="border rounded-md overflow-hidden">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="bg-muted">
-                          <th className="text-left p-3">Partner</th>
-                          <th className="text-left p-3">Type</th>
-                          <th className="text-left p-3">Last Message</th>
-                          <th className="text-left p-3">Date</th>
-                          <th className="text-left p-3">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {conversations.map(conversation => (
-                          <tr key={conversation.id} className="hover:bg-muted/50">
-                            <td className="p-3">
-                              <div className="flex items-center gap-2">
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage src={conversation.partner.avatar} />
-                                  <AvatarFallback>{conversation.partner.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <span className="font-medium">{conversation.partner.name}</span>
-                              </div>
-                            </td>
-                            <td className="p-3 capitalize">{conversation.partner.type}</td>
-                            <td className="p-3 truncate max-w-[200px]">{conversation.lastMessage.content}</td>
-                            <td className="p-3">{formatDate(conversation.lastMessage.timestamp)}</td>
-                            <td className="p-3">
-                              <span className={`px-2 py-1 rounded-full text-xs ${
-                                conversation.lastMessage.read ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
-                              }`}>
-                                {conversation.lastMessage.read ? 'Read' : 'Unread'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="social" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Social Media Accounts</CardTitle>
-              <CardDescription>
-                Manage your connected social media accounts
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingSocial ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {socialProfiles.length > 0 ? (
-                    socialProfiles.map(profile => (
-                      <Card key={profile.id}>
-                        <CardHeader>
-                          <div className="flex items-center gap-4">
-                            <div className={`rounded-full p-2 ${
-                              profile.platform === 'instagram' ? 'bg-pink-100' : 'bg-blue-100'
+                          </TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              user.suspended ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
                             }`}>
-                              {profile.platform === 'instagram' && <Instagram className="h-5 w-5 text-pink-500" />}
-                            </div>
-                            <div>
-                              <CardTitle className="capitalize">{profile.platform}</CardTitle>
-                              <CardDescription>@{profile.username}</CardDescription>
-                            </div>
-                            <div className="ml-auto">
-                              <span className={`px-2 py-1 rounded-full text-xs ${
-                                profile.connected ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                              }`}>
-                                {profile.connected ? 'Connected' : 'Disconnected'}
-                              </span>
-                            </div>
+                              {user.suspended ? 'Suspended' : 'Active'}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {user.suspended ? (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex items-center gap-1"
+                                onClick={() => handleRestoreUser(user.id)}
+                              >
+                                <UserCheck className="h-3.5 w-3.5" />
+                                <span>Restore</span>
+                              </Button>
+                            ) : (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex items-center gap-1 text-red-500 hover:text-red-600"
+                                onClick={() => handleSuspendUser(user.id)}
+                              >
+                                <UserX className="h-3.5 w-3.5" />
+                                <span>Suspend</span>
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Conversations Tab */}
+          <TabsContent value="conversations">
+            <Card>
+              <CardHeader>
+                <CardTitle>Message Threads</CardTitle>
+                <CardDescription>Manage conversations between users and brands</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Conversation</TableHead>
+                      <TableHead>Partners</TableHead>
+                      <TableHead>Messages</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {conversations.map((conversation, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={conversation.partner_avatar || `https://api.dicebear.com/6.x/initials/svg?seed=${conversation.partner_name}`} />
+                              <AvatarFallback>{conversation.partner_name?.charAt(0) || 'C'}</AvatarFallback>
+                            </Avatar>
+                            <span>Thread #{conversation.id.substring(0, 8)}</span>
                           </div>
-                        </CardHeader>
-                        {profile.connected && profile.stats && (
-                          <CardContent>
-                            <div className="grid grid-cols-3 gap-4 text-center">
-                              <div className="p-4 bg-muted rounded-md">
-                                <p className="text-2xl font-bold">{profile.stats.followers.toLocaleString()}</p>
-                                <p className="text-xs text-muted-foreground">Followers</p>
-                              </div>
-                              <div className="p-4 bg-muted rounded-md">
-                                <p className="text-2xl font-bold">{profile.stats.posts}</p>
-                                <p className="text-xs text-muted-foreground">Posts</p>
-                              </div>
-                              <div className="p-4 bg-muted rounded-md">
-                                <p className="text-2xl font-bold">{profile.stats.engagement}%</p>
-                                <p className="text-xs text-muted-foreground">Engagement</p>
-                              </div>
-                            </div>
-                          </CardContent>
-                        )}
-                        <CardFooter className="flex justify-between">
-                          <Button variant="outline" size="sm">View Details</Button>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="text-sm">{conversation.partner_name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {conversation.partner_type === 'brand' ? 'Brand' : 'Creator'}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-800 text-xs">
+                            15 messages
+                          </span>
+                        </TableCell>
+                        <TableCell>{new Date(conversation.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>
                           <Button 
-                            variant={profile.connected ? "destructive" : "default"} 
-                            size="sm"
+                            variant="outline" 
+                            size="sm" 
+                            className="flex items-center gap-1 text-red-500 hover:text-red-600"
+                            onClick={() => handleDeleteConversation(conversation.id)}
                           >
-                            {profile.connected ? "Disconnect" : "Connect"}
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span>Delete</span>
                           </Button>
-                        </CardFooter>
-                      </Card>
-                    ))
-                  ) : (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground mb-4">No social media accounts connected</p>
-                      <Button>Connect an Account</Button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Social Tab */}
+          <TabsContent value="social">
+            <Card>
+              <CardHeader>
+                <CardTitle>Connected Social Accounts</CardTitle>
+                <CardDescription>Management of platform integrations</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Platform</TableHead>
+                      <TableHead>User</TableHead>
+                      <TableHead>Username</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Last Synced</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {socialProfiles.map((profile, i) => (
+                      <TableRow key={i}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {profile.platform === 'instagram' && (
+                              <Instagram className="h-4 w-4 text-pink-500" />
+                            )}
+                            <span className="capitalize">{profile.platform}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {users.find(u => u.id === profile.user_id)?.email || profile.user_id}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {profile.username}
+                        </TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            profile.connected ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {profile.connected ? 'Connected' : 'Disconnected'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {profile.last_synced 
+                            ? new Date(profile.last_synced).toLocaleString() 
+                            : 'Never'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+            
+            <div className="mt-6">
+              <Card className="bg-amber-50 border-amber-200">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-amber-500" />
+                    <CardTitle className="text-amber-800">Instagram API Limits</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-amber-800 text-sm">
+                    The Instagram Graph API has a rate limit of 200 requests per user per hour.
+                    Current usage: 42/200 requests (21%)
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };

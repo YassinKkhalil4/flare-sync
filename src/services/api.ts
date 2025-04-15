@@ -1,88 +1,238 @@
 
 import { Conversation, Message, MessageRequest, SocialProfile } from '../types/messaging';
+import { supabase } from '../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
-// Base API URL - would come from environment variables in a real app
-const API_URL = '/api';
-
-// Helper function for API requests
-async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-  // In a real app, you would get the auth token from your auth provider
-  const token = localStorage.getItem('auth_token');
-  
-  const defaultOptions: RequestInit = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-      ...(options.headers || {})
-    }
-  };
-
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...defaultOptions,
-    ...options
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'An error occurred while fetching data');
-  }
-
-  return response.json();
-}
-
-// Messaging API
+// Real API implementation using Supabase
 export const MessagingAPI = {
   // Get all conversations for the current user
   getConversations: async (): Promise<Conversation[]> => {
-    return fetchWithAuth('/conversations');
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) throw new Error('User not authenticated');
+    
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('user_id', user.user.id);
+    
+    if (error) throw error;
+    
+    // Get the last message for each conversation
+    const conversationsWithLastMessage = await Promise.all(
+      data.map(async (conv) => {
+        const { data: messages, error: messagesError } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('conversation_id', conv.id)
+          .order('timestamp', { ascending: false })
+          .limit(1);
+        
+        if (messagesError) throw messagesError;
+        
+        const lastMessage = messages[0] || { 
+          content: 'No messages yet', 
+          timestamp: new Date().toISOString(),
+          read: true
+        };
+        
+        return {
+          id: conv.id,
+          partner: {
+            id: conv.partner_id,
+            name: conv.partner_name,
+            avatar: conv.partner_avatar,
+            type: conv.partner_type
+          },
+          lastMessage: {
+            content: lastMessage.content,
+            timestamp: lastMessage.timestamp,
+            read: lastMessage.read
+          }
+        };
+      })
+    );
+    
+    return conversationsWithLastMessage;
   },
   
   // Get messages for a specific conversation
   getMessages: async (conversationId: string): Promise<Message[]> => {
-    return fetchWithAuth(`/conversations/${conversationId}/messages`);
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('timestamp', { ascending: true });
+    
+    if (error) throw error;
+    
+    return data.map(msg => ({
+      id: msg.id,
+      sender: msg.sender,
+      content: msg.content,
+      timestamp: msg.timestamp
+    }));
   },
   
   // Send a new message
   sendMessage: async (data: MessageRequest): Promise<Message> => {
-    return fetchWithAuth(`/conversations/${data.conversationId}/messages`, {
-      method: 'POST',
-      body: JSON.stringify({ content: data.content })
-    });
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) throw new Error('User not authenticated');
+    
+    const newMessage = {
+      conversation_id: data.conversationId,
+      sender: 'me',
+      content: data.content,
+      timestamp: new Date().toISOString(),
+      read: true,
+      user_id: user.user.id
+    };
+    
+    const { data: insertedData, error } = await supabase
+      .from('messages')
+      .insert(newMessage)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    return {
+      id: insertedData.id,
+      sender: insertedData.sender,
+      content: insertedData.content,
+      timestamp: insertedData.timestamp
+    };
   },
   
   // Mark conversation as read
   markAsRead: async (conversationId: string): Promise<void> => {
-    return fetchWithAuth(`/conversations/${conversationId}/read`, {
-      method: 'PUT'
-    });
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) throw new Error('User not authenticated');
+    
+    const { error } = await supabase
+      .from('messages')
+      .update({ read: true })
+      .eq('conversation_id', conversationId)
+      .neq('sender', 'me');
+    
+    if (error) throw error;
   }
 };
 
-// Social Media API
+// Social Media API using Supabase
 export const SocialAPI = {
   // Get all connected social profiles
   getProfiles: async (): Promise<SocialProfile[]> => {
-    return fetchWithAuth('/social/profiles');
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) throw new Error('User not authenticated');
+    
+    const { data, error } = await supabase
+      .from('social_profiles')
+      .select('*')
+      .eq('user_id', user.user.id);
+    
+    if (error) throw error;
+    
+    return data.map(profile => ({
+      id: profile.id,
+      platform: profile.platform as 'instagram' | 'tiktok' | 'youtube' | 'twitter',
+      username: profile.username,
+      profileUrl: profile.profile_url,
+      connected: profile.connected,
+      lastSynced: profile.last_synced || undefined,
+      stats: profile.followers ? {
+        followers: profile.followers,
+        posts: profile.posts || 0,
+        engagement: profile.engagement || 0
+      } : undefined
+    }));
   },
   
   // Connect to a social platform
   connectPlatform: async (platform: string, code: string, state: string): Promise<SocialProfile> => {
-    return fetchWithAuth('/social/connect', {
-      method: 'POST',
-      body: JSON.stringify({ platform, code, state })
-    });
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) throw new Error('User not authenticated');
+    
+    // In a real implementation, this would exchange the code for an access token
+    // For now, we'll simulate this process
+    
+    // Check if profile already exists
+    const { data: existingProfile } = await supabase
+      .from('social_profiles')
+      .select('*')
+      .eq('user_id', user.user.id)
+      .eq('platform', platform)
+      .maybeSingle();
+    
+    const profileData = {
+      user_id: user.user.id,
+      platform,
+      username: platform === 'instagram' ? 'creator_profile' : 'username',
+      profile_url: `https://${platform}.com/creator_profile`,
+      connected: true,
+      last_synced: new Date().toISOString(),
+      access_token: 'mock_access_token',
+      followers: 12500,
+      posts: 78,
+      engagement: 4.2
+    };
+    
+    let result;
+    
+    if (existingProfile) {
+      // Update existing profile
+      const { data, error } = await supabase
+        .from('social_profiles')
+        .update({
+          connected: true,
+          last_synced: new Date().toISOString(),
+          access_token: 'mock_access_token'
+        })
+        .eq('id', existingProfile.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      result = data;
+    } else {
+      // Create new profile
+      const { data, error } = await supabase
+        .from('social_profiles')
+        .insert(profileData)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      result = data;
+    }
+    
+    return {
+      id: result.id,
+      platform: result.platform as 'instagram' | 'tiktok' | 'youtube' | 'twitter',
+      username: result.username,
+      profileUrl: result.profile_url,
+      connected: result.connected,
+      lastSynced: result.last_synced || undefined,
+      stats: {
+        followers: result.followers || 0,
+        posts: result.posts || 0,
+        engagement: result.engagement || 0
+      }
+    };
   },
   
   // Disconnect from a platform
   disconnectPlatform: async (platformId: string): Promise<void> => {
-    return fetchWithAuth(`/social/disconnect/${platformId}`, {
-      method: 'DELETE'
-    });
+    const { error } = await supabase
+      .from('social_profiles')
+      .update({ connected: false })
+      .eq('id', platformId);
+    
+    if (error) throw error;
   }
 };
 
 // For development - mock API implementation
-// This will be used until the real backend is available
+// This will be used when not connected to Supabase or when in development mode
 export const createMockAPI = () => {
   // Import mock data
   const { mockConversations, generateMockMessages } = require('../utils/mockMessagingData');
@@ -164,7 +314,6 @@ export const createMockAPI = () => {
 };
 
 // Export the appropriate API based on environment
-// In a real application, this would be controlled by environment variables
-const isDevelopment = process.env.NODE_ENV === 'development' || true;
+const isDevelopment = process.env.NODE_ENV === 'development';
 export const { MessagingAPI: MessagingService, SocialAPI: SocialService } = 
-  isDevelopment ? createMockAPI() : { MessagingAPI, SocialAPI };
+  (isDevelopment && !import.meta.env.VITE_USE_SUPABASE) ? createMockAPI() : { MessagingAPI, SocialAPI };

@@ -5,8 +5,17 @@ import { useToast } from '@/hooks/use-toast';
 import ConversationList from '../components/Messaging/ConversationList';
 import MessageView from '../components/Messaging/MessageView';
 import { MessagingService } from '../services/api';
-import { formatDate } from '../utils/mockMessagingData';
 import { Conversation, Message } from '../types/messaging';
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+  });
+};
 
 const Messaging = () => {
   const { user } = useAuth();
@@ -25,6 +34,10 @@ const Messaging = () => {
       try {
         const data = await MessagingService.getConversations();
         setConversations(data);
+        // Auto-select the first conversation if none is selected
+        if (!selectedConversation && data.length > 0) {
+          setSelectedConversation(data[0].id);
+        }
       } catch (error) {
         console.error('Failed to fetch conversations:', error);
         toast({
@@ -38,7 +51,7 @@ const Messaging = () => {
     };
 
     fetchConversations();
-  }, [toast]);
+  }, [toast, selectedConversation]);
 
   // Load messages when a conversation is selected
   useEffect(() => {

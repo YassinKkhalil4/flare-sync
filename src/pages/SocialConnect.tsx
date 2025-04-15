@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { SocialService } from '../services/api';
 import { SocialProfile } from '../types/messaging';
+import { supabase } from '../lib/supabase';
 
 const SocialConnect = () => {
   const { user } = useAuth();
@@ -38,72 +38,57 @@ const SocialConnect = () => {
     
     // Handle OAuth redirect callback
     const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const state = urlParams.get('state');
+    const success = urlParams.get('success');
+    const error = urlParams.get('error');
     
-    if (code && state) {
-      // Exchange the code for an access token
-      handleOAuthCallback(code, state);
-    }
-  }, [toast]);
-  
-  const handleOAuthCallback = async (code: string, state: string) => {
-    setIsConnecting(true);
-    try {
-      // Call API to exchange code for token and connect account
-      const profile = await SocialService.connectPlatform('instagram', code, state);
-      
-      // Update profiles list
-      setProfiles(prev => {
-        const exists = prev.some(p => p.id === profile.id);
-        if (exists) {
-          return prev.map(p => p.id === profile.id ? profile : p);
-        } else {
-          return [...prev, profile];
-        }
-      });
-      
+    if (success) {
       toast({
         title: "Instagram connected successfully!",
         description: "Your Instagram account has been linked to FlareSync.",
       });
-      
-      // Clear URL params
+      fetchProfiles();
       window.history.replaceState({}, document.title, window.location.pathname);
-    } catch (error) {
-      console.error('Failed to connect Instagram:', error);
+    }
+    
+    if (error) {
       toast({
         title: "Connection failed",
-        description: "Could not connect to Instagram. Please try again.",
+        description: error,
         variant: "destructive",
       });
-    } finally {
-      setIsConnecting(false);
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
-  };
+  }, [toast]);
   
   const initiateInstagramConnect = async () => {
     setIsConnecting(true);
     
     try {
-      // In a real app with a backend, we would redirect to Instagram OAuth flow
-      // For demo purposes, we'll simulate the OAuth flow using our mock service
-      const profile = await SocialService.connectPlatform('instagram', 'mock_code', 'mock_state');
+      // Get auth token to use as state parameter
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        throw new Error('User not authenticated');
+      }
       
-      // Update profiles list
-      setProfiles(prev => {
-        const exists = prev.some(p => p.id === profile.id);
-        if (exists) {
-          return prev.map(p => p.id === profile.id ? {...p, connected: true} : p);
-        } else {
-          return [...prev, profile];
-        }
-      });
+      // Instagram OAuth configuration
+      const instagramClientId = import.meta.env.VITE_INSTAGRAM_CLIENT_ID;
+      const redirectUri = import.meta.env.VITE_INSTAGRAM_REDIRECT_URI || 
+                         `${window.location.origin}/api/instagram-callback`;
       
-      toast({
-        title: "Instagram connected successfully!",
-        description: "Your Instagram account has been linked to FlareSync.",
-      });
+      if (!instagramClientId) {
+        throw new Error('Instagram client ID not configured');
+      }
+      
+      // Build Instagram authorization URL
+      const instagramAuthUrl = new URL('https://api.instagram.com/oauth/authorize');
+      instagramAuthUrl.searchParams.append('client_id', instagramClientId);
+      instagramAuthUrl.searchParams.append('redirect_uri', redirectUri);
+      instagramAuthUrl.searchParams.append('scope', 'user_profile');
+      instagramAuthUrl.searchParams.append('response_type', 'code');
+      instagramAuthUrl.searchParams.append('state', data.session.access_token);
+      
+      // Redirect to Instagram authorization page
+      window.location.href = instagramAuthUrl.toString();
     } catch (error) {
       console.error('Failed to connect Instagram:', error);
       toast({
@@ -111,7 +96,6 @@ const SocialConnect = () => {
         description: "Could not connect to Instagram. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsConnecting(false);
     }
   };
@@ -119,8 +103,13 @@ const SocialConnect = () => {
   const disconnectInstagram = async () => {
     setIsConnecting(true);
     try {
+      const instagramProfile = profiles.find(p => p.platform === 'instagram');
+      if (!instagramProfile) {
+        throw new Error('Instagram profile not found');
+      }
+      
       // Disconnect account
-      await SocialService.disconnectPlatform('instagram-1');
+      await SocialService.disconnectPlatform(instagramProfile.id);
       
       // Update profiles list
       setProfiles(prev => 
