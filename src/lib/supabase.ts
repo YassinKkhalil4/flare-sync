@@ -21,7 +21,7 @@ const createMockClient = () => {
       getSession: async () => ({ data: { session: null }, error: null }),
       signIn: async () => ({ data: null, error: new Error('Mock client - authentication not available') }),
       signOut: async () => ({ error: null }),
-      onAuthStateChange: () => ({ data: { subscription: null }, error: null })
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } }, error: null })
     },
     from: () => ({
       select: () => ({
@@ -49,6 +49,9 @@ const createMockClient = () => {
         upload: async () => ({ data: null, error: null }),
         getPublicUrl: () => ({ data: { publicUrl: '' }, error: null })
       })
+    },
+    functions: {
+      invoke: async () => ({ data: null, error: null })
     }
   };
   return mockClient as unknown as ReturnType<typeof createClient<Database>>;
@@ -62,3 +65,17 @@ export const supabase = (supabaseUrl && supabaseAnonKey)
 // Export a function to check if we're using a real Supabase client
 export const isRealSupabaseClient = () => Boolean(supabaseUrl && supabaseAnonKey);
 
+// Function to persist session in localStorage for better offline support
+export const persistSession = (session: any) => {
+  if (session) {
+    localStorage.setItem('supabase_session', JSON.stringify(session));
+  } else {
+    localStorage.removeItem('supabase_session');
+  }
+};
+
+// Function to get persisted session
+export const getPersistedSession = () => {
+  const sessionStr = localStorage.getItem('supabase_session');
+  return sessionStr ? JSON.parse(sessionStr) : null;
+};

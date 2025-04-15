@@ -110,71 +110,71 @@ export const SocialAPI = {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('User not authenticated');
       
-      // In a real implementation, this would exchange the code for an access token
-      // For now, we'll simulate this process
+      // For Instagram, we'll call our serverless function to handle OAuth
+      if (platform === 'instagram' && code && state) {
+        // Call the Instagram auth serverless function
+        const { data, error } = await supabase.functions.invoke('instagram-auth', {
+          body: JSON.stringify({ code, state })
+        });
+        
+        if (error) throw error;
+        
+        // The function should have created or updated the social profile
+        // Now we fetch it
+        const { data: profileData, error: profileError } = await supabase
+          .from('social_profiles')
+          .select('*')
+          .eq('user_id', user.user.id)
+          .eq('platform', platform)
+          .single();
+          
+        if (profileError) throw profileError;
+        
+        return {
+          id: profileData.id,
+          platform: profileData.platform as 'instagram' | 'tiktok' | 'youtube' | 'twitter',
+          username: profileData.username,
+          profileUrl: profileData.profile_url,
+          connected: profileData.connected,
+          lastSynced: profileData.last_synced || undefined,
+          stats: profileData.followers ? {
+            followers: profileData.followers,
+            posts: profileData.posts || 0,
+            engagement: profileData.engagement || 0
+          } : undefined
+        };
+      }
       
-      // Check if profile already exists
-      const { data: existingProfile } = await supabase
-        .from('social_profiles')
-        .select('*')
-        .eq('user_id', user.user.id)
-        .eq('platform', platform)
-        .maybeSingle();
-      
+      // For other platforms or without code/state, create a placeholder entry
       const profileData = {
         user_id: user.user.id,
         platform,
         username: platform === 'instagram' ? 'creator_profile' : 'username',
         profile_url: `https://${platform}.com/creator_profile`,
         connected: true,
-        last_synced: new Date().toISOString(),
-        access_token: 'mock_access_token',
-        followers: 12500,
-        posts: 78,
-        engagement: 4.2
+        last_synced: new Date().toISOString()
       };
       
-      let result;
+      const { data, error } = await supabase
+        .from('social_profiles')
+        .insert(profileData)
+        .select('*')
+        .single();
       
-      if (existingProfile) {
-        // Update existing profile
-        const { data, error } = await supabase
-          .from('social_profiles')
-          .update({
-            connected: true,
-            last_synced: new Date().toISOString(),
-            access_token: 'mock_access_token'
-          })
-          .eq('id', existingProfile.id)
-          .select('*')
-          .single();
-        
-        if (error) throw error;
-        result = data;
-      } else {
-        // Create new profile
-        const { data, error } = await supabase
-          .from('social_profiles')
-          .insert(profileData)
-          .select('*')
-          .single();
-        
-        if (error) throw error;
-        result = data;
-      }
+      if (error) throw error;
       
       return {
-        id: result.id,
-        platform: result.platform as 'instagram' | 'tiktok' | 'youtube' | 'twitter',
-        username: result.username,
-        profileUrl: result.profile_url,
-        connected: result.connected,
-        lastSynced: result.last_synced || undefined,
-        stats: {
-          followers: result.followers || 0,
-          posts: result.posts || 0,
-          engagement: result.engagement || 0
-        }
+        id: data.id,
+        platform: data.platform as 'instagram' | 'tiktok' | 'youtube' | 'twitter',
+        username: data.username,
+        profileUrl: data.profile_url,
+        connected: data.connected,
+        lastSynced: data.last_synced || undefined,
+        stats: data.followers ? {
+          followers: data.followers,
+          posts: data.posts || 0,
+          engagement: data.engagement || 0
+        } : undefined
       };
     } catch (error) {
       console.error('Error connecting social platform:', error);

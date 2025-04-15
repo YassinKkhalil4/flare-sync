@@ -172,6 +172,15 @@ export const MessagingAPI = {
       
       if (error) throw error;
       
+      // Also update the conversation's last message
+      await supabase
+        .from('conversations')
+        .update({
+          last_message: data.content,
+          last_message_time: newMessage.timestamp
+        })
+        .eq('id', data.conversationId);
+      
       return {
         id: insertedData.id,
         sender: insertedData.sender,
