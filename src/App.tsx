@@ -18,6 +18,7 @@ import Messaging from "./pages/Messaging";
 import CreatorProfile from "./pages/CreatorProfile";
 import BrandDeals from "./pages/BrandDeals";
 import Plans from "./pages/Plans";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,11 @@ const App = () => (
             <Route path="/plans" element={
               <ProtectedRoute>
                 <Plans />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <AdminDashboard />
               </ProtectedRoute>
             } />
             

@@ -4,87 +4,152 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import ConversationList from '../components/Messaging/ConversationList';
 import MessageView from '../components/Messaging/MessageView';
-import { mockConversations, generateMockMessages, formatDate } from '../utils/mockMessagingData';
+import { MessagingService } from '../services/api';
+import { formatDate } from '../utils/mockMessagingData';
+import { Conversation, Message } from '../types/messaging';
 
 const Messaging = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [conversations, setConversations] = useState(mockConversations);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
 
+  // Fetch conversations on component mount
   useEffect(() => {
-    // Load messages when a conversation is selected
+    const fetchConversations = async () => {
+      setIsLoadingConversations(true);
+      try {
+        const data = await MessagingService.getConversations();
+        setConversations(data);
+      } catch (error) {
+        console.error('Failed to fetch conversations:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load conversations. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoadingConversations(false);
+      }
+    };
+
+    fetchConversations();
+  }, [toast]);
+
+  // Load messages when a conversation is selected
+  useEffect(() => {
     if (selectedConversation) {
       setIsLoading(true);
       
-      // Simulate API call to get messages
-      setTimeout(() => {
-        const fetchedMessages = generateMockMessages(selectedConversation);
-        setMessages(fetchedMessages);
-        setIsLoading(false);
-        
-        // Mark conversation as read
-        setConversations(prevConversations => 
-          prevConversations.map(conv => 
-            conv.id === selectedConversation 
-              ? {...conv, lastMessage: {...conv.lastMessage, read: true}} 
-              : conv
-          )
-        );
-      }, 500);
+      const fetchMessages = async () => {
+        try {
+          const fetchedMessages = await MessagingService.getMessages(selectedConversation);
+          setMessages(fetchedMessages);
+          
+          // Mark conversation as read
+          await MessagingService.markAsRead(selectedConversation);
+          
+          // Update conversations list to mark as read
+          setConversations(prevConversations => 
+            prevConversations.map(conv => 
+              conv.id === selectedConversation 
+                ? {...conv, lastMessage: {...conv.lastMessage, read: true}} 
+                : conv
+            )
+          );
+        } catch (error) {
+          console.error('Failed to fetch messages:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to load messages. Please try again.',
+            variant: 'destructive',
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      fetchMessages();
     }
-  }, [selectedConversation]);
+  }, [selectedConversation, toast]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!newMessage.trim() || !selectedConversation) return;
     
-    // Add new message to the conversation
-    const newMsg = {
-      id: `new-${Date.now()}`,
+    const messageRequest = {
+      conversationId: selectedConversation,
+      content: newMessage
+    };
+    
+    // Optimistic update - add message to UI immediately
+    const tempMessage = {
+      id: `temp-${Date.now()}`,
       sender: 'me',
       content: newMessage,
       timestamp: new Date().toISOString()
     };
     
-    setMessages([...messages, newMsg]);
-    
-    // Update conversation last message
-    setConversations(prevConversations => 
-      prevConversations.map(conv => 
-        conv.id === selectedConversation 
-          ? {
-              ...conv, 
-              lastMessage: {
-                content: newMessage,
-                timestamp: new Date().toISOString(),
-                read: true
-              }
-            } 
-          : conv
-      )
-    );
-    
+    setMessages(prev => [...prev, tempMessage]);
     setNewMessage('');
     
-    // Simulate response after a delay
-    setTimeout(() => {
-      const conversation = conversations.find(c => c.id === selectedConversation);
-      if (!conversation) return;
+    try {
+      // Send message to API
+      const sentMessage = await MessagingService.sendMessage(messageRequest);
       
-      const responseMsg = {
-        id: `new-${Date.now() + 1}`,
-        sender: conversation.partner.id,
-        content: `Thanks for your message! This is an automated response from ${conversation.partner.name}.`,
-        timestamp: new Date().toISOString()
-      };
+      // Replace temp message with actual message
+      setMessages(prev => 
+        prev.map(msg => msg.id === tempMessage.id ? sentMessage : msg)
+      );
       
-      setMessages(prev => [...prev, responseMsg]);
-    }, 1000);
+      // Update conversation last message
+      setConversations(prevConversations => 
+        prevConversations.map(conv => 
+          conv.id === selectedConversation 
+            ? {
+                ...conv, 
+                lastMessage: {
+                  content: newMessage,
+                  timestamp: sentMessage.timestamp,
+                  read: true
+                }
+              } 
+            : conv
+        )
+      );
+      
+      // Simulate response after a delay
+      setTimeout(async () => {
+        const conversation = conversations.find(c => c.id === selectedConversation);
+        if (!conversation) return;
+        
+        const responseMsg = {
+          id: `new-${Date.now() + 1}`,
+          sender: conversation.partner.id,
+          content: `Thanks for your message! This is an automated response from ${conversation.partner.name}.`,
+          timestamp: new Date().toISOString()
+        };
+        
+        setMessages(prev => [...prev, responseMsg]);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      
+      // Remove the temp message and show error
+      setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
+      
+      toast({
+        title: 'Error',
+        description: 'Failed to send message. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -98,6 +163,7 @@ const Messaging = () => {
           selectedConversation={selectedConversation}
           setSelectedConversation={setSelectedConversation}
           formatDate={formatDate}
+          isLoading={isLoadingConversations}
         />
         
         {/* Message View */}

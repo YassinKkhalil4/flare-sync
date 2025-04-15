@@ -11,7 +11,8 @@ import {
   MessageSquare,
   Settings,
   LogOut,
-  Handshake
+  Handshake,
+  Shield
 } from 'lucide-react';
 import Logo from './Logo';
 import { useState } from 'react';
@@ -29,6 +30,8 @@ const Sidebar = () => {
     { name: 'Messages', path: '/messages', icon: MessageSquare },
     { name: 'Brand Deals', path: '/deals', icon: Handshake },
     { name: 'Settings', path: '/settings', icon: Settings },
+    // Add the Admin Dashboard link at the end
+    { name: 'Admin Dashboard', path: '/admin', icon: Shield },
   ];
 
   return (

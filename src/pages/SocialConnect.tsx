@@ -3,32 +3,38 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Instagram, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Instagram, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import { SocialService } from '../services/api';
+import { SocialProfile } from '../types/messaging';
 
 const SocialConnect = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isInstagramConnected, setIsInstagramConnected] = useState(false);
+  const [profiles, setProfiles] = useState<SocialProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
-    // Check if Instagram is already connected
-    const checkConnectionStatus = async () => {
+    const fetchProfiles = async () => {
+      setIsLoading(true);
       try {
-        // In a real app, this would check with the backend API
-        // For now, we'll simulate with localStorage
-        const connected = localStorage.getItem('instagram_connected');
-        if (connected === 'true') {
-          setIsInstagramConnected(true);
-        }
+        const data = await SocialService.getProfiles();
+        setProfiles(data);
       } catch (error) {
-        console.error('Failed to check Instagram connection status:', error);
+        console.error('Failed to fetch social profiles:', error);
+        toast({
+          title: "Error loading profiles",
+          description: "Could not load your connected social accounts.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
       }
     };
     
-    checkConnectionStatus();
+    fetchProfiles();
     
     // Handle OAuth redirect callback
     const urlParams = new URLSearchParams(window.location.search);
@@ -39,18 +45,23 @@ const SocialConnect = () => {
       // Exchange the code for an access token
       handleOAuthCallback(code, state);
     }
-  }, []);
+  }, [toast]);
   
   const handleOAuthCallback = async (code: string, state: string) => {
-    setIsLoading(true);
+    setIsConnecting(true);
     try {
-      // In a real app, we would call the backend API to exchange the code for an access token
-      // For demo purposes, we'll simulate a successful connection
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Call API to exchange code for token and connect account
+      const profile = await SocialService.connectPlatform('instagram', code, state);
       
-      // Save connection status
-      localStorage.setItem('instagram_connected', 'true');
-      setIsInstagramConnected(true);
+      // Update profiles list
+      setProfiles(prev => {
+        const exists = prev.some(p => p.id === profile.id);
+        if (exists) {
+          return prev.map(p => p.id === profile.id ? profile : p);
+        } else {
+          return [...prev, profile];
+        }
+      });
       
       toast({
         title: "Instagram connected successfully!",
@@ -67,46 +78,89 @@ const SocialConnect = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsConnecting(false);
     }
   };
   
-  const initiateInstagramConnect = () => {
-    setIsLoading(true);
+  const initiateInstagramConnect = async () => {
+    setIsConnecting(true);
     
-    // In a real app, we would redirect to Instagram OAuth flow
-    // For demo purposes, we'll simulate the OAuth flow with a timeout
-    setTimeout(() => {
-      const redirectUrl = `${window.location.origin}/social-connect`;
-      const instagramClientId = '12345678901234567'; // This would be your Instagram client ID
-      const state = Math.random().toString(36).substring(2, 15);
+    try {
+      // In a real app with a backend, we would redirect to Instagram OAuth flow
+      // For demo purposes, we'll simulate the OAuth flow using our mock service
+      const profile = await SocialService.connectPlatform('instagram', 'mock_code', 'mock_state');
       
-      // Store state for verification when the user returns
-      sessionStorage.setItem('instagram_oauth_state', state);
+      // Update profiles list
+      setProfiles(prev => {
+        const exists = prev.some(p => p.id === profile.id);
+        if (exists) {
+          return prev.map(p => p.id === profile.id ? {...p, connected: true} : p);
+        } else {
+          return [...prev, profile];
+        }
+      });
       
-      // Build the Instagram OAuth URL
-      const instagramOAuthUrl = `https://api.instagram.com/oauth/authorize?client_id=${instagramClientId}&redirect_uri=${encodeURIComponent(redirectUrl)}&scope=user_profile,user_media&response_type=code&state=${state}`;
-      
-      // In a real app, we would redirect to this URL:
-      // window.location.href = instagramOAuthUrl;
-      
-      // For demo purposes, simulate a successful redirect and callback
-      handleOAuthCallback('mock_code', state);
-    }, 1000);
+      toast({
+        title: "Instagram connected successfully!",
+        description: "Your Instagram account has been linked to FlareSync.",
+      });
+    } catch (error) {
+      console.error('Failed to connect Instagram:', error);
+      toast({
+        title: "Connection failed",
+        description: "Could not connect to Instagram. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConnecting(false);
+    }
   };
   
-  const disconnectInstagram = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      localStorage.removeItem('instagram_connected');
-      setIsInstagramConnected(false);
-      setIsLoading(false);
+  const disconnectInstagram = async () => {
+    setIsConnecting(true);
+    try {
+      // Disconnect account
+      await SocialService.disconnectPlatform('instagram-1');
+      
+      // Update profiles list
+      setProfiles(prev => 
+        prev.map(profile => 
+          profile.platform === 'instagram' 
+            ? {...profile, connected: false} 
+            : profile
+        )
+      );
+      
       toast({
         title: "Instagram disconnected",
         description: "Your Instagram account has been unlinked from FlareSync.",
       });
-    }, 1000);
+    } catch (error) {
+      console.error('Failed to disconnect Instagram:', error);
+      toast({
+        title: "Error disconnecting",
+        description: "Could not disconnect your Instagram account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConnecting(false);
+    }
   };
+
+  // Get Instagram profile from our profiles state
+  const instagramProfile = profiles.find(p => p.platform === 'instagram');
+  const isInstagramConnected = instagramProfile?.connected || false;
+
+  if (isLoading) {
+    return (
+      <div className="container max-w-4xl py-12 flex justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p>Loading your connected accounts...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container max-w-4xl py-12">
@@ -132,6 +186,27 @@ const SocialConnect = () => {
             )}
           </CardHeader>
           <CardContent>
+            {isInstagramConnected && instagramProfile?.stats ? (
+              <div className="mb-4">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="p-2 bg-muted rounded-md">
+                    <p className="text-xl font-bold">{instagramProfile.stats.followers.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">Followers</p>
+                  </div>
+                  <div className="p-2 bg-muted rounded-md">
+                    <p className="text-xl font-bold">{instagramProfile.stats.posts}</p>
+                    <p className="text-xs text-muted-foreground">Posts</p>
+                  </div>
+                  <div className="p-2 bg-muted rounded-md">
+                    <p className="text-xl font-bold">{instagramProfile.stats.engagement}%</p>
+                    <p className="text-xs text-muted-foreground">Engagement</p>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Last synced: {new Date(instagramProfile.lastSynced || '').toLocaleString()}
+                </p>
+              </div>
+            ) : null}
             <p className="text-sm text-muted-foreground">
               {isInstagramConnected 
                 ? "Your Instagram account is connected. You can now schedule posts and view analytics."
@@ -143,16 +218,26 @@ const SocialConnect = () => {
               <Button 
                 variant="outline" 
                 onClick={disconnectInstagram}
-                disabled={isLoading}
+                disabled={isConnecting}
               >
-                {isLoading ? "Disconnecting..." : "Disconnect Account"}
+                {isConnecting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                    Disconnecting...
+                  </>
+                ) : "Disconnect Account"}
               </Button>
             ) : (
               <Button 
                 onClick={initiateInstagramConnect}
-                disabled={isLoading}
+                disabled={isConnecting}
               >
-                {isLoading ? "Connecting..." : "Connect Instagram"}
+                {isConnecting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                    Connecting...
+                  </>
+                ) : "Connect Instagram"}
               </Button>
             )}
           </CardFooter>

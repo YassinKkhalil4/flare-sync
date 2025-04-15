@@ -20,3 +20,22 @@ export interface Conversation {
     read: boolean;
   };
 }
+
+export interface MessageRequest {
+  content: string;
+  conversationId: string;
+}
+
+export interface SocialProfile {
+  id: string;
+  platform: 'instagram' | 'tiktok' | 'youtube' | 'twitter';
+  username: string;
+  profileUrl: string;
+  connected: boolean;
+  lastSynced?: string;
+  stats?: {
+    followers: number;
+    posts: number;
+    engagement: number;
+  };
+}
