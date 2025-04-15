@@ -1,12 +1,15 @@
-
 import { Conversation, Message, MessageRequest, SocialProfile } from '../types/messaging';
-import { supabase } from '../lib/supabase';
-import { createClient } from '@supabase/supabase-js';
+import { supabase, isRealSupabaseClient } from '../lib/supabase';
 
 // Real API implementation using Supabase
 export const MessagingAPI = {
   // Get all conversations for the current user
   getConversations: async (): Promise<Conversation[]> => {
+    if (!isRealSupabaseClient()) {
+      // Use mock data if Supabase is not properly configured
+      return useMockMessagingData().getConversations();
+    }
+
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) throw new Error('User not authenticated');
     
@@ -122,6 +125,11 @@ export const MessagingAPI = {
 export const SocialAPI = {
   // Get all connected social profiles
   getProfiles: async (): Promise<SocialProfile[]> => {
+    if (!isRealSupabaseClient()) {
+      // Use mock data if Supabase is not properly configured
+      return useMockSocialData().getProfiles();
+    }
+
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) throw new Error('User not authenticated');
     
@@ -232,13 +240,12 @@ export const SocialAPI = {
 };
 
 // For development - mock API implementation
-// This will be used when not connected to Supabase or when in development mode
-export const createMockAPI = () => {
+const useMockMessagingData = () => {
   // Import mock data
   const { mockConversations, generateMockMessages } = require('../utils/mockMessagingData');
   
   // Mock implementation
-  const mockMessagingAPI = {
+  return {
     getConversations: async (): Promise<Conversation[]> => {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -267,8 +274,10 @@ export const createMockAPI = () => {
       return;
     }
   };
+};
 
-  const mockSocialAPI = {
+const useMockSocialData = () => {
+  return {
     getProfiles: async (): Promise<SocialProfile[]> => {
       await new Promise(resolve => setTimeout(resolve, 500));
       return [
@@ -306,14 +315,19 @@ export const createMockAPI = () => {
       return;
     }
   };
-
-  return {
-    MessagingAPI: mockMessagingAPI,
-    SocialAPI: mockSocialAPI
-  };
 };
 
-// Export the appropriate API based on environment
-const isDevelopment = process.env.NODE_ENV === 'development';
+// Determine which API implementation to use
+let useRealApi = isRealSupabaseClient();
+
+// Override for development environments that want to use the mock API
+if (process.env.NODE_ENV === 'development' && !import.meta.env.VITE_USE_SUPABASE) {
+  useRealApi = false;
+}
+
+// Export the appropriate API implementation
 export const { MessagingAPI: MessagingService, SocialAPI: SocialService } = 
-  (isDevelopment && !import.meta.env.VITE_USE_SUPABASE) ? createMockAPI() : { MessagingAPI, SocialAPI };
+  useRealApi ? { MessagingAPI, SocialAPI } : { 
+    MessagingAPI: useMockMessagingData(), 
+    SocialAPI: useMockSocialData() 
+  };
