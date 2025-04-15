@@ -28,7 +28,7 @@ export interface MessageRequest {
 
 export interface SocialProfile {
   id: string;
-  platform: 'instagram' | 'tiktok' | 'youtube' | 'twitter';
+  platform: 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'twitch';
   username: string;
   profileUrl: string;
   connected: boolean;

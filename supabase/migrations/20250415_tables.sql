@@ -32,7 +32,7 @@ USING (auth.uid() = id);
 CREATE TABLE public.social_profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    platform TEXT NOT NULL CHECK (platform IN ('instagram', 'tiktok', 'youtube', 'twitter')),
+    platform TEXT NOT NULL CHECK (platform IN ('instagram', 'tiktok', 'youtube', 'twitter', 'twitch')),
     username TEXT NOT NULL,
     profile_url TEXT,
     connected BOOLEAN NOT NULL DEFAULT false,

@@ -34,56 +34,51 @@ serve(async (req) => {
       throw new Error('Invalid token')
     }
     
-    // Get user's Instagram profile
+    // Get user's TikTok profile
     const { data: profiles, error: profileError } = await supabase
       .from('social_profiles')
       .select('*')
       .eq('user_id', authData.user.id)
-      .eq('platform', 'instagram')
+      .eq('platform', 'tiktok')
       .eq('connected', true)
       
     if (profileError) throw profileError
     if (!profiles || profiles.length === 0) {
-      throw new Error('No connected Instagram profile found')
+      throw new Error('No connected TikTok profile found')
     }
     
     const profile = profiles[0]
     if (!profile.access_token) {
-      throw new Error('No access token found for Instagram')
+      throw new Error('No access token found for TikTok')
     }
     
-    // Fetch media data to update posts count
-    const mediaResponse = await fetch(
-      `https://graph.instagram.com/me/media?fields=id&access_token=${profile.access_token}&limit=100`
-    );
+    // TikTok requires refreshing tokens that expire
+    // We would implement token refresh logic here in a real app
     
-    let postsCount = profile.posts || 0;
+    // Get TikTok credentials
+    const clientKey = Deno.env.get('TIKTOK_CLIENT_ID')
     
-    if (mediaResponse.ok) {
-      const mediaData = await mediaResponse.json();
-      if (mediaData.data) {
-        postsCount = mediaData.data.length;
-      }
+    if (!clientKey) {
+      throw new Error('TikTok configuration not set')
     }
     
-    // Check if we need to refresh the token
-    // For Instagram, the long-lived token lasts 60 days
-    // We should implement token refresh logic here in a real app
-    
-    // In a real app, we would use the Instagram Graph API to get actual followers
-    // For this demo, we'll simulate changes in followers and engagement
-    const followersChange = Math.floor(Math.random() * 100) - 20; // Between -20 and +80
+    // In a real app, we would call the TikTok API to get stats
+    // For this demo, we'll simulate changes in stats
+    const followersChange = Math.floor(Math.random() * 200) - 50; // Between -50 and +150
     const newFollowers = Math.max(0, (profile.followers || 10000) + followersChange);
     
-    const engagementChange = (Math.random() * 0.4) - 0.1; // Between -0.1 and +0.3
-    const newEngagement = Math.max(1, Math.min(10, (profile.engagement || 4) + engagementChange));
+    const postsChange = Math.floor(Math.random() * 3) - 1; // Between -1 and +2
+    const newPosts = Math.max(0, (profile.posts || 50) + postsChange);
+    
+    const engagementChange = (Math.random() * 0.6) - 0.2; // Between -0.2 and +0.4
+    const newEngagement = Math.max(1, Math.min(15, (profile.engagement || 5) + engagementChange));
     
     // Update the profile with new stats
     const { error: updateError } = await supabase
       .from('social_profiles')
       .update({
         followers: newFollowers,
-        posts: postsCount,
+        posts: newPosts,
         engagement: parseFloat(newEngagement.toFixed(1)),
         last_synced: new Date().toISOString()
       })
@@ -92,10 +87,10 @@ serve(async (req) => {
     if (updateError) throw updateError
     
     return new Response(JSON.stringify({
-      message: 'Instagram stats updated successfully',
+      message: 'TikTok stats updated successfully',
       stats: {
         followers: newFollowers,
-        posts: postsCount,
+        posts: newPosts,
         engagement: parseFloat(newEngagement.toFixed(1))
       }
     }), {

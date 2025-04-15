@@ -27,25 +27,28 @@ serve(async (req) => {
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') as string
     const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-    // Get Instagram credentials
-    const clientId = Deno.env.get('INSTAGRAM_CLIENT_ID')
-    const clientSecret = Deno.env.get('INSTAGRAM_CLIENT_SECRET')
-    const redirectUri = Deno.env.get('INSTAGRAM_REDIRECT_URI') || 
+    // Get Twitter credentials
+    const clientId = Deno.env.get('TWITTER_CLIENT_ID')
+    const clientSecret = Deno.env.get('TWITTER_CLIENT_SECRET')
+    const redirectUri = Deno.env.get('TWITTER_REDIRECT_URI') || 
                         `${new URL(req.url).origin}/social-connect`
 
     if (!clientId || !clientSecret) {
-      throw new Error('Instagram configuration not set')
+      throw new Error('Twitter configuration not set')
     }
 
     // Exchange code for access token
-    const tokenResponse = await fetch('https://api.instagram.com/oauth/access_token', {
+    const tokenResponse = await fetch('https://api.twitter.com/2/oauth2/token', {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`
+      },
       body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
+        code,
         grant_type: 'authorization_code',
         redirect_uri: redirectUri,
-        code: code,
+        code_verifier: 'challenge' // Should match the code_challenge sent in the auth request
       }),
     })
 
@@ -55,28 +58,23 @@ serve(async (req) => {
 
     const tokenData = await tokenResponse.json()
     const accessToken = tokenData.access_token
-    const userId = tokenData.user_id
-
+    
     // Get user information
-    const userResponse = await fetch(`https://graph.instagram.com/me?fields=id,username&access_token=${accessToken}`)
+    const userResponse = await fetch('https://api.twitter.com/2/users/me?user.fields=public_metrics', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    })
     
     if (!userResponse.ok) {
       throw new Error('Failed to fetch user data')
     }
     
     const userData = await userResponse.json()
-
-    // Get long-lived token
-    const longLivedTokenResponse = await fetch(
-      `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${clientSecret}&access_token=${accessToken}`
-    );
-    
-    if (!longLivedTokenResponse.ok) {
-      throw new Error('Failed to get long-lived token');
-    }
-    
-    const longLivedTokenData = await longLivedTokenResponse.json();
-    const longLivedAccessToken = longLivedTokenData.access_token;
+    const userId = userData.data.id
+    const username = userData.data.username
+    const followers = userData.data.public_metrics?.followers_count || 0
+    const tweetCount = userData.data.public_metrics?.tweet_count || 0
 
     // Get user from state param (contains JWT)
     const { data: authData } = await supabase.auth.getUser(state)
@@ -89,15 +87,15 @@ serve(async (req) => {
       .from('social_profiles')
       .upsert({
         user_id: authData.user.id,
-        platform: 'instagram',
-        username: userData.username,
-        profile_url: `https://instagram.com/${userData.username}`,
+        platform: 'twitter',
+        username: username,
+        profile_url: `https://twitter.com/${username}`,
         connected: true,
         last_synced: new Date().toISOString(),
-        access_token: longLivedAccessToken,
-        followers: 0,
-        posts: 0,
-        engagement: 0
+        access_token: accessToken,
+        followers: followers,
+        posts: tweetCount,
+        engagement: parseFloat((Math.random() * 2 + 3).toFixed(1)) // Mock data for engagement
       }, {
         onConflict: 'user_id, platform'
       })
@@ -106,33 +104,6 @@ serve(async (req) => {
 
     if (error) {
       throw error
-    }
-
-    // After storing the profile, immediately fetch initial stats
-    try {
-      // Fetch user media to count posts
-      const mediaResponse = await fetch(
-        `https://graph.instagram.com/me/media?fields=id&access_token=${longLivedAccessToken}&limit=100`
-      );
-      
-      if (mediaResponse.ok) {
-        const mediaData = await mediaResponse.json();
-        const postsCount = mediaData.data?.length || 0;
-        
-        // Update the profile with initial stats (using mock data for followers and engagement since these require business account)
-        await supabase
-          .from('social_profiles')
-          .update({
-            posts: postsCount,
-            followers: Math.floor(Math.random() * 2000) + 10000, // Mock data
-            engagement: parseFloat((Math.random() * 2 + 3).toFixed(1)), // Mock data
-            last_synced: new Date().toISOString()
-          })
-          .eq('id', profile.id);
-      }
-    } catch (statsError) {
-      console.error('Error fetching initial stats:', statsError);
-      // Don't fail the whole process if stats fetch fails
     }
 
     return new Response(JSON.stringify({ success: true, profile }), {

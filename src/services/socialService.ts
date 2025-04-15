@@ -83,7 +83,7 @@ export const SocialAPI = {
       
       return data.map(profile => ({
         id: profile.id,
-        platform: profile.platform as 'instagram' | 'tiktok' | 'youtube' | 'twitter',
+        platform: profile.platform as 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'twitch',
         username: profile.username,
         profileUrl: profile.profile_url,
         connected: profile.connected,
@@ -110,70 +110,35 @@ export const SocialAPI = {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('User not authenticated');
       
-      // For Instagram, we'll call our serverless function to handle OAuth
-      if (platform === 'instagram' && code && state) {
-        // Call the Instagram auth serverless function
-        const { data, error } = await supabase.functions.invoke('instagram-auth', {
-          body: JSON.stringify({ code, state })
-        });
-        
-        if (error) throw error;
-        
-        // The function should have created or updated the social profile
-        // Now we fetch it
-        const { data: profileData, error: profileError } = await supabase
-          .from('social_profiles')
-          .select('*')
-          .eq('user_id', user.user.id)
-          .eq('platform', platform)
-          .single();
-          
-        if (profileError) throw profileError;
-        
-        return {
-          id: profileData.id,
-          platform: profileData.platform as 'instagram' | 'tiktok' | 'youtube' | 'twitter',
-          username: profileData.username,
-          profileUrl: profileData.profile_url,
-          connected: profileData.connected,
-          lastSynced: profileData.last_synced || undefined,
-          stats: profileData.followers ? {
-            followers: profileData.followers,
-            posts: profileData.posts || 0,
-            engagement: profileData.engagement || 0
-          } : undefined
-        };
-      }
-      
-      // For other platforms or without code/state, create a placeholder entry
-      const profileData = {
-        user_id: user.user.id,
-        platform,
-        username: platform === 'instagram' ? 'creator_profile' : 'username',
-        profile_url: `https://${platform}.com/creator_profile`,
-        connected: true,
-        last_synced: new Date().toISOString()
-      };
-      
-      const { data, error } = await supabase
-        .from('social_profiles')
-        .insert(profileData)
-        .select('*')
-        .single();
+      // Call the specific platform's auth serverless function
+      const { data, error } = await supabase.functions.invoke(`${platform}-auth`, {
+        body: JSON.stringify({ code, state })
+      });
       
       if (error) throw error;
       
+      // The function should have created or updated the social profile
+      // Now we fetch it
+      const { data: profileData, error: profileError } = await supabase
+        .from('social_profiles')
+        .select('*')
+        .eq('user_id', user.user.id)
+        .eq('platform', platform)
+        .single();
+        
+      if (profileError) throw profileError;
+      
       return {
-        id: data.id,
-        platform: data.platform as 'instagram' | 'tiktok' | 'youtube' | 'twitter',
-        username: data.username,
-        profileUrl: data.profile_url,
-        connected: data.connected,
-        lastSynced: data.last_synced || undefined,
-        stats: data.followers ? {
-          followers: data.followers,
-          posts: data.posts || 0,
-          engagement: data.engagement || 0
+        id: profileData.id,
+        platform: profileData.platform as 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'twitch',
+        username: profileData.username,
+        profileUrl: profileData.profile_url,
+        connected: profileData.connected,
+        lastSynced: profileData.last_synced || undefined,
+        stats: profileData.followers ? {
+          followers: profileData.followers,
+          posts: profileData.posts || 0,
+          engagement: profileData.engagement || 0
         } : undefined
       };
     } catch (error) {
@@ -191,7 +156,7 @@ export const SocialAPI = {
     try {
       const { error } = await supabase
         .from('social_profiles')
-        .update({ connected: false })
+        .update({ connected: false, access_token: null, refresh_token: null })
         .eq('id', platformId);
       
       if (error) throw error;
@@ -244,7 +209,7 @@ export const SocialAPI = {
       
       return {
         id: updatedProfile.id,
-        platform: updatedProfile.platform as 'instagram' | 'tiktok' | 'youtube' | 'twitter',
+        platform: updatedProfile.platform as 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'twitch',
         username: updatedProfile.username,
         profileUrl: updatedProfile.profile_url,
         connected: updatedProfile.connected,
