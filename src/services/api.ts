@@ -1,5 +1,7 @@
+
 import { Conversation, Message, MessageRequest, SocialProfile } from '../types/messaging';
 import { supabase, isRealSupabaseClient } from '../lib/supabase';
+import { mockConversations, generateMockMessages, formatDate } from '../utils/mockMessagingData';
 
 // Real API implementation using Supabase
 export const MessagingAPI = {
@@ -241,8 +243,7 @@ export const SocialAPI = {
 
 // For development - mock API implementation
 const useMockMessagingData = () => {
-  // Import mock data
-  const { mockConversations, generateMockMessages } = require('../utils/mockMessagingData');
+  // Use the imported mock data directly instead of requiring it
   
   // Mock implementation
   return {
