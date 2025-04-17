@@ -40,16 +40,18 @@ export const usePaymentHistory = () => {
 
       setIsLoading(true);
       try {
-        // Fetch transactions
+        // Fetch transactions for current user
         const { data: transactionsData, error: transactionsError } = await supabase
           .from('transactions')
           .select('*')
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
-        // Fetch invoices
+        // Fetch invoices for current user
         const { data: invoicesData, error: invoicesError } = await supabase
           .from('invoices')
           .select('*')
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
         if (transactionsError) throw transactionsError;
