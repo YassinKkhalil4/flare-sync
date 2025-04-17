@@ -20,6 +20,13 @@ import BrandDeals from "./pages/BrandDeals";
 import Plans from "./pages/Plans";
 import AdminDashboard from "./pages/AdminDashboard";
 
+// Content Management Pages
+import ContentListPage from "./pages/Content/ContentListPage";
+import ContentCreatePage from "./pages/Content/ContentCreatePage";
+import ContentEditPage from "./pages/Content/ContentEditPage";
+import ContentDetailPage from "./pages/Content/ContentDetailPage";
+import ContentApprovalPage from "./pages/Content/ContentApprovalPage";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -69,6 +76,33 @@ const App = () => (
             <Route path="/admin" element={
               <ProtectedRoute>
                 <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            
+            {/* Content Management Routes */}
+            <Route path="/content" element={
+              <ProtectedRoute>
+                <ContentListPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/content/create" element={
+              <ProtectedRoute>
+                <ContentCreatePage />
+              </ProtectedRoute>
+            } />
+            <Route path="/content/edit/:id" element={
+              <ProtectedRoute>
+                <ContentEditPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/content/:id" element={
+              <ProtectedRoute>
+                <ContentDetailPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/content/approvals" element={
+              <ProtectedRoute>
+                <ContentApprovalPage />
               </ProtectedRoute>
             } />
             
