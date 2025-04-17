@@ -1,7 +1,8 @@
-import { supabase } from '@/integrations/supabase/client';
-import { ContentPost, ContentStatus, ContentTag } from '@/types/content';
 
-class ContentAPI {
+import { supabase } from '@/integrations/supabase/client';
+import { ContentPost, ContentStatus, ContentTag, ContentApproval } from '@/types/content';
+
+export class ContentAPI {
   async getPosts(): Promise<ContentPost[]> {
     const { data, error } = await supabase
       .from('content_posts')
@@ -9,7 +10,7 @@ class ContentAPI {
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return data || [];
+    return (data || []) as ContentPost[];
   }
 
   async getPostById(id: string): Promise<ContentPost | null> {
@@ -23,10 +24,10 @@ class ContentAPI {
       console.error("Error fetching post by ID:", error);
       return null;
     }
-    return data;
+    return data as ContentPost;
   }
 
-  async addPost(post: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>): Promise<ContentPost> {
+  async createPost(post: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>, tagIds?: string[]): Promise<ContentPost> {
     const { data, error } = await supabase
       .from('content_posts')
       .insert([
@@ -36,10 +37,27 @@ class ContentAPI {
       .single();
     
     if (error) throw error;
-    return data;
+    
+    // If tagIds are provided, create post-tag associations
+    if (tagIds && tagIds.length > 0 && data) {
+      const tagAssociations = tagIds.map(tagId => ({
+        post_id: data.id,
+        tag_id: tagId
+      }));
+      
+      const { error: tagError } = await supabase
+        .from('content_post_tags')
+        .insert(tagAssociations);
+      
+      if (tagError) {
+        console.error("Error associating tags with post:", tagError);
+      }
+    }
+    
+    return data as ContentPost;
   }
 
-  async updatePost(id: string, updates: Partial<ContentPost>): Promise<ContentPost> {
+  async updatePost(id: string, updates: Partial<ContentPost>, tagIds?: string[]): Promise<ContentPost> {
     const { data, error } = await supabase
       .from('content_posts')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -48,7 +66,37 @@ class ContentAPI {
       .single();
     
     if (error) throw error;
-    return data;
+    
+    // If tagIds are provided, update post-tag associations
+    if (tagIds !== undefined) {
+      // First, remove all existing associations
+      const { error: deleteError } = await supabase
+        .from('content_post_tags')
+        .delete()
+        .eq('post_id', id);
+      
+      if (deleteError) {
+        console.error("Error removing existing tag associations:", deleteError);
+      }
+      
+      // Then, add the new ones
+      if (tagIds.length > 0) {
+        const tagAssociations = tagIds.map(tagId => ({
+          post_id: id,
+          tag_id: tagId
+        }));
+        
+        const { error: insertError } = await supabase
+          .from('content_post_tags')
+          .insert(tagAssociations);
+        
+        if (insertError) {
+          console.error("Error associating tags with post:", insertError);
+        }
+      }
+    }
+    
+    return data as ContentPost;
   }
 
   async deletePost(id: string): Promise<void> {
@@ -70,7 +118,7 @@ class ContentAPI {
     return data || [];
   }
 
-  async addTag(tag: Omit<ContentTag, 'id' | 'created_at'>): Promise<ContentTag> {
+  async createTag(tag: Omit<ContentTag, 'id' | 'created_at'>): Promise<ContentTag> {
      const { data, error } = await supabase
       .from('content_tags')
       .insert([
@@ -81,6 +129,17 @@ class ContentAPI {
     
     if (error) throw error;
     return data;
+  }
+
+  async getPostApprovals(postId: string): Promise<ContentApproval[]> {
+    const { data, error } = await supabase
+      .from('content_approvals')
+      .select('*, profiles(*)')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
   }
 
   async getPendingApprovals(): Promise<any[]> {
@@ -121,7 +180,7 @@ class ContentAPI {
       const post = approval.content_posts;
       
       await this.updatePost(post.id, {
-        status: 'scheduled',
+        status: 'scheduled' as ContentStatus,
         reviewer_id: approval.approver_id,
         reviewer_notes: notes
       });
@@ -145,7 +204,7 @@ class ContentAPI {
       const post = approval.content_posts;
       
       await this.updatePost(post.id, {
-        status: 'rejected',
+        status: 'rejected' as ContentStatus,
         reviewer_id: approval.approver_id,
         reviewer_notes: notes
       });

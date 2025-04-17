@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Notification, NotificationPreferences, NotificationType } from '@/types/notification';
 
-class NotificationAPI {
+export class NotificationAPI {
   async getNotifications(): Promise<Notification[]> {
     const { data, error } = await supabase
       .from('notifications')

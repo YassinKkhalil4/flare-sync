@@ -12,6 +12,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { formatDistanceToNow } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Notification } from '@/types/notification';
 
 export const NotificationIcon: React.FC = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
@@ -47,7 +48,7 @@ export const NotificationIcon: React.FC = () => {
               No notifications
             </div>
           ) : (
-            notifications.map(notification => (
+            notifications.map((notification: Notification) => (
               <DropdownMenuItem
                 key={notification.id}
                 className={`p-4 border-b hover:bg-accent cursor-default ${!notification.is_read ? 'bg-muted' : ''}`}

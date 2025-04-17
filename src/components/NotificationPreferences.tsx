@@ -18,11 +18,15 @@ export const NotificationPreferences: React.FC = () => {
   });
 
   const updatePreferences = useMutation({
-    mutationFn: (newPreferences: Partial<NotificationPreferencesType>) => 
-      NotificationService.updateNotificationPreferences({
+    mutationFn: (newPreferences: Partial<NotificationPreferencesType>) => {
+      if (!preferences) {
+        throw new Error('No existing preferences found');
+      }
+      return NotificationService.updateNotificationPreferences({
         ...preferences,
         ...newPreferences
-      }),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notification-preferences'] });
       toast({

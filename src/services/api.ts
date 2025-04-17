@@ -3,7 +3,7 @@ import { MessagingAPI } from './messagingService';
 import { SocialAPI } from './socialService';
 import { DealsAPI } from './dealsService';
 import { ContentAPI } from './contentService';
-import { NotificationAPI } from './notificationService';
+import { NotificationService } from './notificationService';
 import { isRealSupabaseClient } from '../lib/supabase';
 
 // Determine which API implementation to use
@@ -14,7 +14,7 @@ export const MessagingService = MessagingAPI;
 export const SocialService = SocialAPI;
 export const DealsService = DealsAPI;
 export const ContentService = ContentAPI;
-export const NotificationService = NotificationAPI;
+export { NotificationService };
 
 // Export a helper function to check if we're using the real API
 export const isUsingRealApi = () => useRealApi;

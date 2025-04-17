@@ -13,7 +13,7 @@ import {
   Tag,
   Bell
 } from 'lucide-react';
-import { Logo } from './Logo';
+import Logo from './Logo';
 import { NotificationIcon } from './NotificationIcon';
 
 interface SidebarProps {

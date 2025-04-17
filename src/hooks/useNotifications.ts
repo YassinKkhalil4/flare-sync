@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { NotificationService } from '@/services/api';
 import { Notification } from '@/types/notification';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useNotifications() {
   const queryClient = useQueryClient();
@@ -11,7 +12,7 @@ export function useNotifications() {
 
   // Get all notifications
   const { 
-    data: notifications = [], 
+    data: notifications = [] as Notification[], 
     isLoading,
     refetch 
   } = useQuery({
