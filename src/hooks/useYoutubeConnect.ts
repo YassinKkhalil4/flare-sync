@@ -6,11 +6,11 @@ export const useYoutubeConnect = () => {
     isLoading,
     isConnecting,
     isSyncing,
-    socialProfile,
-    isSocialConnected,
-    initiateSocialConnect,
-    disconnectSocial,
-    syncSocialData,
+    profile,
+    isConnected,
+    initiateConnect,
+    disconnect,
+    syncData,
   } = useSocialConnect('youtube');
 
   // YouTube OAuth configuration
@@ -19,17 +19,17 @@ export const useYoutubeConnect = () => {
   const SCOPE = "https://www.googleapis.com/auth/youtube.readonly";
 
   const initiateYoutubeConnect = () => {
-    initiateSocialConnect(CLIENT_ID, REDIRECT_URI, SCOPE);
+    initiateConnect(CLIENT_ID, REDIRECT_URI, SCOPE);
   };
 
   return {
     isLoading,
     isConnecting,
     isSyncing,
-    youtubeProfile: socialProfile,
-    isYoutubeConnected: isSocialConnected,
+    youtubeProfile: profile,
+    isYoutubeConnected: isConnected,
     initiateYoutubeConnect,
-    disconnectYoutube: disconnectSocial,
-    syncYoutubeData: syncSocialData,
+    disconnectYoutube: disconnect,
+    syncYoutubeData: syncData,
   };
 };

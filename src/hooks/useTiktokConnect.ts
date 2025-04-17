@@ -6,11 +6,11 @@ export const useTiktokConnect = () => {
     isLoading,
     isConnecting,
     isSyncing,
-    socialProfile,
-    isSocialConnected,
-    initiateSocialConnect,
-    disconnectSocial,
-    syncSocialData,
+    profile,
+    isConnected,
+    initiateConnect,
+    disconnect,
+    syncData,
   } = useSocialConnect('tiktok');
 
   // TikTok OAuth configuration
@@ -19,17 +19,17 @@ export const useTiktokConnect = () => {
   const SCOPE = "user.info.basic,video.list";
 
   const initiateTiktokConnect = () => {
-    initiateSocialConnect(CLIENT_ID, REDIRECT_URI, SCOPE);
+    initiateConnect(CLIENT_ID, REDIRECT_URI, SCOPE);
   };
 
   return {
     isLoading,
     isConnecting,
     isSyncing,
-    tiktokProfile: socialProfile,
-    isTiktokConnected: isSocialConnected,
+    tiktokProfile: profile,
+    isTiktokConnected: isConnected,
     initiateTiktokConnect,
-    disconnectTiktok: disconnectSocial,
-    syncTiktokData: syncSocialData,
+    disconnectTiktok: disconnect,
+    syncTiktokData: syncData,
   };
 };

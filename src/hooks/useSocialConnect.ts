@@ -41,7 +41,7 @@ export const useSocialConnect = (platform: string) => {
     fetchProfile();
   }, [user, platform, toast]);
 
-  const initiateConnect = async () => {
+  const initiateConnect = async (clientId?: string, redirectUri?: string, scope?: string) => {
     if (!user) {
       toast({
         title: 'Login required',
@@ -128,66 +128,5 @@ export const useSocialConnect = (platform: string) => {
     initiateConnect,
     disconnect,
     syncData,
-  };
-};
-
-// Platform-specific hooks
-export const useInstagramConnect = () => {
-  const hook = useSocialConnect('instagram');
-  return {
-    ...hook,
-    initiateInstagramConnect: hook.initiateConnect,
-    disconnectInstagram: hook.disconnect,
-    syncInstagramData: hook.syncData,
-    instagramProfile: hook.profile,
-    isInstagramConnected: hook.isConnected,
-  };
-};
-
-export const useTiktokConnect = () => {
-  const hook = useSocialConnect('tiktok');
-  return {
-    ...hook,
-    initiateTiktokConnect: hook.initiateConnect,
-    disconnectTiktok: hook.disconnect,
-    syncTiktokData: hook.syncData,
-    tiktokProfile: hook.profile,
-    isTiktokConnected: hook.isConnected,
-  };
-};
-
-export const useTwitterConnect = () => {
-  const hook = useSocialConnect('twitter');
-  return {
-    ...hook,
-    initiateTwitterConnect: hook.initiateConnect,
-    disconnectTwitter: hook.disconnect,
-    syncTwitterData: hook.syncData,
-    twitterProfile: hook.profile,
-    isTwitterConnected: hook.isConnected,
-  };
-};
-
-export const useYoutubeConnect = () => {
-  const hook = useSocialConnect('youtube');
-  return {
-    ...hook,
-    initiateYoutubeConnect: hook.initiateConnect,
-    disconnectYoutube: hook.disconnect,
-    syncYoutubeData: hook.syncData,
-    youtubeProfile: hook.profile,
-    isYoutubeConnected: hook.isConnected,
-  };
-};
-
-export const useTwitchConnect = () => {
-  const hook = useSocialConnect('twitch');
-  return {
-    ...hook,
-    initiateTwitchConnect: hook.initiateConnect,
-    disconnectTwitch: hook.disconnect,
-    syncTwitchData: hook.syncData,
-    twitchProfile: hook.profile,
-    isTwitchConnected: hook.isConnected,
   };
 };

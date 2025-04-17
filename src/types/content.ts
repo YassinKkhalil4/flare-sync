@@ -16,9 +16,9 @@ export interface ContentPost {
   tags?: ContentTag[];
 }
 
-export type ContentStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'scheduled' | 'published' | 'failed';
+export type ContentStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'scheduled' | 'published' | 'failed' | 'pending_approval';
 
-export type SocialPlatform = 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'facebook';
+export type SocialPlatform = 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'facebook' | 'twitch';
 
 export interface ContentTag {
   id: string;
@@ -34,4 +34,12 @@ export interface ContentApproval {
   notes?: string;
   created_at: string;
   updated_at: string;
+  // Additional fields for Supabase join queries
+  content_posts?: ContentPost;
+  profiles?: {
+    id: string;
+    username?: string;
+    full_name?: string;
+    avatar_url?: string;
+  };
 }

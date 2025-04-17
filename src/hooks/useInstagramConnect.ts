@@ -6,11 +6,11 @@ export const useInstagramConnect = () => {
     isLoading,
     isConnecting,
     isSyncing,
-    socialProfile,
-    isSocialConnected,
-    initiateSocialConnect,
-    disconnectSocial,
-    syncSocialData,
+    profile,
+    isConnected,
+    initiateConnect,
+    disconnect,
+    syncData,
   } = useSocialConnect('instagram');
 
   // Instagram OAuth configuration
@@ -19,17 +19,17 @@ export const useInstagramConnect = () => {
   const SCOPE = "user_profile,user_media";
 
   const initiateInstagramConnect = () => {
-    initiateSocialConnect(CLIENT_ID, REDIRECT_URI, SCOPE);
+    initiateConnect(CLIENT_ID, REDIRECT_URI, SCOPE);
   };
 
   return {
     isLoading,
     isConnecting,
     isSyncing,
-    instagramProfile: socialProfile,
-    isInstagramConnected: isSocialConnected,
+    instagramProfile: profile,
+    isInstagramConnected: isConnected,
     initiateInstagramConnect,
-    disconnectInstagram: disconnectSocial,
-    syncInstagramData: syncSocialData,
+    disconnectInstagram: disconnect,
+    syncInstagramData: syncData,
   };
 };

@@ -113,7 +113,7 @@ export const PostForm: React.FC<PostFormProps> = ({
 
   // Find connected social accounts for each platform
   const getConnectedPlatforms = () => {
-    const platforms: SocialPlatform[] = ['instagram', 'tiktok', 'youtube', 'twitter', 'twitch'];
+    const platforms: SocialPlatform[] = ['instagram', 'tiktok', 'youtube', 'twitter', 'facebook', 'twitch'];
     return platforms.filter(platform => 
       socialProfiles.some(profile => 
         profile.platform === platform && profile.connected

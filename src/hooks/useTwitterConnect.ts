@@ -6,11 +6,11 @@ export const useTwitterConnect = () => {
     isLoading,
     isConnecting,
     isSyncing,
-    socialProfile,
-    isSocialConnected,
-    initiateSocialConnect,
-    disconnectSocial,
-    syncSocialData,
+    profile,
+    isConnected,
+    initiateConnect,
+    disconnect,
+    syncData,
   } = useSocialConnect('twitter');
 
   // Twitter OAuth configuration
@@ -19,17 +19,17 @@ export const useTwitterConnect = () => {
   const SCOPE = "tweet.read,users.read,offline.access";
 
   const initiateTwitterConnect = () => {
-    initiateSocialConnect(CLIENT_ID, REDIRECT_URI, SCOPE);
+    initiateConnect(CLIENT_ID, REDIRECT_URI, SCOPE);
   };
 
   return {
     isLoading,
     isConnecting,
     isSyncing,
-    twitterProfile: socialProfile,
-    isTwitterConnected: isSocialConnected,
+    twitterProfile: profile,
+    isTwitterConnected: isConnected,
     initiateTwitterConnect,
-    disconnectTwitter: disconnectSocial,
-    syncTwitterData: syncSocialData,
+    disconnectTwitter: disconnect,
+    syncTwitterData: syncData,
   };
 };

@@ -6,11 +6,11 @@ export const useTwitchConnect = () => {
     isLoading,
     isConnecting,
     isSyncing,
-    socialProfile,
-    isSocialConnected,
-    initiateSocialConnect,
-    disconnectSocial,
-    syncSocialData,
+    profile,
+    isConnected,
+    initiateConnect,
+    disconnect,
+    syncData,
   } = useSocialConnect('twitch');
 
   // Twitch OAuth configuration
@@ -19,17 +19,17 @@ export const useTwitchConnect = () => {
   const SCOPE = "user:read:email channel:read:subscriptions";
 
   const initiateTwitchConnect = () => {
-    initiateSocialConnect(CLIENT_ID, REDIRECT_URI, SCOPE);
+    initiateConnect(CLIENT_ID, REDIRECT_URI, SCOPE);
   };
 
   return {
     isLoading,
     isConnecting,
     isSyncing,
-    twitchProfile: socialProfile,
-    isTwitchConnected: isSocialConnected,
+    twitchProfile: profile,
+    isTwitchConnected: isConnected,
     initiateTwitchConnect,
-    disconnectTwitch: disconnectSocial,
-    syncTwitchData: syncSocialData,
+    disconnectTwitch: disconnect,
+    syncTwitchData: syncData,
   };
 };
