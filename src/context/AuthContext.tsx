@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from '../components/ui/use-toast';
 import { supabase, isRealSupabaseClient, persistSession, getPersistedSession } from '../lib/supabase';
@@ -13,6 +12,7 @@ interface UserProfile {
   plan: 'free' | 'basic' | 'pro';
   avatar?: string;
   isAdmin: boolean;
+  user_metadata?: Record<string, any>; // Add this line to include user_metadata
 }
 
 interface AuthContextType {
@@ -79,7 +79,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: (userData.role === 'brand') ? 'brand' : 'creator',
           plan: userData.plan || 'free',
           avatar: profileData.avatar_url,
-          isAdmin: isAdminData || false
+          isAdmin: isAdminData || false,
+          user_metadata: supabaseUser.user_metadata
         };
       }
       return null;
@@ -150,7 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: (userData?.role === 'brand') ? 'brand' : 'creator',
           plan: userData?.plan || 'free',
           avatar: profileData.avatar_url,
-          isAdmin: isAdminData || false
+          isAdmin: isAdminData || false,
+          user_metadata: {}
         };
         setUser(userProfile);
       } else {
@@ -255,7 +257,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             role: 'creator',
             plan: 'free',
             avatar: 'https://api.dicebear.com/6.x/avataaars/svg?seed=demo',
-            isAdmin: false
+            isAdmin: false,
+            user_metadata: {}
           };
 
           localStorage.setItem('flaresync_token', 'mock_token');
@@ -349,7 +352,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role,
           plan: 'free',
           avatar: `https://api.dicebear.com/6.x/avataaars/svg?seed=${email}`,
-          isAdmin: false
+          isAdmin: false,
+          user_metadata: {}
         };
 
         localStorage.setItem('flaresync_token', 'mock_token');
