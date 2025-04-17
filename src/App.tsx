@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +19,7 @@ import BrandDeals from "./pages/BrandDeals";
 import Plans from "./pages/Plans";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotificationsPage from "./pages/NotificationsPage";
+import PaymentHistory from "./pages/PaymentHistory";
 
 // Content Management Pages
 import ContentListPage from "./pages/Content/ContentListPage";
@@ -109,6 +109,11 @@ const App = () => (
             <Route path="/content/approvals" element={
               <ProtectedRoute>
                 <ContentApprovalPage />
+              </ProtectedRoute>
+            } />
+             <Route path="/payment-history" element={
+              <ProtectedRoute>
+                <PaymentHistory />
               </ProtectedRoute>
             } />
             

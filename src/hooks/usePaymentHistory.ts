@@ -1,0 +1,71 @@
+
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
+
+export interface Transaction {
+  id: string;
+  amount: number;
+  currency: string;
+  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  payment_method?: string;
+  description?: string;
+  created_at: string;
+}
+
+export interface Invoice {
+  id: string;
+  invoice_number: string;
+  amount: number;
+  status: 'draft' | 'sent' | 'paid' | 'void' | 'uncollectible';
+  due_date?: string;
+  pdf_url?: string;
+  items?: any[];
+  created_at: string;
+}
+
+export const usePaymentHistory = () => {
+  const { user } = useAuth();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPaymentHistory = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        // Fetch transactions
+        const { data: transactionsData, error: transactionsError } = await supabase
+          .from('transactions')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        // Fetch invoices
+        const { data: invoicesData, error: invoicesError } = await supabase
+          .from('invoices')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (transactionsError) throw transactionsError;
+        if (invoicesError) throw invoicesError;
+
+        setTransactions(transactionsData || []);
+        setInvoices(invoicesData || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPaymentHistory();
+  }, [user]);
+
+  return { transactions, invoices, isLoading, error };
+};
