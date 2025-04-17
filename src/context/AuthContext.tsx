@@ -8,16 +8,18 @@ interface UserProfile {
   id: string;
   email: string;
   name: string;
+  username: string;
   role: 'creator' | 'brand';
-  plan: 'free' | 'pro';
+  plan: 'free' | 'basic' | 'pro';
   avatar?: string;
+  isAdmin: boolean;
 }
 
 interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string, role: 'creator' | 'brand') => Promise<void>;
+  signup: (email: string, password: string, name: string, username: string, role: 'creator' | 'brand') => Promise<void>;
   logout: () => void;
   checkAuthStatus: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
@@ -41,22 +43,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Convert Supabase User to UserProfile
   const mapUserToProfile = async (supabaseUser: User): Promise<UserProfile | null> => {
     try {
-      const { data, error } = await supabase
+      // Get user profile from profiles table
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', supabaseUser.id)
         .single();
       
-      if (error) throw error;
+      if (profileError) throw profileError;
       
-      if (data) {
+      // Check if user has admin role
+      const { data: isAdminData, error: roleError } = await supabase
+        .rpc('has_role', {
+          user_id: supabaseUser.id,
+          role: 'admin'
+        });
+      
+      if (roleError) throw roleError;
+
+      // Get user information from app-specific tables
+      const { data: userData, error: userError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', supabaseUser.id)
+        .single();
+      
+      if (userError) throw userError;
+      
+      if (profileData && userData) {
         return {
-          id: data.id,
-          email: data.email || supabaseUser.email || '',
-          name: data.name || 'User',
-          role: (data.role === 'brand') ? 'brand' : 'creator',
-          plan: data.plan || 'free',
-          avatar: data.avatar_url
+          id: profileData.id,
+          email: supabaseUser.email || '',
+          name: profileData.full_name || 'User',
+          username: profileData.username || '',
+          role: (userData.role === 'brand') ? 'brand' : 'creator',
+          plan: userData.plan || 'free',
+          avatar: profileData.avatar_url,
+          isAdmin: isAdminData || false
         };
       }
       return null;
@@ -91,27 +114,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      // Get user profile from profiles table
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
       
-      if (error) throw error;
+      if (profileError) throw profileError;
       
-      if (data) {
+      // Check if user has admin role
+      const { data: isAdminData, error: roleError } = await supabase
+        .rpc('has_role', {
+          user_id: userId,
+          role: 'admin'
+        });
+      
+      if (roleError) throw roleError;
+
+      // Get user information from app-specific tables
+      const { data: userData, error: userError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (userError && userError.code !== 'PGRST116') throw userError;
+      
+      if (profileData) {
         const userProfile: UserProfile = {
-          id: data.id,
-          email: data.email || '',
-          name: data.name || 'User',
-          role: (data.role === 'brand') ? 'brand' : 'creator',
-          plan: data.plan || 'free',
-          avatar: data.avatar_url
+          id: profileData.id,
+          email: profileData.username || '',
+          name: profileData.full_name || 'User',
+          username: profileData.username || '',
+          role: (userData?.role === 'brand') ? 'brand' : 'creator',
+          plan: userData?.plan || 'free',
+          avatar: profileData.avatar_url,
+          isAdmin: isAdminData || false
         };
         setUser(userProfile);
+      } else {
+        setUser(null);
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -204,9 +251,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: '1',
             email: 'demo@flaresync.com',
             name: 'Demo User',
+            username: 'demo',
             role: 'creator',
             plan: 'free',
-            avatar: 'https://api.dicebear.com/6.x/avataaars/svg?seed=demo'
+            avatar: 'https://api.dicebear.com/6.x/avataaars/svg?seed=demo',
+            isAdmin: false
           };
 
           localStorage.setItem('flaresync_token', 'mock_token');
@@ -234,7 +283,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (email: string, password: string, name: string, role: 'creator' | 'brand') => {
+  const signup = async (email: string, password: string, name: string, username: string, role: 'creator' | 'brand') => {
     setIsLoading(true);
     try {
       if (isRealSupabaseClient()) {
@@ -245,6 +294,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           options: {
             data: {
               full_name: name,
+              username: username,
               role: role
             }
           }
@@ -253,20 +303,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error) throw error;
         
         if (data?.user) {
-          // Create initial profile in the database
-          const { error: profileError } = await supabase
+          // The profile table will be created by the database trigger
+          // Update additional user info
+          const { error: updateError } = await supabase
             .from('profiles')
-            .insert({
-              id: data.user.id,
-              email: email,
-              name: name,
+            .update({
               role: role,
               plan: 'free',
-              created_at: new Date().toISOString()
-            });
+            })
+            .eq('id', data.user.id);
             
-          if (profileError) {
-            console.error('Error creating profile:', profileError);
+          if (updateError) {
+            console.error('Error updating profile:', updateError);
           }
           
           toast({
@@ -297,9 +345,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: '2',
           email,
           name,
+          username,
           role,
           plan: 'free',
-          avatar: `https://api.dicebear.com/6.x/avataaars/svg?seed=${email}`
+          avatar: `https://api.dicebear.com/6.x/avataaars/svg?seed=${email}`,
+          isAdmin: false
         };
 
         localStorage.setItem('flaresync_token', 'mock_token');
@@ -349,8 +399,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase
         .from('profiles')
         .update({
-          name: data.name ?? user.name,
-          role: data.role ?? user.role,
+          full_name: data.name ?? user.name,
+          username: data.username ?? user.username,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);

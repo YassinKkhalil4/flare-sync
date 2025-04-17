@@ -15,15 +15,20 @@ export const useTiktokConnect = () => {
   } = useSocialConnect('tiktok');
 
   const initiateTiktokConnect = async () => {
-    const tiktokClientId = import.meta.env.VITE_TIKTOK_CLIENT_ID || 'awdxrt23456';
-    const redirectUri = import.meta.env.VITE_TIKTOK_REDIRECT_URI || 
-                       `${window.location.origin}/social-connect`;
-    
-    await initiateSocialConnect(
-      tiktokClientId,
-      redirectUri,
-      'user.info.basic,video.list'
-    );
+    try {
+      const tiktokClientId = import.meta.env.VITE_TIKTOK_CLIENT_ID || 'awdxrt23456';
+      const redirectUri = import.meta.env.VITE_TIKTOK_REDIRECT_URI || 
+                         `${window.location.origin}/social-connect`;
+      
+      await initiateSocialConnect(
+        tiktokClientId,
+        redirectUri,
+        'user.info.basic,video.list'
+      );
+    } catch (error) {
+      console.error('TikTok connection error:', error);
+      throw error;
+    }
   };
 
   return {

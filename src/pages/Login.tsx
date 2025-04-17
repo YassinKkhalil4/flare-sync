@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,11 +13,20 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [role, setRole] = useState<'creator' | 'brand'>('creator');
   const [isLoading, setIsLoading] = useState(false);
   const { login, signup, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check if we're coming from signup page
+  useEffect(() => {
+    if (location.state?.mode === 'signup') {
+      setIsLogin(false);
+    }
+  }, [location.state]);
 
   // Redirect if user is already logged in
   useEffect(() => {
@@ -41,7 +50,10 @@ const Login = () => {
         if (!name) {
           throw new Error('Please enter your name');
         }
-        await signup(email, password, name, role);
+        if (!username) {
+          throw new Error('Please enter a username');
+        }
+        await signup(email, password, name, username, role);
         toast({
           title: 'Signup successful',
           description: 'Welcome to FlareSync!',
@@ -110,6 +122,17 @@ const Login = () => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="John Doe"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="johndoe"
                     required
                   />
                 </div>
