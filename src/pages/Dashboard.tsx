@@ -43,7 +43,7 @@ function Dashboard() {
               </Button>
               <h1 className="text-3xl font-bold">Dashboard</h1>
               <p className="text-muted-foreground">
-                Welcome back, {user?.email || 'Creator'}!
+                Welcome back, {user?.user_metadata?.name || user?.email || 'Creator'}!
               </p>
             </div>
             <Button>
@@ -57,29 +57,25 @@ function Dashboard() {
             <OverviewCard
               title="Total Followers"
               value="24.8K"
-              change="+12%"
-              trend="up"
+              change={{ value: 12, positive: true }}
               icon={<Users />}
             />
             <OverviewCard
               title="Engagement Rate"
               value="5.2%"
-              change="+3.1%"
-              trend="up"
+              change={{ value: 3.1, positive: true }}
               icon={<Heart />}
             />
             <OverviewCard
               title="Impressions"
               value="142K"
-              change="+28%"
-              trend="up"
+              change={{ value: 28, positive: true }}
               icon={<BarChart4 />}
             />
             <OverviewCard
               title="Avg. Watch Time"
               value="2:45"
-              change="-0:12"
-              trend="down"
+              change={{ value: 12, positive: false }}
               icon={<Clock />}
             />
           </div>

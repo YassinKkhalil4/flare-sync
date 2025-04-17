@@ -87,9 +87,18 @@ export class NotificationAPI {
   }
 
   async getNotificationPreferences(): Promise<NotificationPreferences | null> {
+    // Get current user
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData || !userData.user) {
+      throw new Error("User authentication required");
+    }
+    
+    const userId = userData.user.id;
+    
     const { data, error } = await supabase
       .from('notification_preferences')
       .select('*')
+      .eq('user_id', userId)
       .single();
     
     if (error && error.code !== 'PGRST116') { // Not found error
@@ -101,7 +110,15 @@ export class NotificationAPI {
       try {
         const { data: newPreferences, error: insertError } = await supabase
           .from('notification_preferences')
-          .insert({})
+          .insert({
+            user_id: userId,
+            email_enabled: true,
+            push_enabled: true,
+            social_events_enabled: true,
+            system_alerts_enabled: true,
+            approval_requests_enabled: true,
+            content_published_enabled: true
+          })
           .select()
           .single();
         
