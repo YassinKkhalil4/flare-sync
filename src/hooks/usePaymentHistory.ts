@@ -57,8 +57,16 @@ export const usePaymentHistory = () => {
         if (transactionsError) throw transactionsError;
         if (invoicesError) throw invoicesError;
 
-        setTransactions(transactionsData || []);
-        setInvoices(invoicesData || []);
+        // Type casting the data to match our interface definitions
+        setTransactions(transactionsData?.map(transaction => ({
+          ...transaction,
+          status: transaction.status as 'pending' | 'completed' | 'failed' | 'refunded'
+        })) || []);
+        
+        setInvoices(invoicesData?.map(invoice => ({
+          ...invoice,
+          status: invoice.status as 'draft' | 'sent' | 'paid' | 'void' | 'uncollectible'
+        })) || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
