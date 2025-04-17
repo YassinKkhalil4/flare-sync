@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { Json } from '@/integrations/supabase/types';
 
 export interface Transaction {
   id: string;
@@ -20,7 +21,7 @@ export interface Invoice {
   status: 'draft' | 'sent' | 'paid' | 'void' | 'uncollectible';
   due_date?: string;
   pdf_url?: string;
-  items?: any[];
+  items?: any;
   created_at: string;
 }
 
@@ -65,7 +66,8 @@ export const usePaymentHistory = () => {
         
         setInvoices(invoicesData?.map(invoice => ({
           ...invoice,
-          status: invoice.status as 'draft' | 'sent' | 'paid' | 'void' | 'uncollectible'
+          status: invoice.status as 'draft' | 'sent' | 'paid' | 'void' | 'uncollectible',
+          items: invoice.items as any // Fix for type compatibility
         })) || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
