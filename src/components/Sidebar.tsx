@@ -1,133 +1,92 @@
 
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  LayoutDashboard,
-  Calendar,
-  BarChart2,
-  Users,
-  MessageSquare,
-  Settings,
-  LogOut,
-  Handshake,
-  Shield
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { 
+  LayoutDashboard, 
+  MessageSquare, 
+  Users, 
+  FileText, 
+  Settings, 
+  LogOut, 
+  User, 
+  Tag,
+  Bell
 } from 'lucide-react';
-import Logo from './Logo';
-import { useState } from 'react';
+import { Logo } from './Logo';
+import { NotificationIcon } from './NotificationIcon';
 
-const Sidebar = () => {
-  const { user, logout } = useAuth();
-  const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+interface SidebarProps {
+  collapsed?: boolean;
+}
 
-  const navigationItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Content Calendar', path: '/calendar', icon: Calendar },
-    { name: 'Analytics', path: '/analytics', icon: BarChart2 },
-    { name: 'Creator Profile', path: '/profile', icon: Users },
-    { name: 'Messages', path: '/messages', icon: MessageSquare },
-    { name: 'Brand Deals', path: '/deals', icon: Handshake },
-    { name: 'Settings', path: '/settings', icon: Settings },
-    // Add the Admin Dashboard link at the end
-    { name: 'Admin Dashboard', path: '/admin', icon: Shield },
-  ];
+export function Sidebar({ collapsed = false }: SidebarProps) {
+  const queryClient = useQueryClient();
+  
+  const handleLogout = async () => {
+    // Clear cache
+    queryClient.clear();
+    // Redirect to login
+    window.location.href = '/login';
+  };
 
   return (
-    <div className={`fixed top-0 left-0 h-full bg-card border-r border-border transition-all duration-300 ${collapsed ? 'w-[70px]' : 'w-[250px]'} z-30`}>
-      <div className="h-full flex flex-col">
-        <div className={`p-4 ${collapsed ? 'flex justify-center' : ''}`}>
-          {collapsed ? (
-            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-primary-foreground">
-              <Logo />
-            </div>
-          ) : (
-            <Logo />
-          )}
-        </div>
-        
-        <div className="flex-1 overflow-y-auto p-2">
-          <nav className="space-y-1">
-            {navigationItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              
-              return collapsed ? (
-                <Tooltip key={item.path} delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <Link to={item.path}>
-                      <Button 
-                        variant={isActive ? "secondary" : "ghost"}
-                        size="icon"
-                        className="w-full h-10 mb-1"
-                      >
-                        <item.icon size={20} />
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    {item.name}
-                  </TooltipContent>
-                </Tooltip>
-              ) : (
-                <Link to={item.path} key={item.path}>
-                  <Button 
-                    variant={isActive ? "secondary" : "ghost"}
-                    className="w-full justify-start"
-                  >
-                    <item.icon className="mr-2 h-4 w-4" />
-                    {item.name}
-                  </Button>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-        
-        <div className="p-4 border-t border-border">
-          {collapsed ? (
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={logout}>
-                  <LogOut size={20} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                Log out
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-8 w-8 rounded-full bg-muted overflow-hidden">
-                  {user?.avatar && (
-                    <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{user?.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" className="w-full" onClick={logout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Log out
-              </Button>
-            </div>
-          )}
-        </div>
-        
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="absolute top-1/2 -right-3 h-6 w-6 rounded-full border border-border bg-background shadow-sm"
-          onClick={() => setCollapsed(!collapsed)}
-        >
-          {collapsed ? '>' : '<'}
-        </Button>
+    <div className={`border-r bg-background h-screen flex flex-col ${collapsed ? 'w-16' : 'w-64'} transition-all duration-300 ease-in-out`}>
+      <div className="p-4 flex items-center justify-center">
+        <Logo />
+      </div>
+      <nav className="flex-1 px-2 py-4">
+        <ul className="space-y-1">
+          <NavItem icon={<LayoutDashboard />} to="/dashboard" label="Dashboard" collapsed={collapsed} />
+          <NavItem icon={<FileText />} to="/content" label="Content" collapsed={collapsed} />
+          <NavItem icon={<Users />} to="/social-connect" label="Social" collapsed={collapsed} />
+          <NavItem icon={<MessageSquare />} to="/messages" label="Messages" collapsed={collapsed} />
+          <NavItem icon={<Tag />} to="/deals" label="Deals" collapsed={collapsed} />
+          <NavItem icon={<Bell />} to="/notifications" label="Notifications" collapsed={collapsed} />
+        </ul>
+      </nav>
+      <div className="mt-auto px-2 py-4">
+        <ul className="space-y-1">
+          <NavItem icon={<User />} to="/profile" label="Profile" collapsed={collapsed} />
+          <NavItem icon={<Settings />} to="/settings" label="Settings" collapsed={collapsed} />
+          <li>
+            <button
+              onClick={handleLogout}
+              className={`flex items-center text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg px-2 py-2 w-full transition-colors ${
+                collapsed ? 'justify-center' : ''
+              }`}
+            >
+              <LogOut className="h-5 w-5 shrink-0" />
+              {!collapsed && <span className="ml-3">Logout</span>}
+            </button>
+          </li>
+        </ul>
       </div>
     </div>
   );
-};
+}
 
-export default Sidebar;
+interface NavItemProps {
+  icon: React.ReactNode;
+  to: string;
+  label: string;
+  collapsed: boolean;
+}
+
+function NavItem({ icon, to, label, collapsed }: NavItemProps) {
+  return (
+    <li>
+      <NavLink
+        to={to}
+        className={({ isActive }) => `
+          flex items-center text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg px-2 py-2 w-full transition-colors 
+          ${isActive ? 'bg-accent text-accent-foreground' : ''} 
+          ${collapsed ? 'justify-center' : ''}
+        `}
+      >
+        <div className="h-5 w-5 shrink-0">{icon}</div>
+        {!collapsed && <span className="ml-3">{label}</span>}
+      </NavLink>
+    </li>
+  );
+}

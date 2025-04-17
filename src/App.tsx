@@ -19,6 +19,7 @@ import CreatorProfile from "./pages/CreatorProfile";
 import BrandDeals from "./pages/BrandDeals";
 import Plans from "./pages/Plans";
 import AdminDashboard from "./pages/AdminDashboard";
+import NotificationsPage from "./pages/NotificationsPage";
 
 // Content Management Pages
 import ContentListPage from "./pages/Content/ContentListPage";
@@ -76,6 +77,11 @@ const App = () => (
             <Route path="/admin" element={
               <ProtectedRoute>
                 <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/notifications" element={
+              <ProtectedRoute>
+                <NotificationsPage />
               </ProtectedRoute>
             } />
             
