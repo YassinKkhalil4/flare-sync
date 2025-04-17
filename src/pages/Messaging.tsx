@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +29,8 @@ const Messaging = () => {
   // Fetch conversations on component mount
   useEffect(() => {
     const fetchConversations = async () => {
+      if (!user) return;
+      
       setIsLoadingConversations(true);
       try {
         const data = await MessagingService.getConversations();
@@ -51,7 +52,7 @@ const Messaging = () => {
     };
 
     fetchConversations();
-  }, [toast, selectedConversation]);
+  }, [user, toast, selectedConversation]);
 
   // Load messages when a conversation is selected
   useEffect(() => {
@@ -135,22 +136,6 @@ const Messaging = () => {
             : conv
         )
       );
-      
-      // Simulate response after a delay
-      setTimeout(async () => {
-        const conversation = conversations.find(c => c.id === selectedConversation);
-        if (!conversation) return;
-        
-        const responseMsg = {
-          id: `new-${Date.now() + 1}`,
-          sender: conversation.partner.id,
-          content: `Thanks for your message! This is an automated response from ${conversation.partner.name}.`,
-          timestamp: new Date().toISOString()
-        };
-        
-        setMessages(prev => [...prev, responseMsg]);
-      }, 1000);
-      
     } catch (error) {
       console.error('Failed to send message:', error);
       

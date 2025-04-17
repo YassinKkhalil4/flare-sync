@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import OverviewCard from '@/components/Dashboard/OverviewCard';
 import { Sidebar } from '@/components/Sidebar';
 import { Button } from '@/components/ui/button';
@@ -15,11 +15,50 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { SocialService, ContentService } from '@/services/api';
+import { useQuery } from '@tanstack/react-query';
+import NotificationsWidget from '@/components/Dashboard/NotificationsWidget';
+import PaymentHistoryWidget from '@/components/Dashboard/PaymentHistoryWidget';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 function Dashboard() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(isMobile);
+
+  // Fetch social profiles
+  const { data: socialProfiles } = useQuery({
+    queryKey: ['social-profiles'],
+    queryFn: async () => await SocialService.getProfiles(),
+    enabled: !!user,
+  });
+
+  // Calculate total followers across all platforms
+  const totalFollowers = socialProfiles?.reduce((sum, profile) => 
+    sum + (profile.stats?.followers || 0), 0) || 0;
+
+  // Fetch content posts
+  const { data: contentPosts } = useQuery({
+    queryKey: ['content-posts'],
+    queryFn: async () => await ContentService.getPosts(),
+    enabled: !!user,
+  });
+
+  // Calculate engagement - for demo purposes we'll use a random percentage
+  // In a real app, this would come from analytics data
+  const engagementRate = Math.round((Math.random() * 2 + 3) * 10) / 10;
+  
+  // Mock impressions data - in a real app would come from analytics
+  const impressions = Math.floor(totalFollowers * 3.5);
+  
+  // Mock watch time - in a real app would come from analytics
+  const avgWatchTime = "2:45";
 
   return (
     <div className="flex h-screen bg-background">
@@ -43,7 +82,7 @@ function Dashboard() {
               </Button>
               <h1 className="text-3xl font-bold">Dashboard</h1>
               <p className="text-muted-foreground">
-                Welcome back, {user?.user_metadata?.name || user?.email || 'Creator'}!
+                Welcome back, {user?.name || user?.email || 'Creator'}!
               </p>
             </div>
             <Button>
@@ -56,60 +95,69 @@ function Dashboard() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-8">
             <OverviewCard
               title="Total Followers"
-              value="24.8K"
+              value={totalFollowers >= 1000 ? `${(totalFollowers/1000).toFixed(1)}K` : totalFollowers.toString()}
               change={{ value: 12, positive: true }}
               icon={<Users />}
             />
             <OverviewCard
               title="Engagement Rate"
-              value="5.2%"
+              value={`${engagementRate}%`}
               change={{ value: 3.1, positive: true }}
               icon={<Heart />}
             />
             <OverviewCard
               title="Impressions"
-              value="142K"
+              value={impressions >= 1000 ? `${Math.floor(impressions/1000)}K` : impressions.toString()}
               change={{ value: 28, positive: true }}
               icon={<BarChart4 />}
             />
             <OverviewCard
               title="Avg. Watch Time"
-              value="2:45"
+              value={avgWatchTime}
               change={{ value: 12, positive: false }}
               icon={<Clock />}
             />
           </div>
           
-          {/* Charts and other dashboard content would go here */}
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Growth Trends</CardTitle>
-                <CardDescription>Your audience growth over time</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px] flex items-center justify-center border-2 border-dashed border-muted rounded-lg">
-                  <div className="text-center space-y-2">
-                    <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground" />
-                    <p>Chart placeholder</p>
+          {/* Main Dashboard Content */}
+          <div className="grid gap-6 md:grid-cols-3">
+            {/* Charts - Taking up 2 columns */}
+            <div className="md:col-span-2 grid gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Growth Trends</CardTitle>
+                  <CardDescription>Your audience growth over time</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px] flex items-center justify-center border-2 border-dashed border-muted rounded-lg">
+                    <div className="text-center space-y-2">
+                      <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground" />
+                      <p>Chart placeholder</p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Content Performance</CardTitle>
-                <CardDescription>How your recent posts are performing</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px] flex items-center justify-center border-2 border-dashed border-muted rounded-lg">
-                  <div className="text-center space-y-2">
-                    <BarChart4 className="h-12 w-12 mx-auto text-muted-foreground" />
-                    <p>Chart placeholder</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Content Performance</CardTitle>
+                  <CardDescription>How your recent posts are performing</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px] flex items-center justify-center border-2 border-dashed border-muted rounded-lg">
+                    <div className="text-center space-y-2">
+                      <BarChart4 className="h-12 w-12 mx-auto text-muted-foreground" />
+                      <p>Chart placeholder</p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Sidebar Widgets - Taking up 1 column */}
+            <div className="space-y-6">
+              <NotificationsWidget />
+              <PaymentHistoryWidget />
+            </div>
           </div>
         </div>
       </div>
@@ -118,11 +166,3 @@ function Dashboard() {
 }
 
 export default Dashboard;
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";

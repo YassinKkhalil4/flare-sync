@@ -1,15 +1,15 @@
 
 export interface Notification {
   id: string;
-  user_id: string;
+  type: NotificationType;
   title: string;
   message: string;
-  type: NotificationType;
-  is_read: boolean;
   image_url?: string;
-  related_entity_id?: string;
-  related_entity_type?: string;
+  is_read: boolean;
   created_at: string;
+  user_id: string;
+  related_entity_type?: string;
+  related_entity_id?: string;
 }
 
 export type NotificationType = 'social_event' | 'system_alert' | 'approval_request' | 'content_published';
@@ -22,5 +22,4 @@ export interface NotificationPreferences {
   system_alerts_enabled: boolean;
   approval_requests_enabled: boolean;
   content_published_enabled: boolean;
-  updated_at?: string;
 }

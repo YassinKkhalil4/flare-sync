@@ -1,14 +1,4 @@
 
-export type ContentStatus = 'draft' | 'pending_approval' | 'scheduled' | 'published' | 'rejected';
-
-export type SocialPlatform = 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'twitch';
-
-export interface ContentTag {
-  id: string;
-  name: string;
-  created_at?: string;
-}
-
 export interface ContentPost {
   id: string;
   user_id: string;
@@ -26,33 +16,22 @@ export interface ContentPost {
   tags?: ContentTag[];
 }
 
-export interface ContentApprovalFlow {
+export type ContentStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'scheduled' | 'published' | 'failed';
+
+export type SocialPlatform = 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'facebook';
+
+export interface ContentTag {
   id: string;
   name: string;
-  description?: string;
-  required_approvers: number;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface Profile {
-  id: string;
-  username?: string;
-  full_name?: string;
-  avatar_url?: string;
-  created_at?: string;
-  updated_at?: string;
+  created_at: string;
 }
 
 export interface ContentApproval {
   id: string;
   post_id: string;
-  approver_id?: string;
-  status: 'approved' | 'rejected' | 'pending';
+  approver_id: string;
+  status: 'pending' | 'approved' | 'rejected';
   notes?: string;
-  created_at?: string;
-  updated_at?: string;
-  // Include related tables that are joined in the query
-  profiles?: Profile;
-  content_posts?: ContentPost;
+  created_at: string;
+  updated_at: string;
 }
