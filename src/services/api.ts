@@ -1,8 +1,8 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { Notification, NotificationPreferences } from '@/types/notification';
-import { ContentPost, ContentTag, ContentApproval } from '@/types/content';
-import { SocialProfile } from '@/types/messaging';
+import { supabase } from '@/lib/supabase';
+import { Notification, NotificationPreferences, NotificationType } from '@/types/notification';
+import { ContentPost, ContentTag, ContentApproval, ContentStatus, SocialPlatform } from '@/types/content';
+import { SocialProfile, Conversation, Message, MessageRequest } from '@/types/messaging';
 
 export const MessagingService = {
   // Get all conversations for the current user
@@ -386,20 +386,26 @@ export const ContentService = {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('User not authenticated');
       
+      // Ensure required fields are set
+      const postToInsert = {
+        ...postData,
+        user_id: user.user.id,
+        platform: postData.platform || 'instagram', // Default platform
+        status: postData.status || 'draft', // Default status
+        title: postData.title || 'Untitled Post', // Default title
+      };
+      
       // Insert the post
       const { data: newPost, error } = await supabase
         .from('content_posts')
-        .insert({
-          ...postData,
-          user_id: user.user.id
-        })
+        .insert(postToInsert)
         .select()
         .single();
       
       if (error) throw error;
       
       // Add tags if provided
-      if (tagIds.length > 0) {
+      if (tagIds.length > 0 && newPost) {
         const tagRelations = tagIds.map(tagId => ({
           post_id: newPost.id,
           tag_id: tagId
@@ -413,7 +419,10 @@ export const ContentService = {
       }
       
       // Get the complete post with tags
-      return await this.getPostById(newPost.id);
+      if (newPost) {
+        return await ContentService.getPostById(newPost.id);
+      }
+      return null;
     } catch (error) {
       console.error('Error creating post:', error);
       return null;
@@ -426,7 +435,10 @@ export const ContentService = {
       // Update the post
       const { error } = await supabase
         .from('content_posts')
-        .update(postData)
+        .update({
+          ...postData,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', id);
       
       if (error) throw error;
@@ -454,7 +466,7 @@ export const ContentService = {
       }
       
       // Get the updated post with tags
-      return await this.getPostById(id);
+      return await ContentService.getPostById(id);
     } catch (error) {
       console.error('Error updating post:', error);
       return null;

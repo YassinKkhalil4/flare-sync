@@ -4,8 +4,8 @@ export interface Conversation {
   partner: {
     id: string;
     name: string;
-    avatar?: string;
-    type?: string;
+    avatar: string; // Making this required to match usage
+    type: string;   // Making this required to match usage
   };
   lastMessage: {
     content: string;

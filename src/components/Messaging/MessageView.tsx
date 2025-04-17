@@ -1,30 +1,8 @@
-
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Send, User } from 'lucide-react';
-
-interface Message {
-  id: string;
-  sender: string;
-  content: string;
-  timestamp: string;
-}
-
-interface Conversation {
-  id: string;
-  partner: {
-    id: string;
-    name: string;
-    avatar: string;
-    type: string;
-  };
-  lastMessage: {
-    content: string;
-    timestamp: string;
-    read: boolean;
-  };
-}
+import { Conversation, Message } from '@/types/messaging';
 
 interface MessageViewProps {
   selectedConversation: string | null;
