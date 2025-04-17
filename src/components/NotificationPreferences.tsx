@@ -73,7 +73,7 @@ export const NotificationPreferences: React.FC = () => {
               </div>
               <Switch 
                 id="email-notifications" 
-                checked={preferences.email_enabled} 
+                checked={preferences.email_enabled || false} 
                 onCheckedChange={(checked) => handleToggle('email_enabled', checked)} 
               />
             </div>
@@ -85,7 +85,7 @@ export const NotificationPreferences: React.FC = () => {
               </div>
               <Switch 
                 id="push-notifications" 
-                checked={preferences.push_enabled}
+                checked={preferences.push_enabled || false}
                 onCheckedChange={(checked) => handleToggle('push_enabled', checked)}
               />
             </div>
@@ -102,7 +102,7 @@ export const NotificationPreferences: React.FC = () => {
               </div>
               <Switch 
                 id="social-events" 
-                checked={preferences.social_events_enabled}
+                checked={preferences.social_events_enabled || false}
                 onCheckedChange={(checked) => handleToggle('social_events_enabled', checked)}
               />
             </div>
@@ -114,7 +114,7 @@ export const NotificationPreferences: React.FC = () => {
               </div>
               <Switch 
                 id="system-alerts" 
-                checked={preferences.system_alerts_enabled}
+                checked={preferences.system_alerts_enabled || false}
                 onCheckedChange={(checked) => handleToggle('system_alerts_enabled', checked)}
               />
             </div>
@@ -126,7 +126,7 @@ export const NotificationPreferences: React.FC = () => {
               </div>
               <Switch 
                 id="approval-requests" 
-                checked={preferences.approval_requests_enabled}
+                checked={preferences.approval_requests_enabled || false}
                 onCheckedChange={(checked) => handleToggle('approval_requests_enabled', checked)}
               />
             </div>
@@ -138,7 +138,7 @@ export const NotificationPreferences: React.FC = () => {
               </div>
               <Switch 
                 id="content-published" 
-                checked={preferences.content_published_enabled}
+                checked={preferences.content_published_enabled || false}
                 onCheckedChange={(checked) => handleToggle('content_published_enabled', checked)}
               />
             </div>

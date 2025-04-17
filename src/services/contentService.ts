@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { ContentPost, ContentStatus, ContentTag, ContentApproval } from '@/types/content';
 
-export class ContentAPI {
+export class ContentAPIClass {
   async getPosts(): Promise<ContentPost[]> {
     const { data, error } = await supabase
       .from('content_posts')
@@ -118,17 +118,17 @@ export class ContentAPI {
     return data || [];
   }
 
-  async createTag(tag: Omit<ContentTag, 'id' | 'created_at'>): Promise<ContentTag> {
+  async createTag(name: string): Promise<ContentTag> {
      const { data, error } = await supabase
       .from('content_tags')
       .insert([
-        { ...tag, created_at: new Date().toISOString() }
+        { name, created_at: new Date().toISOString() }
       ])
       .select()
       .single();
     
     if (error) throw error;
-    return data;
+    return data as ContentTag;
   }
 
   async getPostApprovals(postId: string): Promise<ContentApproval[]> {
@@ -139,10 +139,10 @@ export class ContentAPI {
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return data || [];
+    return (data || []) as ContentApproval[];
   }
 
-  async getPendingApprovals(): Promise<any[]> {
+  async getPendingApprovals(): Promise<ContentApproval[]> {
     const { data, error } = await supabase
       .from('content_approvals')
       .select('*, content_posts(*, profiles(*))')
@@ -150,7 +150,7 @@ export class ContentAPI {
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return data || [];
+    return (data || []) as ContentApproval[];
   }
 
   async updateApproval(approvalId: string, status: 'approved' | 'rejected', notes?: string) {
@@ -228,4 +228,5 @@ export class ContentAPI {
   }
 }
 
-export const ContentAPI = new ContentAPI();
+// Create and export a singleton instance
+export const ContentAPI = new ContentAPIClass();

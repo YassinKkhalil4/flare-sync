@@ -50,7 +50,7 @@ export const ContentList: React.FC = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [postToDelete, setPostToDelete] = React.useState<ContentPost | null>(null);
   
-  const { data: posts = [], refetch } = useQuery({
+  const { data: posts = [] as ContentPost[], refetch } = useQuery({
     queryKey: ['content'],
     queryFn: ContentService.getPosts
   });

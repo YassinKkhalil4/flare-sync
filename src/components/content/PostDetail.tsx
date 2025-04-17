@@ -160,7 +160,7 @@ export const PostDetail: React.FC<PostDetailProps> = ({ post }) => {
                   <div key={approval.id} className="flex items-center justify-between">
                     <div className="flex items-center">
                       <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-semibold">
-                        {approval.profiles?.username?.[0].toUpperCase() || 'U'}
+                        {approval.profiles?.username?.[0]?.toUpperCase() || 'U'}
                       </div>
                       <span className="ml-2">{approval.profiles?.username || 'User'}</span>
                     </div>

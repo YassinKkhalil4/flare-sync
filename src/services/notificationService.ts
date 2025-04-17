@@ -10,7 +10,7 @@ export class NotificationAPI {
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return data || [];
+    return (data || []) as Notification[];
   }
 
   async getUnreadCount(): Promise<number> {
@@ -83,10 +83,10 @@ export class NotificationAPI {
       .single();
     
     if (error) throw error;
-    return data;
+    return data as Notification;
   }
 
-  async getNotificationPreferences(): Promise<NotificationPreferences> {
+  async getNotificationPreferences(): Promise<NotificationPreferences | null> {
     const { data, error } = await supabase
       .from('notification_preferences')
       .select('*')
@@ -98,29 +98,43 @@ export class NotificationAPI {
     
     if (!data) {
       // Create default preferences if none exist
-      const { data: newPreferences, error: insertError } = await supabase
-        .from('notification_preferences')
-        .insert({})
-        .select()
-        .single();
-      
-      if (insertError) throw insertError;
-      return newPreferences;
+      try {
+        const { data: newPreferences, error: insertError } = await supabase
+          .from('notification_preferences')
+          .insert({})
+          .select()
+          .single();
+        
+        if (insertError) throw insertError;
+        return newPreferences as NotificationPreferences;
+      } catch (err) {
+        console.error("Error creating default preferences:", err);
+        return null;
+      }
     }
     
-    return data;
+    return data as NotificationPreferences;
   }
 
-  async updateNotificationPreferences(preferences: Partial<NotificationPreferences>): Promise<NotificationPreferences> {
+  async updateNotificationPreferences(preferences: Partial<NotificationPreferences>): Promise<NotificationPreferences | null> {
+    if (!preferences.user_id) {
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData && userData.user) {
+        preferences.user_id = userData.user.id;
+      } else {
+        throw new Error("User ID is required for updating preferences");
+      }
+    }
+    
     const { data, error } = await supabase
       .from('notification_preferences')
       .update(preferences)
-      .eq('user_id', preferences.user_id!)
+      .eq('user_id', preferences.user_id)
       .select()
       .single();
     
     if (error) throw error;
-    return data;
+    return data as NotificationPreferences;
   }
 
   // Set up subscription for real-time notifications

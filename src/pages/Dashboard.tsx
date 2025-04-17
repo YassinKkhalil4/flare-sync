@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { OverviewCard } from '@/components/Dashboard/OverviewCard';
+import OverviewCard from '@/components/Dashboard/OverviewCard';
 import { Sidebar } from '@/components/Sidebar';
 import { Button } from '@/components/ui/button';
 import { 
@@ -14,11 +14,11 @@ import {
   CalendarDays
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 function Dashboard() {
   const { user } = useAuth();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(isMobile);
 
   return (
@@ -43,7 +43,7 @@ function Dashboard() {
               </Button>
               <h1 className="text-3xl font-bold">Dashboard</h1>
               <p className="text-muted-foreground">
-                Welcome back, {user?.user_metadata?.full_name || 'Creator'}!
+                Welcome back, {user?.email || 'Creator'}!
               </p>
             </div>
             <Button>

@@ -19,7 +19,7 @@ export const ApprovalQueue: React.FC = () => {
   const [notes, setNotes] = React.useState<Record<string, string>>({});
   
   const { 
-    data: pendingApprovals = [],
+    data: pendingApprovals = [] as ContentApproval[],
     isLoading,
     refetch
   } = useQuery({

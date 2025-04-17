@@ -49,7 +49,7 @@ export const PostForm: React.FC<PostFormProps> = ({
   
   const status = watch('status');
   
-  const { data: tags = [] } = useQuery({
+  const { data: tags = [] as ContentTag[] } = useQuery({
     queryKey: ['content-tags'],
     queryFn: ContentService.getTags
   });
