@@ -35,6 +35,15 @@ export interface ContentApprovalFlow {
   updated_at?: string;
 }
 
+export interface Profile {
+  id: string;
+  username?: string;
+  full_name?: string;
+  avatar_url?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface ContentApproval {
   id: string;
   post_id: string;
@@ -43,4 +52,7 @@ export interface ContentApproval {
   notes?: string;
   created_at?: string;
   updated_at?: string;
+  // Include related tables that are joined in the query
+  profiles?: Profile;
+  content_posts?: ContentPost;
 }

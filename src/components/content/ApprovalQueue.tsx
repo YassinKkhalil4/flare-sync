@@ -72,7 +72,7 @@ export const ApprovalQueue: React.FC = () => {
           <Card key={approval.id}>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>{approval.content_posts?.title}</CardTitle>
+                <CardTitle>{approval.content_posts?.title || 'Untitled Post'}</CardTitle>
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Clock className="h-4 w-4 mr-1" />
                   {formatDistanceToNow(new Date(approval.created_at || Date.now()), { addSuffix: true })}
@@ -80,7 +80,7 @@ export const ApprovalQueue: React.FC = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="mb-4">{approval.content_posts?.body}</p>
+              <p className="mb-4">{approval.content_posts?.body || 'No content'}</p>
               
               <div className="mt-4">
                 <h4 className="text-sm font-medium mb-2">Add Review Notes</h4>
