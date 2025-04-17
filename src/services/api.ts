@@ -17,7 +17,8 @@ export const MessagingService = {
         partner: {
           id: 'mock-user-1',
           name: 'Mock User',
-          avatar: 'https://api.dicebear.com/6.x/avataaars/svg?seed=mock'
+          avatar: 'https://api.dicebear.com/6.x/avataaars/svg?seed=mock',
+          type: 'user'
         },
         lastMessage: {
           content: 'This is a mock message',
@@ -33,7 +34,8 @@ export const MessagingService = {
         partner: {
           id: 'mock-user-1',
           name: 'Mock User',
-          avatar: 'https://api.dicebear.com/6.x/avataaars/svg?seed=mock'
+          avatar: 'https://api.dicebear.com/6.x/avataaars/svg?seed=mock',
+          type: 'user'
         },
         lastMessage: {
           content: 'This is a mock message due to error fetching real data',
@@ -48,22 +50,33 @@ export const MessagingService = {
   // Get messages for a specific conversation
   getMessages: async (conversationId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-      
-      if (error) throw error;
-      
-      const { data: user } = await supabase.auth.getUser();
-      
-      return data.map(message => ({
-        id: message.id,
-        sender: message.sender_id === user.user?.id ? 'me' : message.sender_id,
-        content: message.content,
-        timestamp: message.created_at
-      }));
+      // Since messages table doesn't exist yet, return mock data
+      return [
+        {
+          id: 'mock-msg-1',
+          sender: 'me',
+          content: 'Hello there!',
+          timestamp: new Date(Date.now() - 3600000).toISOString()
+        },
+        {
+          id: 'mock-msg-2',
+          sender: 'mock-user-1',
+          content: 'Hi! How can I help you today?',
+          timestamp: new Date(Date.now() - 3500000).toISOString()
+        },
+        {
+          id: 'mock-msg-3',
+          sender: 'me',
+          content: 'I\'m interested in learning more about your services.',
+          timestamp: new Date(Date.now() - 3400000).toISOString()
+        },
+        {
+          id: 'mock-msg-4',
+          sender: 'mock-user-1',
+          content: 'Great! I\'d be happy to tell you more about what we offer.',
+          timestamp: new Date(Date.now() - 3300000).toISOString()
+        }
+      ];
     } catch (error) {
       console.error('Error fetching messages:', error);
       return [];
@@ -76,23 +89,12 @@ export const MessagingService = {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('User not authenticated');
       
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          sender_id: user.user.id,
-          content
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
+      // Mock sending a message
       return {
-        id: data.id,
+        id: `new-${Date.now()}`,
         sender: 'me',
-        content: data.content,
-        timestamp: data.created_at
+        content,
+        timestamp: new Date().toISOString()
       };
     } catch (error) {
       console.error('Error sending message:', error);
@@ -103,9 +105,7 @@ export const MessagingService = {
   // Mark a conversation as read
   markAsRead: async (conversationId: string) => {
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('User not authenticated');
-      
+      // Mock implementation
       return true;
     } catch (error) {
       console.error('Error marking conversation as read:', error);
@@ -359,6 +359,24 @@ export const ContentService = {
     } catch (error) {
       console.error('Error fetching post:', error);
       return null;
+    }
+  },
+
+  // Get approvals for a specific post
+  getPostApprovals: async (postId: string): Promise<ContentApproval[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('content_approvals')
+        .select('*, profiles(*)')
+        .eq('post_id', postId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      return data as ContentApproval[];
+    } catch (error) {
+      console.error('Error fetching post approvals:', error);
+      return [];
     }
   },
   

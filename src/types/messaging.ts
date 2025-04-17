@@ -5,6 +5,7 @@ export interface Conversation {
     id: string;
     name: string;
     avatar?: string;
+    type?: string;
   };
   lastMessage: {
     content: string;
@@ -19,6 +20,11 @@ export interface Message {
   sender: string;
   content: string;
   timestamp: string;
+}
+
+export interface MessageRequest {
+  conversationId: string;
+  content: string;
 }
 
 export interface SocialProfile {

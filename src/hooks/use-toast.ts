@@ -1,6 +1,6 @@
 
 // This is a simple wrapper for the shadcn/ui toast component
-import { toast as sonnerToast } from "sonner";
+import { toast as sonnerToast, ToastT } from "sonner";
 
 type ToastOptions = {
   title?: string;
