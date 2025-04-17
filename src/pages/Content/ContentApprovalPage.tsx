@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ApprovalQueue } from '@/components/content/ApprovalQueue';
+import ApprovalQueue from '@/components/content/ApprovalQueue';
 
 export const ContentApprovalPage: React.FC = () => {
   return (

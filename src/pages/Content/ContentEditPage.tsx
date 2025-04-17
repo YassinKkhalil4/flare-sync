@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ContentService } from '@/services/api';
 import { ContentPost } from '@/types/content';
-import { PostForm } from '@/components/content/PostForm';
+import PostForm from '@/components/content/PostForm';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -63,9 +63,10 @@ export const ContentEditPage: React.FC = () => {
       
       <Card className="p-6">
         <PostForm 
-          initialData={post} 
+          initialValues={post} 
           onSubmit={handleSubmit} 
-          isEditing={true} 
+          isLoading={false}
+          tags={[]} 
         />
       </Card>
     </div>

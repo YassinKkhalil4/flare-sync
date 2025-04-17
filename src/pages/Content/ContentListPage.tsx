@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { ContentList } from '@/components/content/ContentList';
-import { ApprovalQueue } from '@/components/content/ApprovalQueue';
+import ApprovalQueue from '@/components/content/ApprovalQueue';
 
 export const ContentListPage: React.FC = () => {
   return (

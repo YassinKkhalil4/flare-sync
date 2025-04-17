@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ContentService } from '@/services/api';
 import { ContentPost } from '@/types/content';
-import { PostForm } from '@/components/content/PostForm';
+import PostForm from '@/components/content/PostForm';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 

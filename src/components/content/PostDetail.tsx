@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { ContentAPI } from '@/services/contentService';
 import { ContentPost, ContentApproval, ContentStatus } from '@/types/content';
 import { useAuth } from '@/context/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client'; // Added missing import
 import {
   Card,
   CardContent,
