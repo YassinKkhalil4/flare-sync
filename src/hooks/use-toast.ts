@@ -1,7 +1,6 @@
 
 // This is a simple wrapper for the shadcn/ui toast component
 import { toast as sonnerToast } from "sonner";
-import { ToastProps } from "@/components/ui/toast";
 
 type ToastOptions = {
   title?: string;
@@ -29,3 +28,8 @@ export function useToast() {
     toast,
   };
 }
+
+export const toast = (options: ToastOptions) => {
+  const { toast: toastFn } = useToast();
+  toastFn(options);
+};
