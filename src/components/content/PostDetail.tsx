@@ -1,204 +1,250 @@
-
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { ContentService } from '@/services/api';
-import { ContentPost } from '@/types/content';
-import { formatDistanceToNow, format } from 'date-fns';
-import {
-  Calendar,
-  Clock,
-  Edit2,
-  ArrowLeft,
-  Check,
-  X
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useEffect } from 'react';
+import { ContentAPI } from '@/services/contentService';
+import { ContentPost, ContentApproval, ContentStatus } from '@/types/content';
+import { useAuth } from '@/context/AuthContext';
+import { formatDistanceToNow } from 'date-fns';
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Check, Loader2, Send, User } from 'lucide-react';
 
 interface PostDetailProps {
-  post: ContentPost;
+  postId: string;
+  onClose: () => void;
 }
 
-const statusColor = (status: string) => {
-  switch(status) {
-    case 'draft': return 'bg-gray-500';
-    case 'pending_approval': return 'bg-yellow-500';
-    case 'scheduled': return 'bg-blue-500';
-    case 'published': return 'bg-green-500';
-    case 'rejected': return 'bg-red-500';
-    default: return 'bg-gray-500';
-  }
-};
+const ProfileDisplay: React.FC<{ avatarUrl?: string | null; name: string; timestamp: string }> = ({ avatarUrl, name, timestamp }) => (
+  <div className="flex items-center space-x-3">
+    <Avatar className="h-8 w-8">
+      {avatarUrl ? (
+        <AvatarImage src={avatarUrl} alt={name} />
+      ) : (
+        <AvatarFallback>
+          <User className="h-4 w-4" />
+        </AvatarFallback>
+      )}
+    </Avatar>
+    <div>
+      <p className="text-sm font-medium leading-none">{name}</p>
+      <p className="text-sm text-muted-foreground">
+        {formatDistanceToNow(new Date(timestamp), { addSuffix: true })}
+      </p>
+    </div>
+  </div>
+);
 
-const statusLabel = (status: string) => {
-  switch(status) {
-    case 'pending_approval': return 'In Review';
-    default: return status.charAt(0).toUpperCase() + status.slice(1);
-  }
-};
+const PostDetail: React.FC<PostDetailProps> = ({ postId, onClose }) => {
+  const { user } = useAuth();
+  const [post, setPost] = useState<ContentPost | null>(null);
+  const [approvals, setApprovals] = useState<ContentApproval[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingApprovals, setIsLoadingApprovals] = useState(true);
+  const [approvalNotes, setApprovalNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-export const PostDetail: React.FC<PostDetailProps> = ({ post }) => {
-  const navigate = useNavigate();
-  
-  const { data: approvals = [] } = useQuery({
-    queryKey: ['post-approvals', post.id],
-    queryFn: () => ContentService.getPostApprovals(post.id),
-    enabled: post.status === 'pending_approval',
-  });
-  
+  useEffect(() => {
+    const fetchPost = async () => {
+      setIsLoading(true);
+      try {
+        const fetchedPost = await ContentAPI.getPostById(postId);
+        setPost(fetchedPost);
+      } catch (error) {
+        console.error("Error fetching post:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const fetchApprovals = async () => {
+      setIsLoadingApprovals(true);
+      try {
+        const fetchedApprovals = await ContentAPI.getPostApprovals(postId);
+        setApprovals(fetchedApprovals);
+      } catch (error) {
+        console.error("Error fetching approvals:", error);
+      } finally {
+        setIsLoadingApprovals(false);
+      }
+    };
+
+    fetchPost();
+    fetchApprovals();
+  }, [postId]);
+
+  const handleRequestApproval = async () => {
+    if (!user || !post) return;
+
+    setIsSubmitting(true);
+    try {
+      // Optimistically update the UI
+      setPost(prevPost => prevPost ? { ...prevPost, status: 'pending_approval' as ContentStatus } : null);
+
+      // Call the Supabase function to create the approval request
+      await supabase.functions.invoke('request-approval', {
+        body: {
+          postId: post.id,
+          userId: user.id,
+          notes: approvalNotes
+        }
+      });
+
+      // Refresh approvals
+      const fetchedApprovals = await ContentAPI.getPostApprovals(postId);
+      setApprovals(fetchedApprovals);
+    } catch (error) {
+      console.error("Error requesting approval:", error);
+      // Revert the UI on error
+      setPost(prevPost => prevPost ? { ...prevPost, status: 'draft' as ContentStatus } : null);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Update comparisons for ContentStatus
+  const canRequestApproval = post && 
+    (post.status === 'draft' || post.status === 'rejected') && 
+    !isLoadingApprovals;
+    
+  const isAwaitingApproval = post?.status === 'pending_approval';
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Button 
-          variant="ghost" 
-          className="flex items-center" 
-          onClick={() => navigate('/content')}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to List
-        </Button>
-        
-        <Button 
-          onClick={() => navigate(`/content/edit/${post.id}`)}
-          variant="outline"
-          className="flex items-center"
-        >
-          <Edit2 className="h-4 w-4 mr-2" />
-          Edit Post
-        </Button>
-      </div>
-      
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{post.title}</h1>
-          <div className="flex items-center mt-2 space-x-2">
-            <Badge className={`${statusColor(post.status)} text-white`}>
-              {statusLabel(post.status)}
-            </Badge>
-            <Badge variant="outline" className="capitalize">
-              {post.platform}
-            </Badge>
+    <Card className="w-full max-w-2xl">
+      <CardHeader>
+        <CardTitle>Post Details</CardTitle>
+        <CardDescription>
+          View details and manage approvals for this content post
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading ? (
+          <div className="flex justify-center">
+            <Loader2 className="h-6 w-6 animate-spin" />
           </div>
-        </div>
-      </div>
-      
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Content</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {post.body ? (
-              <div className="whitespace-pre-wrap">
-                {post.body}
+        ) : post ? (
+          <>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">{post.title}</h3>
+              <p className="text-muted-foreground">
+                Status: <Badge variant="secondary">{post.status}</Badge>
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Content</Label>
+              <Textarea value={post.body || ''} readOnly className="bg-muted" />
+            </div>
+
+            {post.media_urls && post.media_urls.length > 0 && (
+              <div className="space-y-2">
+                <Label>Media</Label>
+                <div className="flex gap-2">
+                  {post.media_urls.map((url, index) => (
+                    <img
+                      key={index}
+                      src={url}
+                      alt={`Media ${index + 1}`}
+                      className="h-20 w-20 object-cover rounded-md"
+                    />
+                  ))}
+                </div>
               </div>
-            ) : (
-              <p className="text-muted-foreground italic">No content</p>
             )}
-          </CardContent>
-        </Card>
-        
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Created</p>
-                <div className="flex items-center mt-1">
-                  <Clock className="h-4 w-4 mr-2" />
-                  <span>
-                    {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-                  </span>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Approval History</h4>
+              {isLoadingApprovals ? (
+                <div className="flex justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 </div>
-              </div>
-              
-              {post.scheduled_for && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Scheduled For</p>
-                  <div className="flex items-center mt-1">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    <span>
-                      {format(new Date(post.scheduled_for), "PPP")}
-                    </span>
-                  </div>
-                </div>
-              )}
-              
-              {post.tags && post.tags.length > 0 && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Tags</p>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {post.tags.map(tag => (
-                      <Badge key={tag.id} variant="outline" className="text-xs">
-                        {tag.name}
-                      </Badge>
+              ) : approvals.length > 0 ? (
+                <ScrollArea className="h-[200px] w-full rounded-md border">
+                  <div className="p-4 space-y-4">
+                    {approvals.map((approval) => (
+                      <div key={approval.id} className="space-y-1">
+                        <ProfileDisplay
+                          avatarUrl={approval.profiles?.avatar_url}
+                          name={approval.profiles?.full_name || approval.profiles?.username || "Unknown User"}
+                          timestamp={approval.created_at}
+                        />
+                        <p className="text-sm text-muted-foreground ml-11">
+                          {approval.notes}
+                        </p>
+                        <p className="text-sm ml-11">
+                          Status: <Badge variant="secondary">{approval.status}</Badge>
+                        </p>
+                      </div>
                     ))}
                   </div>
-                </div>
+                </ScrollArea>
+              ) : (
+                <p className="text-muted-foreground">No approval history found.</p>
               )}
-            </CardContent>
-          </Card>
-          
-          {post.status === 'pending_approval' && approvals.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Approval Status</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {approvals.map(approval => (
-                  <div key={approval.id} className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-semibold">
-                        {approval.profiles?.username?.[0]?.toUpperCase() || 'U'}
-                      </div>
-                      <span className="ml-2">{approval.profiles?.username || 'User'}</span>
-                    </div>
-                    <div>
-                      {approval.status === 'pending' && (
-                        <Badge variant="outline">Pending</Badge>
-                      )}
-                      {approval.status === 'approved' && (
-                        <Badge className="bg-green-500 text-white">
-                          <Check className="h-3 w-3 mr-1" />
-                          Approved
-                        </Badge>
-                      )}
-                      {approval.status === 'rejected' && (
-                        <Badge className="bg-red-500 text-white">
-                          <X className="h-3 w-3 mr-1" />
-                          Rejected
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-          
-          {post.reviewer_notes && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Reviewer Notes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="whitespace-pre-wrap text-sm">{post.reviewer_notes}</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-    </div>
+            </div>
+
+            {canRequestApproval && (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                  <Label htmlFor="approval-notes">Approval Notes</Label>
+                  <Textarea
+                    id="approval-notes"
+                    placeholder="Add any notes for the approver"
+                    value={approvalNotes}
+                    onChange={(e) => setApprovalNotes(e.target.value)}
+                  />
+                  <Button disabled={isSubmitting} onClick={handleRequestApproval}>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Requesting...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="mr-2 h-4 w-4" />
+                        Request Approval
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {isAwaitingApproval && (
+              <>
+                <Separator />
+                <div className="text-center">
+                  <p className="text-muted-foreground">
+                    Awaiting approval from reviewer.
+                  </p>
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          <div className="text-center">
+            <p className="text-muted-foreground">Post not found.</p>
+          </div>
+        )}
+      </CardContent>
+      {/* <CardFooter>
+        <Button onClick={onClose}>Close</Button>
+      </CardFooter> */}
+    </Card>
   );
 };
+
+export default PostDetail;

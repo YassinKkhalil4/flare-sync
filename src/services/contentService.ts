@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ContentPost, ContentStatus, ContentTag, ContentApproval } from '@/types/content';
 

@@ -14,7 +14,7 @@ export const useTwitchConnect = () => {
   } = useSocialConnect('twitch');
 
   // Twitch OAuth configuration
-  const CLIENT_ID = "twitch-client-id";  // Replace with actual Twitch Client ID
+  const CLIENT_ID = "abcdefg12345";  // Replace with actual Twitch Client Key
   const REDIRECT_URI = `${window.location.origin}/social-connect`;
   const SCOPE = "user:read:email channel:read:subscriptions";
 

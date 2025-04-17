@@ -14,7 +14,7 @@ export const useYoutubeConnect = () => {
   } = useSocialConnect('youtube');
 
   // YouTube OAuth configuration
-  const CLIENT_ID = "youtube-client-id";  // Replace with actual YouTube Client ID
+  const CLIENT_ID = "abcdefg12345";  // Replace with actual YouTube Client Key
   const REDIRECT_URI = `${window.location.origin}/social-connect`;
   const SCOPE = "https://www.googleapis.com/auth/youtube.readonly";
 

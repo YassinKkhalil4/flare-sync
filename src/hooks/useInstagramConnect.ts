@@ -14,7 +14,7 @@ export const useInstagramConnect = () => {
   } = useSocialConnect('instagram');
 
   // Instagram OAuth configuration
-  const CLIENT_ID = "12345678";  // Replace with actual Instagram Client ID
+  const CLIENT_ID = "abcdefg12345";  // Replace with actual Instagram Client Key
   const REDIRECT_URI = `${window.location.origin}/social-connect`;
   const SCOPE = "user_profile,user_media";
 
