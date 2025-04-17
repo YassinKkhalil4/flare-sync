@@ -28,6 +28,11 @@ export class ContentAPIClass {
   }
 
   async createPost(post: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>, tagIds?: string[]): Promise<ContentPost> {
+    // Ensure required fields are present
+    if (!post.title || !post.platform || !post.status) {
+      throw new Error("Missing required fields: title, platform, and status are required");
+    }
+    
     const { data, error } = await supabase
       .from('content_posts')
       .insert([

@@ -16,7 +16,7 @@ export interface ContentPost {
   tags?: ContentTag[];
 }
 
-export type ContentStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'scheduled' | 'published' | 'failed' | 'pending_approval';
+export type ContentStatus = 'draft' | 'pending' | 'pending_approval' | 'approved' | 'rejected' | 'scheduled' | 'published' | 'failed';
 
 export type SocialPlatform = 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'facebook' | 'twitch';
 
