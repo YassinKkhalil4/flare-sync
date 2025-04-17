@@ -31,12 +31,21 @@ export const ContentCreatePage: React.FC = () => {
     }
   };
   
+  const handleCancel = () => {
+    navigate('/content');
+  };
+  
   return (
     <div className="container mx-auto py-8 space-y-8">
       <h1 className="text-3xl font-bold">Create New Post</h1>
       
       <Card className="p-6">
-        <PostForm onSubmit={handleSubmit} />
+        <PostForm 
+          onSubmit={handleSubmit} 
+          onCancel={handleCancel}
+          tags={[]}
+          isLoading={false}
+        />
       </Card>
     </div>
   );

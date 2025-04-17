@@ -42,6 +42,10 @@ export const ContentEditPage: React.FC = () => {
       });
     }
   };
+
+  const handleCancel = () => {
+    navigate('/content');
+  };
   
   if (isLoading || !post) {
     return <div>Loading post...</div>;
@@ -64,9 +68,10 @@ export const ContentEditPage: React.FC = () => {
       <Card className="p-6">
         <PostForm 
           initialValues={post} 
-          onSubmit={handleSubmit} 
-          isLoading={false}
-          tags={[]} 
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          isLoading={isLoading}
+          tags={post.tags || []} 
         />
       </Card>
     </div>
