@@ -60,14 +60,24 @@ export const usePaymentHistory = () => {
 
         // Type casting the data to match our interface definitions
         setTransactions(transactionsData?.map(transaction => ({
-          ...transaction,
-          status: transaction.status as 'pending' | 'completed' | 'failed' | 'refunded'
+          id: transaction.id,
+          amount: transaction.amount,
+          currency: transaction.currency || 'USD',
+          status: transaction.status as 'pending' | 'completed' | 'failed' | 'refunded',
+          payment_method: transaction.payment_method,
+          description: transaction.description,
+          created_at: transaction.created_at
         })) || []);
         
         setInvoices(invoicesData?.map(invoice => ({
-          ...invoice,
+          id: invoice.id,
+          invoice_number: invoice.invoice_number,
+          amount: invoice.amount,
           status: invoice.status as 'draft' | 'sent' | 'paid' | 'void' | 'uncollectible',
-          items: invoice.items as any // Fix for type compatibility
+          due_date: invoice.due_date,
+          pdf_url: invoice.pdf_url,
+          items: invoice.items, // No need for type assertion as we've updated the type
+          created_at: invoice.created_at
         })) || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');

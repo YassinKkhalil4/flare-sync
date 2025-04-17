@@ -3,38 +3,33 @@ import { useSocialConnect } from './useSocialConnect';
 
 export const useTwitchConnect = () => {
   const {
-    profiles,
     isLoading,
     isConnecting,
     isSyncing,
-    socialProfile: twitchProfile,
-    isSocialConnected: isTwitchConnected,
+    socialProfile,
+    isSocialConnected,
     initiateSocialConnect,
-    disconnectSocial: disconnectTwitch,
-    syncSocialData: syncTwitchData,
+    disconnectSocial,
+    syncSocialData,
   } = useSocialConnect('twitch');
 
-  const initiateTwitchConnect = async () => {
-    const twitchClientId = import.meta.env.VITE_TWITCH_CLIENT_ID || 'abcdef123456';
-    const redirectUri = import.meta.env.VITE_TWITCH_REDIRECT_URI || 
-                       `${window.location.origin}/social-connect`;
-    
-    await initiateSocialConnect(
-      twitchClientId,
-      redirectUri,
-      'user:read:email channel:read:subscriptions'
-    );
+  // Twitch OAuth configuration
+  const CLIENT_ID = "twitch-client-id";  // Replace with actual Twitch Client ID
+  const REDIRECT_URI = `${window.location.origin}/social-connect`;
+  const SCOPE = "user:read:email channel:read:subscriptions";
+
+  const initiateTwitchConnect = () => {
+    initiateSocialConnect(CLIENT_ID, REDIRECT_URI, SCOPE);
   };
 
   return {
-    profiles,
     isLoading,
     isConnecting,
     isSyncing,
-    twitchProfile,
-    isTwitchConnected,
+    twitchProfile: socialProfile,
+    isTwitchConnected: isSocialConnected,
     initiateTwitchConnect,
-    disconnectTwitch,
-    syncTwitchData,
+    disconnectTwitch: disconnectSocial,
+    syncTwitchData: syncSocialData,
   };
 };

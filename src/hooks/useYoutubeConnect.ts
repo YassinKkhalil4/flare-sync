@@ -3,38 +3,33 @@ import { useSocialConnect } from './useSocialConnect';
 
 export const useYoutubeConnect = () => {
   const {
-    profiles,
     isLoading,
     isConnecting,
     isSyncing,
-    socialProfile: youtubeProfile,
-    isSocialConnected: isYoutubeConnected,
+    socialProfile,
+    isSocialConnected,
     initiateSocialConnect,
-    disconnectSocial: disconnectYoutube,
-    syncSocialData: syncYoutubeData,
+    disconnectSocial,
+    syncSocialData,
   } = useSocialConnect('youtube');
 
-  const initiateYoutubeConnect = async () => {
-    const youtubeClientId = import.meta.env.VITE_YOUTUBE_CLIENT_ID || '123456-abcdef.apps.googleusercontent.com';
-    const redirectUri = import.meta.env.VITE_YOUTUBE_REDIRECT_URI || 
-                       `${window.location.origin}/social-connect`;
-    
-    await initiateSocialConnect(
-      youtubeClientId,
-      redirectUri,
-      'https://www.googleapis.com/auth/youtube.readonly'
-    );
+  // YouTube OAuth configuration
+  const CLIENT_ID = "youtube-client-id";  // Replace with actual YouTube Client ID
+  const REDIRECT_URI = `${window.location.origin}/social-connect`;
+  const SCOPE = "https://www.googleapis.com/auth/youtube.readonly";
+
+  const initiateYoutubeConnect = () => {
+    initiateSocialConnect(CLIENT_ID, REDIRECT_URI, SCOPE);
   };
 
   return {
-    profiles,
     isLoading,
     isConnecting,
     isSyncing,
-    youtubeProfile,
-    isYoutubeConnected,
+    youtubeProfile: socialProfile,
+    isYoutubeConnected: isSocialConnected,
     initiateYoutubeConnect,
-    disconnectYoutube,
-    syncYoutubeData,
+    disconnectYoutube: disconnectSocial,
+    syncYoutubeData: syncSocialData,
   };
 };
