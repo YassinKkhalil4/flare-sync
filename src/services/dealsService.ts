@@ -15,7 +15,7 @@ class DealsService {
   async getDeals() {
     const { data: deals, error } = await supabase
       .from('deals')
-      .select('*, creator:creator_id(*), brand:brand_id(*)')
+      .select('*, profiles!deals_creator_id_fkey(*), profiles!deals_brand_id_fkey(*)')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -33,7 +33,7 @@ class DealsService {
     return data;
   }
 
-  async respondToDeal(dealId: string, status: 'accepted' | 'rejected') {
+  async updateDealStatus(dealId: string, status: 'accepted' | 'rejected') {
     const { data, error } = await supabase
       .from('deals')
       .update({ status })
