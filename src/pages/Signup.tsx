@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -7,7 +7,8 @@ const Signup = () => {
   const navigate = useNavigate();
   const { signup } = useAuth();
 
-  useEffect(() => {
+  // Redirect to login page with signup mode
+  React.useEffect(() => {
     navigate('/login', { state: { mode: 'signup' } });
   }, [navigate]);
 
