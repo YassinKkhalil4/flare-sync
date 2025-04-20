@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from '../components/ui/use-toast';
 import { supabase } from '../integrations/supabase/client';
@@ -360,8 +361,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabaseProfileData.username = data.username;
       }
       
-      // Remove role and plan updates from profiles table
-      // These would require separate tables/operations
+      if (data.avatar !== undefined) {
+        supabaseProfileData.avatar_url = data.avatar;
+      }
       
       supabaseProfileData.updated_at = new Date().toISOString();
 
@@ -378,7 +380,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { 
           ...prev, 
           name: data.name ?? prev.name,
-          username: data.username ?? prev.username
+          username: data.username ?? prev.username,
+          avatar: data.avatar ?? prev.avatar
         };
       });
 

@@ -14,7 +14,7 @@ import { useTwitterConnect } from '@/hooks/useTwitterConnect';
 import { useYoutubeConnect } from '@/hooks/useYoutubeConnect';
 import { useTwitchConnect } from '@/hooks/useTwitchConnect';
 import { useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { SocialAPI } from '@/services/socialService';
 
 const SocialConnect = () => {
   const { user } = useAuth();
@@ -89,18 +89,15 @@ const SocialConnect = () => {
   useEffect(() => {
     if (!user) return;
 
-    // Check if any social account is connected
+    // Check if any social account is connected using the SocialAPI
     const checkConnections = async () => {
       try {
-        const { data: connections } = await supabase
-          .from('social_connections')
-          .select('*')
-          .eq('user_id', user.id);
-
-        // Update state based on connections
-        if (connections) {
-          // Update connection states
-        }
+        // Use the SocialAPI instead of directly querying Supabase
+        const profiles = await SocialAPI.getProfiles();
+        
+        // Process the fetched profiles if needed
+        console.log("Connected social profiles:", profiles);
+        
       } catch (error) {
         console.error('Error checking social connections:', error);
       }
