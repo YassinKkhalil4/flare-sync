@@ -1,106 +1,20 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, User, Camera, Check, X } from 'lucide-react';
+import { useSubscription } from '@/hooks/useSubscription';
+import AvatarUpload from '@/components/Profile/AvatarUpload';
+import ProfileInformation from '@/components/Profile/ProfileInformation';
+import VerificationStatus from '@/components/Profile/VerificationStatus';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Upload, User, Camera, Check, X } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
-import { useSubscription } from '@/hooks/useSubscription';
+import { Textarea } from '@/components/ui/textarea';
 
 const CreatorProfile = () => {
-  const { user, updateProfile, uploadAvatar } = useAuth();
+  const { user } = useAuth();
   const { plan } = useSubscription();
-  
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: user?.name || '',
-    bio: '',
-    location: '',
-    website: '',
-    categories: []
-  });
-  
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-  
-  const handleProfileUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsUpdating(true);
-    
-    try {
-      await updateProfile({
-        name: formData.name
-      });
-      
-      toast({
-        title: 'Profile updated',
-        description: 'Your profile has been successfully updated.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Update failed',
-        description: 'Could not update your profile. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-  
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    
-    const file = files[0];
-    
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: 'Invalid file',
-        description: 'Please upload an image file.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: 'File too large',
-        description: 'Please upload an image smaller than 5MB.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    setIsUploading(true);
-    
-    try {
-      const avatarUrl = await uploadAvatar(file);
-      if (avatarUrl) {
-        toast({
-          title: 'Avatar updated',
-          description: 'Your profile picture has been updated successfully.',
-        });
-      }
-    } catch (error) {
-      console.error('Failed to upload avatar:', error);
-      toast({
-        title: 'Upload failed',
-        description: 'Could not upload your profile picture. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
   
   if (!user) {
     return (
@@ -112,6 +26,10 @@ const CreatorProfile = () => {
       </div>
     );
   }
+
+  const userInitials = user.name
+    ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+    : 'U';
   
   return (
     <div className="container max-w-4xl py-12">
@@ -132,209 +50,36 @@ const CreatorProfile = () => {
           <TabsTrigger value="branding">Branding</TabsTrigger>
         </TabsList>
         
-        {/* Profile Tab */}
         <TabsContent value="profile">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Profile Picture */}
             <Card>
               <CardHeader>
                 <CardTitle>Profile Picture</CardTitle>
                 <CardDescription>Your profile image will be shown to brands and followers</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col items-center">
-                <div className="relative group mb-4">
-                  <Avatar className="h-32 w-32">
-                    {user.avatar ? (
-                      <AvatarImage src={user.avatar} alt={user.name} />
-                    ) : (
-                      <AvatarFallback className="text-2xl">
-                        <User className="h-10 w-10" />
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                  <label 
-                    htmlFor="avatar-upload" 
-                    className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                  >
-                    {isUploading ? (
-                      <Loader2 className="h-6 w-6 animate-spin text-white" />
-                    ) : (
-                      <Camera className="h-6 w-6 text-white" />
-                    )}
-                  </label>
-                  <input 
-                    id="avatar-upload" 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden" 
-                    onChange={handleAvatarUpload}
-                    disabled={isUploading}
-                  />
-                </div>
-                <div className="text-center">
+                <AvatarUpload userInitials={userInitials} avatarUrl={user.avatar} />
+                <div className="text-center mt-4">
                   <p className="font-medium">{user.name}</p>
                   <p className="text-sm text-muted-foreground">{user.email}</p>
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-center">
-                <label htmlFor="avatar-upload" className="cursor-pointer">
-                  <Button variant="outline" type="button" disabled={isUploading}>
-                    {isUploading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="mr-2 h-4 w-4" />
-                        Upload New Image
-                      </>
-                    )}
-                  </Button>
-                </label>
-              </CardFooter>
             </Card>
             
-            {/* Profile Info */}
             <Card className="md:col-span-2">
               <CardHeader>
                 <CardTitle>Profile Information</CardTitle>
                 <CardDescription>Update your profile details visible to brands and other users</CardDescription>
               </CardHeader>
               <CardContent>
-                <form id="profile-form" onSubmit={handleProfileUpdate} className="space-y-4">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium mb-1">
-                      Display Name
-                    </label>
-                    <Input 
-                      id="name" 
-                      name="name" 
-                      value={formData.name} 
-                      onChange={handleInputChange} 
-                      placeholder="Your display name"
-                      disabled={isUpdating}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="bio" className="block text-sm font-medium mb-1">
-                      Bio
-                    </label>
-                    <Textarea 
-                      id="bio" 
-                      name="bio" 
-                      value={formData.bio} 
-                      onChange={handleInputChange}
-                      placeholder="Tell brands and others about yourself"
-                      disabled={isUpdating}
-                      rows={4}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="location" className="block text-sm font-medium mb-1">
-                        Location
-                      </label>
-                      <Input 
-                        id="location" 
-                        name="location" 
-                        value={formData.location} 
-                        onChange={handleInputChange}
-                        placeholder="City, Country"
-                        disabled={isUpdating}
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="website" className="block text-sm font-medium mb-1">
-                        Website
-                      </label>
-                      <Input 
-                        id="website" 
-                        name="website" 
-                        value={formData.website} 
-                        onChange={handleInputChange}
-                        placeholder="https://yourwebsite.com"
-                        disabled={isUpdating}
-                      />
-                    </div>
-                  </div>
-                </form>
+                <ProfileInformation />
               </CardContent>
-              <CardFooter className="flex justify-end">
-                <Button type="submit" form="profile-form" disabled={isUpdating}>
-                  {isUpdating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    'Save Changes'
-                  )}
-                </Button>
-              </CardFooter>
             </Card>
           </div>
           
-          {/* Verification Status */}
-          <Card className="mt-8">
-            <CardHeader>
-              <CardTitle>Verification Status</CardTitle>
-              <CardDescription>
-                Verification increases your credibility with brands and can lead to better deals
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center">
-                    <div className="bg-green-100 p-2 rounded-full mr-4">
-                      <Check className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">Email Verification</h4>
-                      <p className="text-sm text-muted-foreground">Your email address has been verified</p>
-                    </div>
-                  </div>
-                  <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">
-                    Verified
-                  </span>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center">
-                    <div className="bg-red-100 p-2 rounded-full mr-4">
-                      <X className="h-5 w-5 text-red-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">Phone Verification</h4>
-                      <p className="text-sm text-muted-foreground">Add your phone number for additional verification</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm">
-                    Verify Phone
-                  </Button>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center">
-                    <div className="bg-red-100 p-2 rounded-full mr-4">
-                      <X className="h-5 w-5 text-red-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">Identity Verification</h4>
-                      <p className="text-sm text-muted-foreground">Verify your identity to unlock premium deals</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm">
-                    Verify Identity
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="mt-8">
+            <VerificationStatus />
+          </div>
         </TabsContent>
         
         {/* Account Tab */}
