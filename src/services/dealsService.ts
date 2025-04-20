@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-interface Deal {
+export interface Deal {
   id: string;
   creator_id: string;
   brand_id: string;

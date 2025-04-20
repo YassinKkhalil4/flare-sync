@@ -7,7 +7,7 @@ import { MessagingAPI } from './messagingService';
 import { NotificationService } from './notificationService';
 import { ContentAPI } from './contentService';
 import { SocialAPI } from './socialService';
-import { DealsAPI } from './dealsService';
+import { dealsService } from './dealsService';
 
 // Export all services
 export { 
@@ -15,5 +15,5 @@ export {
   NotificationService,
   ContentAPI as ContentService,
   SocialAPI as SocialService,
-  DealsAPI
+  dealsService as DealsAPI
 };
