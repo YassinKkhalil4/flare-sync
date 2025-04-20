@@ -350,24 +350,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       // Convert our extended profile data to what Supabase expects
-      const supabaseProfileData: any = {};
-      
-      if (data.name !== undefined) {
-        supabaseProfileData.full_name = data.name;
-      }
-      
-      if (data.username !== undefined) {
-        supabaseProfileData.username = data.username;
-      }
-      
-      if (data.avatar !== undefined) {
-        supabaseProfileData.avatar_url = data.avatar;
-      }
-      
-      supabaseProfileData.updated_at = new Date().toISOString();
-
-      // Remove the role property as it's not part of the profiles table schema
-      // We should NOT include role in the update to profiles table
+      const supabaseProfileData: any = {
+        full_name: data.name,
+        username: data.username,
+        avatar_url: data.avatar,
+        updated_at: new Date().toISOString()
+      };
 
       const { error } = await supabase
         .from('profiles')
@@ -376,16 +364,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
-      // Update local user state, preserving extended profile fields
-      setUser(prev => {
-        if (!prev) return null;
-        return { 
-          ...prev, 
-          name: data.name ?? prev.name,
-          username: data.username ?? prev.username,
-          avatar: data.avatar ?? prev.avatar
-        };
-      });
+      // Update local user state
+      setUser(prev => prev ? { ...prev, ...data } : null);
 
       toast({
         title: "Profile updated",

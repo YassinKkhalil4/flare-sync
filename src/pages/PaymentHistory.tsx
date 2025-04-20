@@ -1,62 +1,70 @@
-import React from 'react';
-import { usePaymentHistory } from '@/hooks/usePaymentHistory';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DollarSign, FileText } from 'lucide-react';
-import TransactionsTab from '@/components/payment/TransactionsTab';
-import InvoicesTab from '@/components/payment/InvoicesTab';
 
-const PaymentHistory: React.FC = () => {
-  const { transactions, invoices, isLoading, error } = usePaymentHistory();
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { format } from 'date-fns';
 
-  const formatCurrency = (amount: number, currency: string = 'USD') => 
-    new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
-      currency 
-    }).format(amount);
-
-  const formatDate = (dateString: string) => 
-    new Date(dateString).toLocaleDateString();
-
-  if (error) {
-    return (
-      <div className="p-4 text-red-500">
-        Error loading payment history: {error}
-      </div>
-    );
-  }
+const PaymentHistory = () => {
+  const { user } = useAuth();
+  
+  const { data: transactions = [] } = useQuery({
+    queryKey: ['payment-history'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user
+  });
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Payment History</h1>
-      
-      <Tabs defaultValue="transactions">
-        <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="transactions">
-            <DollarSign className="mr-2 h-4 w-4" /> Transactions
-          </TabsTrigger>
-          <TabsTrigger value="invoices">
-            <FileText className="mr-2 h-4 w-4" /> Invoices
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="transactions">
-          <TransactionsTab 
-            transactions={transactions}
-            isLoading={isLoading}
-            formatCurrency={formatCurrency}
-            formatDate={formatDate}
-          />
-        </TabsContent>
-
-        <TabsContent value="invoices">
-          <InvoicesTab 
-            invoices={invoices}
-            isLoading={isLoading}
-            formatCurrency={formatCurrency}
-            formatDate={formatDate}
-          />
-        </TabsContent>
-      </Tabs>
+    <div className="container max-w-4xl py-8">
+      <h1 className="text-3xl font-bold mb-8">Payment History</h1>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Date</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Amount</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {transactions.map((transaction) => (
+            <TableRow key={transaction.id}>
+              <TableCell>
+                {format(new Date(transaction.created_at), 'MMM dd, yyyy')}
+              </TableCell>
+              <TableCell>{transaction.description}</TableCell>
+              <TableCell>
+                {new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: transaction.currency
+                }).format(transaction.amount)}
+              </TableCell>
+              <TableCell className="capitalize">{transaction.status}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {transactions.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground">
+          No payment history available
+        </div>
+      )}
     </div>
   );
 };

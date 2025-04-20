@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { DealsAPI } from '@/services/api';
@@ -89,6 +88,7 @@ const BrandDeals = () => {
       style: 'currency',
       currency: 'USD',
     }).format(amount);
+
   };
 
   const formatDate = (date: string) => {
