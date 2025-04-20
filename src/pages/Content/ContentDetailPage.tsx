@@ -18,9 +18,13 @@ export const ContentDetailPage: React.FC = () => {
     return <div>Post ID not found</div>;
   }
   
+  if (!post && !isLoading) {
+    return <div>Post not found</div>;
+  }
+
   return (
     <div className="container mx-auto py-8">
-      <PostDetail post={post} isLoading={isLoading} />
+      <PostDetail postId={id} onClose={undefined} />
     </div>
   );
 };

@@ -1,233 +1,138 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { toast } from '../components/ui/use-toast';
-import { supabase } from '../integrations/supabase/client';
-import { User } from '@supabase/supabase-js';
-import { 
-  persistSession, 
-  getPersistedSession, 
-  isRealSupabaseClient, 
-  ExtendedProfile,
-  mapDatabaseProfileToExtended
-} from '../lib/supabase';
-
-interface UserProfile extends ExtendedProfile {
-  isAdmin: boolean;
-}
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase, getPersistedSession, persistSession, ExtendedProfile, mapDatabaseProfileToExtended } from '../lib/supabase';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
-  user: UserProfile | null;
+  user: ExtendedProfile | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string, username: string, role: 'creator' | 'brand') => Promise<void>;
-  logout: () => void;
-  checkAuthStatus: () => Promise<void>;
-  updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+  logout: () => Promise<void>;
+  updateProfile: (updates: { name?: string; username?: string; avatar_url?: string }) => Promise<void>;
   uploadAvatar: (file: File) => Promise<string | null>;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<ExtendedProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-  // Convert Supabase User to UserProfile
-  const mapUserToProfile = async (supabaseUser: User): Promise<UserProfile | null> => {
-    try {
-      // Get user profile from profiles table
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', supabaseUser.id)
-        .single();
-      
-      if (profileError) throw profileError;
-      
-      // Check if user has admin role
-      const { data: isAdminData, error: roleError } = await supabase
-        .rpc('has_role', {
-          user_id: supabaseUser.id,
-          role: 'admin'
-        });
-      
-      if (roleError) throw roleError;
-
-      if (profileData) {
-        // Create an extended profile with required fields
-        const extendedProfile = mapDatabaseProfileToExtended(profileData, supabaseUser.email || '');
-        
-        return {
-          ...extendedProfile,
-          isAdmin: isAdminData || false
-        };
-      }
-      return null;
-    } catch (error) {
-      console.error('Error mapping user to profile:', error);
-      return null;
-    }
-  };
-
-  // Check if user is already logged in on component mount
   useEffect(() => {
-    checkAuthStatus();
+    const loadSession = async () => {
+      setIsLoading(true);
+      try {
+        // Check persisted session
+        const persistedSession = getPersistedSession();
+        if (persistedSession) {
+          await supabase.auth.setSession(persistedSession);
+        }
 
-    const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        await fetchUserProfile(session.user.id);
-      } else if (event === 'SIGNED_OUT') {
+        // Get current session
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session) {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profileError) {
+            throw profileError;
+          }
+
+          const extendedProfile = mapDatabaseProfileToExtended(profile, session.user.email);
+          setUser(extendedProfile);
+        }
+      } catch (error) {
+        console.error('Error loading session:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSession();
+
+    // Subscribe to auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth event:', event);
+      persistSession(session);
+
+      if (event === 'INITIAL_SESSION') {
+        // Skip initial session event, already handled
+        return;
+      }
+
+      if (session) {
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profileError) {
+            throw profileError;
+          }
+
+          const extendedProfile = mapDatabaseProfileToExtended(profile, session.user.email);
+          setUser(extendedProfile);
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+          setUser(null);
+        }
+      } else {
         setUser(null);
       }
     });
 
     return () => {
-      data.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
-  }, []);
-
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      // Get user profile from profiles table
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (profileError) throw profileError;
-      
-      // Check if user has admin role
-      const { data: isAdminData, error: roleError } = await supabase
-        .rpc('has_role', {
-          user_id: userId,
-          role: 'admin'
-        });
-      
-      if (roleError) throw roleError;
-
-      if (profileData) {
-        const extendedProfile = mapDatabaseProfileToExtended(profileData);
-        
-        const userProfile: UserProfile = {
-          ...extendedProfile,
-          isAdmin: isAdminData || false
-        };
-        
-        setUser(userProfile);
-      } else {
-        setUser(null);
-      }
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const checkAuthStatus = async () => {
-    setIsLoading(true);
-    try {
-      // First try to get session from Supabase
-      const { data } = await supabase.auth.getSession();
-      
-      if (data.session?.user) {
-        // If we have a session, fetch the user profile
-        await fetchUserProfile(data.session.user.id);
-      } else {
-        // Try to get persisted session from localStorage
-        const persistedSession = getPersistedSession();
-        if (persistedSession && persistedSession.user) {
-          // Use persisted session
-          const { error } = await supabase.auth.setSession({
-            access_token: persistedSession.access_token,
-            refresh_token: persistedSession.refresh_token,
-          });
-          
-          if (!error) {
-            await fetchUserProfile(persistedSession.user.id);
-          } else {
-            // Invalid persisted session
-            persistSession(null);
-            setUser(null);
-          }
-        } else {
-          setUser(null);
-        }
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      logout();
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [navigate]);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      if (isRealSupabaseClient()) {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-        
-        if (error) throw error;
-        
-        if (data?.user) {
-          persistSession(data.session);
-          const userProfile = await mapUserToProfile(data.user);
-          if (userProfile) {
-            setUser(userProfile);
-            toast({
-              title: "Login successful",
-              description: `Welcome back, ${userProfile.name}!`,
-            });
-          }
-        }
-      } else {
-        // Mock login for development
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        if (email === 'demo@flaresync.com' && password === 'password') {
-          const mockUser: UserProfile = {
-            id: '1',
-            email: 'demo@flaresync.com',
-            name: 'Demo User',
-            username: 'demo',
-            role: 'creator',
-            plan: 'free',
-            avatar: 'https://api.dicebear.com/6.x/avataaars/svg?seed=demo',
-            isAdmin: false,
-            user_metadata: {}
-          };
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
 
-          localStorage.setItem('flaresync_token', 'mock_token');
-          localStorage.setItem('flaresync_user', JSON.stringify(mockUser));
-
-          setUser(mockUser);
-          toast({
-            title: "Login successful",
-            description: `Welcome back, ${mockUser.name}!`,
-          });
-        } else {
-          throw new Error('Invalid credentials');
-        }
+      if (error) {
+        throw error;
       }
+
+      if (data.session) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.session.user.id)
+          .single();
+
+        if (profileError) {
+          throw profileError;
+        }
+
+        const extendedProfile = mapDatabaseProfileToExtended(profile, data.session.user.email);
+        setUser(extendedProfile);
+      }
+
+      toast({
+        title: "Login successful",
+        description: "You have successfully logged in."
+      });
+      navigate('/dashboard');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      console.error('Login error:', error);
       toast({
         title: "Login failed",
-        description: errorMessage,
-        variant: "destructive",
+        description: "Invalid credentials. Please try again.",
+        variant: "destructive"
       });
       throw error;
     } finally {
@@ -238,88 +143,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password: string, name: string, username: string, role: 'creator' | 'brand') => {
     setIsLoading(true);
     try {
-      if (isRealSupabaseClient()) {
-        // Register with Supabase Auth
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: name,
-              username: username,
-              role: role
-            }
-          }
-        });
-        
-        if (error) throw error;
-        
-        if (data?.user) {
-          // The profile table will be created by the database trigger
-          // Update additional user info
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({
-              role: role,
-              plan: 'free',
-            })
-            .eq('id', data.user.id);
-            
-          if (updateError) {
-            console.error('Error updating profile:', updateError);
-          }
-          
-          toast({
-            title: "Registration successful",
-            description: `Welcome to FlareSync, ${name}!`,
-          });
-          
-          // Check if email confirmation is required
-          if (data.session) {
-            persistSession(data.session);
-            const userProfile = await mapUserToProfile(data.user);
-            if (userProfile) {
-              setUser(userProfile);
-            }
-          } else {
-            toast({
-              title: "Email verification required",
-              description: "Please check your email to verify your account before logging in.",
-            });
-            setUser(null);
+      const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: {
+            full_name: name,
+            username: username,
+            role: role
           }
         }
-      } else {
-        // Mock signup for development
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      });
 
-        const mockUser: UserProfile = {
-          id: '2',
-          email,
-          name,
-          username,
-          role,
-          plan: 'free',
-          avatar: `https://api.dicebear.com/6.x/avataaars/svg?seed=${email}`,
-          isAdmin: false,
-          user_metadata: {}
-        };
-
-        localStorage.setItem('flaresync_token', 'mock_token');
-        localStorage.setItem('flaresync_user', JSON.stringify(mockUser));
-
-        setUser(mockUser);
-        toast({
-          title: "Registration successful",
-          description: `Welcome to FlareSync, ${name}!`,
-        });
+      if (error) {
+        throw error;
       }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: data.user.id,
+              full_name: name,
+              username: username,
+              role: role,
+              updated_at: new Date().toISOString()
+            }
+          ]);
+
+        if (profileError) {
+          throw profileError;
+        }
+
+        const { data: profile, error: selectError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        if (selectError) {
+          throw selectError;
+        }
+
+        const extendedProfile = mapDatabaseProfileToExtended(profile, data.user.email);
+        setUser(extendedProfile);
+      }
+
       toast({
-        title: "Registration failed",
-        description: errorMessage,
-        variant: "destructive",
+        title: "Signup successful",
+        description: "Account created successfully. Please check your email to verify your account."
+      });
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast({
+        title: "Signup failed",
+        description: "Could not create your account. Please try again.",
+        variant: "destructive"
       });
       throw error;
     } finally {
@@ -327,129 +208,126 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
-    if (isRealSupabaseClient()) {
-      supabase.auth.signOut();
-      persistSession(null);
-    } else {
-      localStorage.removeItem('flaresync_token');
-      localStorage.removeItem('flaresync_user');
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setUser(null);
+      navigate('/login');
+      toast({
+        title: "Logout successful",
+        description: "You have been successfully logged out."
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Logout failed",
+        description: "Could not log you out. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-    
-    setUser(null);
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
-    });
   };
 
-  const updateProfile = async (data: Partial<UserProfile>) => {
-    if (!user) {
-      throw new Error('No user logged in');
-    }
+  const updateProfile = async (updates: { 
+    name?: string;
+    username?: string;
+    avatar_url?: string;
+  }) => {
+    if (!user) throw new Error('No user logged in');
 
     try {
-      // Convert our extended profile data to what Supabase expects
-      const supabaseProfileData: any = {
-        full_name: data.name,
-        username: data.username,
-        avatar_url: data.avatar,
-        updated_at: new Date().toISOString()
-      };
-
-      const { error } = await supabase
-        .from('profiles')
-        .update(supabaseProfileData)
+      const { error } = await supabase.from('profiles')
+        .update({
+          full_name: updates.name,
+          username: updates.username,
+          avatar_url: updates.avatar_url,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', user.id);
 
       if (error) throw error;
 
       // Update local user state
-      setUser(prev => prev ? { ...prev, ...data } : null);
+      setUser(prev => prev ? {
+        ...prev,
+        name: updates.name || prev.name,
+        username: updates.username || prev.username,
+        avatar: updates.avatar_url || prev.avatar
+      } : null);
 
       toast({
         title: "Profile updated",
-        description: "Your profile has been successfully updated.",
+        description: "Your profile has been successfully updated."
       });
+
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update profile';
+      console.error('Error updating profile:', error);
       toast({
         title: "Update failed",
-        description: errorMessage,
-        variant: "destructive",
+        description: "Could not update your profile. Please try again.",
+        variant: "destructive"
       });
       throw error;
     }
   };
 
   const uploadAvatar = async (file: File): Promise<string | null> => {
-    if (!user) {
-      toast({
-        title: "Upload failed",
-        description: "You must be logged in to upload an avatar.",
-        variant: "destructive",
-      });
-      return null;
-    }
+    if (!user) throw new Error('No user logged in');
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const filePath = `avatars/${user.id}/${file.name}`;
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      const { error: uploadError } = await supabase.storage
-        .from('user-content')
-        .upload(filePath, file);
+      if (error) {
+        throw error;
+      }
 
-      if (uploadError) throw uploadError;
+      const avatarUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${data.path}`;
 
-      const { data } = supabase.storage
-        .from('user-content')
-        .getPublicUrl(filePath);
+      // Update profile with avatar URL
+      await updateProfile({ avatar_url: avatarUrl });
 
-      // Update user profile with new avatar URL
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: data.publicUrl })
-        .eq('id', user.id);
-
-      if (updateError) throw updateError;
-
-      // Update local user state
-      setUser(prev => {
-        if (!prev) return null;
-        return { ...prev, avatar: data.publicUrl };
-      });
-
-      toast({
-        title: "Avatar updated",
-        description: "Your profile picture has been updated successfully.",
-      });
-
-      return data.publicUrl;
+      return avatarUrl;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to upload avatar';
+      console.error('Error uploading avatar:', error);
       toast({
         title: "Upload failed",
-        description: errorMessage,
-        variant: "destructive",
+        description: "Could not upload your avatar. Please try again.",
+        variant: "destructive"
       });
       return null;
     }
   };
 
+  const value = {
+    user,
+    isLoading,
+    login,
+    signup,
+    logout,
+    updateProfile,
+    uploadAvatar
+  };
+
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isLoading, 
-      login, 
-      signup, 
-      logout, 
-      checkAuthStatus, 
-      updateProfile, 
-      uploadAvatar 
-    }}>
-      {children}
+    <AuthContext.Provider value={value}>
+      {!isLoading && children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
