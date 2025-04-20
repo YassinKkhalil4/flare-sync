@@ -2,18 +2,10 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from '../components/ui/use-toast';
 import { supabase } from '../integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
-import { persistSession, getPersistedSession, isRealSupabaseClient } from '../lib/supabase';
+import { persistSession, getPersistedSession, isRealSupabaseClient, ExtendedProfile } from '../lib/supabase';
 
-interface UserProfile {
-  id: string;
-  email: string;
-  name: string;
-  username: string;
-  role: 'creator' | 'brand';
-  plan: 'free' | 'basic' | 'pro';
-  avatar?: string;
+interface UserProfile extends ExtendedProfile {
   isAdmin: boolean;
-  user_metadata?: Record<string, any>;
 }
 
 interface AuthContextType {
@@ -62,23 +54,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (roleError) throw roleError;
 
-      // Get user information from app-specific tables
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', supabaseUser.id)
-        .single();
-      
-      if (userError) throw userError;
-      
-      if (profileData && userData) {
+      if (profileData) {
+        // Create an extended profile with required fields
         return {
           id: profileData.id,
           email: supabaseUser.email || '',
           name: profileData.full_name || 'User',
           username: profileData.username || '',
-          role: (userData.role === 'brand') ? 'brand' : 'creator',
-          plan: userData.plan || 'free',
+          role: 'creator', // Default role since it's not in the profiles table
+          plan: 'free',    // Default plan since it's not in the profiles table
           avatar: profileData.avatar_url,
           isAdmin: isAdminData || false,
           user_metadata: supabaseUser.user_metadata
@@ -128,23 +112,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (roleError) throw roleError;
 
-      // Get user information from app-specific tables
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (userError && userError.code !== 'PGRST116') throw userError;
-      
       if (profileData) {
         const userProfile: UserProfile = {
           id: profileData.id,
           email: profileData.username || '',
           name: profileData.full_name || 'User',
           username: profileData.username || '',
-          role: (userData?.role === 'brand') ? 'brand' : 'creator',
-          plan: userData?.plan || 'free',
+          role: 'creator', // Default role
+          plan: 'free',    // Default plan
           avatar: profileData.avatar_url,
           isAdmin: isAdminData || false,
           user_metadata: {}
@@ -377,13 +352,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
+      // Convert our extended profile data to what Supabase expects
+      const supabaseProfileData = {
+        full_name: data.name ?? user.name,
+        username: data.username ?? user.username,
+        updated_at: new Date().toISOString()
+      };
+
       const { error } = await supabase
         .from('profiles')
-        .update({
-          full_name: data.name ?? user.name,
-          username: data.username ?? user.username,
-          updated_at: new Date().toISOString()
-        })
+        .update(supabaseProfileData)
         .eq('id', user.id);
 
       if (error) throw error;

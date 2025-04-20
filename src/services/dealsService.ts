@@ -18,45 +18,45 @@ export interface BrandDeal {
   created_at: string;
 }
 
+// Mock data for deals
+const mockDeals: BrandDeal[] = [
+  {
+    id: '1',
+    brand_id: 'brand-1',
+    brand_name: 'SportyBrand',
+    brand_logo: 'https://via.placeholder.com/150',
+    creator_id: 'creator-1',
+    title: 'Fitness Product Campaign',
+    description: 'Create content showcasing our new fitness products',
+    budget: 1500,
+    status: 'pending',
+    requirements: ['Must post on Instagram', 'Include product link'],
+    deliverables: ['1 Post', '2 Stories'],
+    deadline: new Date(Date.now() + 86400000 * 7).toISOString(),
+    created_at: new Date().toISOString()
+  },
+  {
+    id: '2',
+    brand_id: 'brand-2',
+    brand_name: 'FashionCo',
+    brand_logo: 'https://via.placeholder.com/150',
+    creator_id: 'creator-1',
+    title: 'Summer Fashion Line',
+    description: 'Promote our summer collection across your channels',
+    budget: 2500,
+    status: 'accepted',
+    requirements: ['Tag @fashionco', 'Multiple outfit showcase'],
+    deliverables: ['2 Posts', '3 Stories', '1 Reel'],
+    deadline: new Date(Date.now() + 86400000 * 14).toISOString(),
+    created_at: new Date(Date.now() - 86400000 * 3).toISOString()
+  }
+];
+
 class DealsService {
   // Get deals for a specific user based on their role
   async getDeals(userType: 'creator' | 'brand'): Promise<BrandDeal[]> {
     try {
-      // Since the brand_deals table doesn't seem to exist yet,
-      // let's return mock data
-      const mockDeals: BrandDeal[] = [
-        {
-          id: '1',
-          brand_id: 'brand-1',
-          brand_name: 'SportyBrand',
-          brand_logo: 'https://via.placeholder.com/150',
-          creator_id: 'creator-1',
-          title: 'Fitness Product Campaign',
-          description: 'Create content showcasing our new fitness products',
-          budget: 1500,
-          status: 'pending',
-          requirements: ['Must post on Instagram', 'Include product link'],
-          deliverables: ['1 Post', '2 Stories'],
-          deadline: new Date(Date.now() + 86400000 * 7).toISOString(),
-          created_at: new Date().toISOString()
-        },
-        {
-          id: '2',
-          brand_id: 'brand-2',
-          brand_name: 'FashionCo',
-          brand_logo: 'https://via.placeholder.com/150',
-          creator_id: 'creator-1',
-          title: 'Summer Fashion Line',
-          description: 'Promote our summer collection across your channels',
-          budget: 2500,
-          status: 'accepted',
-          requirements: ['Tag @fashionco', 'Multiple outfit showcase'],
-          deliverables: ['2 Posts', '3 Stories', '1 Reel'],
-          deadline: new Date(Date.now() + 86400000 * 14).toISOString(),
-          created_at: new Date(Date.now() - 86400000 * 3).toISOString()
-        }
-      ];
-      
+      // Always return mock data since the brand_deals table doesn't exist in the schema
       return mockDeals;
     } catch (error) {
       console.error('Error fetching deals:', error);

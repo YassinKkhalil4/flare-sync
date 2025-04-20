@@ -1,5 +1,4 @@
 
-// This file is deprecated - import supabase from '@/integrations/supabase/client' instead
 import { supabase } from '@/integrations/supabase/client';
 
 // Re-export for backward compatibility
@@ -21,3 +20,15 @@ export const getPersistedSession = () => {
 
 // Function to check if we're using a real Supabase client
 export const isRealSupabaseClient = () => true;
+
+// Extended profile interface that includes fields we need
+export interface ExtendedProfile {
+  id: string;
+  email: string;
+  name: string;
+  username: string;
+  role: 'creator' | 'brand';
+  plan: 'free' | 'basic' | 'pro';
+  avatar?: string;
+  user_metadata?: Record<string, any>;
+}
