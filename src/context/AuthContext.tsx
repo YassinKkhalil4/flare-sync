@@ -360,9 +360,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabaseProfileData.username = data.username;
       }
       
-      // Note: We're not updating role and plan in the profiles table directly
-      // as they're not part of the profiles table schema
-      // Instead, we would need separate tables/operations to update those
+      // Remove role and plan updates from profiles table
+      // These would require separate tables/operations
       
       supabaseProfileData.updated_at = new Date().toISOString();
 
@@ -373,11 +372,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
-      // Update local user state - we keep the extended profile fields even though
-      // they're not directly in the profiles table
+      // Update local user state, preserving extended profile fields
       setUser(prev => {
         if (!prev) return null;
-        return { ...prev, ...data };
+        return { 
+          ...prev, 
+          name: data.name ?? prev.name,
+          username: data.username ?? prev.username
+        };
       });
 
       toast({
