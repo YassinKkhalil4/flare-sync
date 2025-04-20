@@ -7,7 +7,6 @@ const Signup = () => {
   const navigate = useNavigate();
   const { signup } = useAuth();
 
-  // Redirect to login page with signup mode
   React.useEffect(() => {
     navigate('/login', { state: { mode: 'signup' } });
   }, [navigate]);

@@ -7,13 +7,19 @@ import PostDetail from '@/components/content/PostDetail';
 export const ContentDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   
+  const { data: post, isLoading } = useQuery({
+    queryKey: ['content-post', id],
+    queryFn: () => id ? ContentService.getPostById(id) : null,
+    enabled: !!id
+  });
+  
   if (!id) {
     return <div>Post ID not found</div>;
   }
   
   return (
     <div className="container mx-auto py-8">
-      <PostDetail postId={id} />
+      <PostDetail post={post} isLoading={isLoading} />
     </div>
   );
 };
