@@ -14,7 +14,7 @@ export const ContentDetailPage: React.FC = () => {
   
   return (
     <div className="container mx-auto py-8">
-      <PostDetail postId={id} onClose={() => {}} />
+      <PostDetail postId={id} />
     </div>
   );
 };

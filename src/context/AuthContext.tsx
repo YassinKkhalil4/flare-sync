@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from '../components/ui/use-toast';
 import { supabase } from '../integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
+import { persistSession, getPersistedSession, isRealSupabaseClient } from '../lib/supabase';
 
 interface UserProfile {
   id: string;
@@ -12,7 +13,7 @@ interface UserProfile {
   plan: 'free' | 'basic' | 'pro';
   avatar?: string;
   isAdmin: boolean;
-  user_metadata?: Record<string, any>; // Add this line to include user_metadata
+  user_metadata?: Record<string, any>;
 }
 
 interface AuthContextType {

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -7,21 +8,26 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
 
-const PostDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+interface PostDetailProps {
+  postId?: string;
+  onClose?: () => void;
+}
+
+const PostDetail: React.FC<PostDetailProps> = ({ postId, onClose }) => {
+  const { id: urlId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const idToUse = postId || urlId;
 
   const { data: post, isLoading, isError } = useQuery({
-    queryKey: ['content', id],
+    queryKey: ['content', idToUse],
     queryFn: () => {
-      if (!id) {
+      if (!idToUse) {
         throw new Error("Post ID is required");
       }
-      return ContentService.getPostById(id);
+      return ContentService.getPostById(idToUse);
     },
-    enabled: !!id,
+    enabled: !!idToUse,
   });
 
   if (isLoading) {
@@ -41,9 +47,9 @@ const PostDetail: React.FC = () => {
             Created at {format(new Date(post.created_at), 'PPP')}
           </p>
         </div>
-        <Button variant="ghost" onClick={() => navigate('/content')}>
+        <Button variant="ghost" onClick={() => onClose ? onClose() : navigate('/content')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to List
+          {onClose ? 'Close' : 'Back to List'}
         </Button>
       </div>
 
@@ -63,7 +69,7 @@ const PostDetail: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p>{post.content}</p>
+          <p>{post.body}</p>
         </CardContent>
       </Card>
     </div>
