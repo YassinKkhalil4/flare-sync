@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -20,19 +21,19 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Check if we're coming from signup page
-  useEffect(() => {
-    if (location.state?.mode === 'signup') {
-      setIsLogin(false);
-    }
-  }, [location.state]);
-
   // Redirect if user is already logged in
   useEffect(() => {
     if (user) {
       navigate('/dashboard');
     }
   }, [user, navigate]);
+
+  // Check if we're coming from signup page
+  useEffect(() => {
+    if (location.state?.mode === 'signup') {
+      setIsLogin(false);
+    }
+  }, [location.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

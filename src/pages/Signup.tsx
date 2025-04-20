@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext';
 
 const Signup = () => {
   const navigate = useNavigate();
-  const { signup } = useAuth();
 
   React.useEffect(() => {
     navigate('/login', { state: { mode: 'signup' } });

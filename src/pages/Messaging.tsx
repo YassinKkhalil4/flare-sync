@@ -35,7 +35,6 @@ const Messaging = () => {
       try {
         const data = await MessagingService.getConversations();
         setConversations(data);
-        // Auto-select the first conversation if none is selected
         if (!selectedConversation && data.length > 0) {
           setSelectedConversation(data[0].id);
         }
@@ -43,7 +42,7 @@ const Messaging = () => {
         console.error('Failed to fetch conversations:', error);
         toast({
           title: 'Error',
-          description: 'Failed to load conversations. Please try again.',
+          description: 'Failed to load conversations',
           variant: 'destructive',
         });
       } finally {
@@ -63,11 +62,7 @@ const Messaging = () => {
         try {
           const fetchedMessages = await MessagingService.getMessages(selectedConversation);
           setMessages(fetchedMessages);
-          
-          // Mark conversation as read
           await MessagingService.markAsRead(selectedConversation);
-          
-          // Update conversations list to mark as read
           setConversations(prevConversations => 
             prevConversations.map(conv => 
               conv.id === selectedConversation 
@@ -76,10 +71,9 @@ const Messaging = () => {
             )
           );
         } catch (error) {
-          console.error('Failed to fetch messages:', error);
           toast({
             title: 'Error',
-            description: 'Failed to load messages. Please try again.',
+            description: 'Failed to load messages',
             variant: 'destructive',
           });
         } finally {
@@ -93,7 +87,6 @@ const Messaging = () => {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!newMessage.trim() || !selectedConversation) return;
     
     const messageRequest = {
@@ -101,7 +94,6 @@ const Messaging = () => {
       content: newMessage
     };
     
-    // Optimistic update - add message to UI immediately
     const tempMessage = {
       id: `temp-${Date.now()}`,
       sender: 'me',
@@ -113,15 +105,11 @@ const Messaging = () => {
     setNewMessage('');
     
     try {
-      // Send message to API
       const sentMessage = await MessagingService.sendMessage(messageRequest);
-      
-      // Replace temp message with actual message
       setMessages(prev => 
         prev.map(msg => msg.id === tempMessage.id ? sentMessage : msg)
       );
       
-      // Update conversation last message
       setConversations(prevConversations => 
         prevConversations.map(conv => 
           conv.id === selectedConversation 
@@ -137,14 +125,10 @@ const Messaging = () => {
         )
       );
     } catch (error) {
-      console.error('Failed to send message:', error);
-      
-      // Remove the temp message and show error
       setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
-      
       toast({
         title: 'Error',
-        description: 'Failed to send message. Please try again.',
+        description: 'Failed to send message',
         variant: 'destructive',
       });
     }

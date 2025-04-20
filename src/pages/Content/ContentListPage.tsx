@@ -5,15 +5,19 @@ import { useQuery } from '@tanstack/react-query';
 import { ContentService } from '@/services/api';
 
 export const ContentListPage: React.FC = () => {
-  const { data, isLoading } = useQuery({
+  const { data: posts, isLoading, error } = useQuery({
     queryKey: ['content-posts'],
     queryFn: ContentService.getPosts
   });
 
+  if (error) {
+    return <div>Error loading posts</div>;
+  }
+
   return (
     <div className="container mx-auto py-8 space-y-8">
       <h1 className="text-3xl font-bold">Content Management</h1>
-      <ContentList />
+      <ContentList posts={posts || []} isLoading={isLoading} />
     </div>
   );
 };

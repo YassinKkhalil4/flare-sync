@@ -38,16 +38,16 @@ function Dashboard() {
     enabled: !!user,
   });
 
-  // Calculate total followers across all platforms
-  const totalFollowers = socialProfiles?.reduce((sum, profile) => 
-    sum + (profile.stats?.followers || 0), 0) || 0;
-
   // Fetch content posts
   const { data: contentPosts } = useQuery({
     queryKey: ['content-posts'],
     queryFn: async () => await ContentService.getPosts(),
     enabled: !!user,
   });
+
+  // Calculate total followers across all platforms
+  const totalFollowers = socialProfiles?.reduce((sum, profile) => 
+    sum + (profile.stats?.followers || 0), 0) || 0;
 
   // Calculate engagement - for demo purposes we'll use a random percentage
   // In a real app, this would come from analytics data

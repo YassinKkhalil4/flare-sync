@@ -4,9 +4,11 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ContentService } from '@/services/api';
 import PostDetail from '@/components/content/PostDetail';
+import { useNavigate } from 'react-router-dom';
 
 export const ContentDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   
   const { data: post, isLoading } = useQuery({
     queryKey: ['content-post', id],
@@ -22,9 +24,13 @@ export const ContentDetailPage: React.FC = () => {
     return <div>Post not found</div>;
   }
 
+  const handleClose = () => {
+    navigate('/content');
+  };
+
   return (
     <div className="container mx-auto py-8">
-      <PostDetail postId={id} onClose={undefined} />
+      <PostDetail postId={id} onClose={handleClose} />
     </div>
   );
 };
