@@ -25,10 +25,11 @@ class SubscriptionService {
       throw error;
     }
     
-    // Ensure the plan is typed correctly
+    // Ensure both the plan and status are typed correctly
     return {
       ...subscription,
-      plan: subscription.plan as 'free' | 'basic' | 'pro'
+      plan: subscription.plan as 'free' | 'basic' | 'pro',
+      status: subscription.status as 'active' | 'inactive' | 'past_due' | 'canceled'
     };
   }
 
