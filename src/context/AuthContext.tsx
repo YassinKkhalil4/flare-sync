@@ -1,8 +1,15 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from '../components/ui/use-toast';
 import { supabase } from '../integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
-import { persistSession, getPersistedSession, isRealSupabaseClient, ExtendedProfile } from '../lib/supabase';
+import { 
+  persistSession, 
+  getPersistedSession, 
+  isRealSupabaseClient, 
+  ExtendedProfile,
+  mapDatabaseProfileToExtended
+} from '../lib/supabase';
 
 interface UserProfile extends ExtendedProfile {
   isAdmin: boolean;
@@ -56,16 +63,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (profileData) {
         // Create an extended profile with required fields
+        const extendedProfile = mapDatabaseProfileToExtended(profileData, supabaseUser.email || '');
+        
         return {
-          id: profileData.id,
-          email: supabaseUser.email || '',
-          name: profileData.full_name || 'User',
-          username: profileData.username || '',
-          role: 'creator', // Default role since it's not in the profiles table
-          plan: 'free',    // Default plan since it's not in the profiles table
-          avatar: profileData.avatar_url,
-          isAdmin: isAdminData || false,
-          user_metadata: supabaseUser.user_metadata
+          ...extendedProfile,
+          isAdmin: isAdminData || false
         };
       }
       return null;
@@ -113,17 +115,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (roleError) throw roleError;
 
       if (profileData) {
+        const extendedProfile = mapDatabaseProfileToExtended(profileData);
+        
         const userProfile: UserProfile = {
-          id: profileData.id,
-          email: profileData.username || '',
-          name: profileData.full_name || 'User',
-          username: profileData.username || '',
-          role: 'creator', // Default role
-          plan: 'free',    // Default plan
-          avatar: profileData.avatar_url,
-          isAdmin: isAdminData || false,
-          user_metadata: {}
+          ...extendedProfile,
+          isAdmin: isAdminData || false
         };
+        
         setUser(userProfile);
       } else {
         setUser(null);
@@ -353,11 +351,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       // Convert our extended profile data to what Supabase expects
-      const supabaseProfileData = {
-        full_name: data.name ?? user.name,
-        username: data.username ?? user.username,
-        updated_at: new Date().toISOString()
-      };
+      const supabaseProfileData: any = {};
+      
+      if (data.name !== undefined) {
+        supabaseProfileData.full_name = data.name;
+      }
+      
+      if (data.username !== undefined) {
+        supabaseProfileData.username = data.username;
+      }
+      
+      supabaseProfileData.updated_at = new Date().toISOString();
 
       const { error } = await supabase
         .from('profiles')

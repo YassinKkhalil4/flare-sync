@@ -32,3 +32,17 @@ export interface ExtendedProfile {
   avatar?: string;
   user_metadata?: Record<string, any>;
 }
+
+// Function to convert database profile to extended profile
+export const mapDatabaseProfileToExtended = (dbProfile: any, email: string = ''): ExtendedProfile => {
+  return {
+    id: dbProfile.id,
+    email: email,
+    name: dbProfile.full_name || 'User',
+    username: dbProfile.username || '',
+    role: 'creator', // Default role
+    plan: 'free',    // Default plan
+    avatar: dbProfile.avatar_url,
+    user_metadata: {}
+  };
+};
