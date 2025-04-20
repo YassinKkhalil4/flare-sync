@@ -5,7 +5,7 @@ export interface Deal {
   id: string;
   creator_id: string;
   brand_id: string;
-  status: 'pending' | 'accepted' | 'rejected';
+  status: 'pending' | 'accepted' | 'rejected' | 'completed';
   price: number;
   description: string;
   created_at: string;
@@ -33,7 +33,7 @@ class DealsService {
     return data;
   }
 
-  async updateDealStatus(dealId: string, status: 'accepted' | 'rejected') {
+  async updateDealStatus(dealId: string, status: 'accepted' | 'rejected' | 'completed') {
     const { data, error } = await supabase
       .from('deals')
       .update({ status })
@@ -43,6 +43,11 @@ class DealsService {
 
     if (error) throw error;
     return data;
+  }
+  
+  // Add respondToDeal method that was missing
+  async respondToDeal(dealId: string, status: 'accepted' | 'rejected') {
+    return this.updateDealStatus(dealId, status);
   }
 }
 

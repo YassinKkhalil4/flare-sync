@@ -1,6 +1,6 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { dealsService } from '@/services/dealsService';
+import { dealsService } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 
 export const useDeals = () => {

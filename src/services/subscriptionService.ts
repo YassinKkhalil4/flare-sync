@@ -25,7 +25,11 @@ class SubscriptionService {
       throw error;
     }
     
-    return subscription;
+    // Ensure the plan is typed correctly
+    return {
+      ...subscription,
+      plan: subscription.plan as 'free' | 'basic' | 'pro'
+    };
   }
 
   async checkout(priceId: string) {

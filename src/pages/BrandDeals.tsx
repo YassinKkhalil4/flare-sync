@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { dealsService, DealsAPI } from '@/services/api';
+import { dealsService } from '@/services/api';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,25 @@ interface BrandDeal {
   created_at: string;
 }
 
+// Create a mapper function to convert DB deals to BrandDeal format
+const mapDealsToBrandDeals = (deals: any[]): BrandDeal[] => {
+  return deals.map(deal => ({
+    id: deal.id,
+    brand_id: deal.brand_id,
+    brand_name: deal.profiles?.name || 'Unknown Brand',
+    brand_logo: deal.profiles?.avatar_url || '',
+    creator_id: deal.creator_id,
+    title: deal.description?.substring(0, 50) || 'Untitled Deal',
+    description: deal.description || '',
+    budget: deal.price,
+    status: deal.status,
+    requirements: ['Content creation', 'Social media posting'],
+    deliverables: ['One post per week', 'Monthly analytics report'],
+    deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    created_at: deal.created_at
+  }));
+};
+
 const BrandDeals = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -38,8 +57,9 @@ const BrandDeals = () => {
       
       setIsLoading(true);
       try {
-        const dealsData = await DealsAPI.getDeals(userType as 'creator' | 'brand');
-        setDeals(dealsData);
+        const dealsData = await dealsService.getDeals();
+        // Map the deals data to the BrandDeal format
+        setDeals(mapDealsToBrandDeals(dealsData));
       } catch (error) {
         console.error('Error fetching deals:', error);
         toast({
@@ -53,12 +73,12 @@ const BrandDeals = () => {
     };
 
     fetchDeals();
-  }, [user, userType, toast]);
+  }, [user, toast]);
 
   const handleStatusUpdate = async (dealId: string, status: 'accepted' | 'rejected' | 'completed') => {
     setActionInProgress({...actionInProgress, [dealId]: true});
     try {
-      const updatedDeal = await DealsAPI.updateDealStatus(dealId, status);
+      await dealsService.updateDealStatus(dealId, status);
       
       // Update local state
       setDeals(prevDeals => 

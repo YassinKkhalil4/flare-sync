@@ -15,5 +15,5 @@ export {
   NotificationService,
   ContentAPI as ContentService,
   SocialAPI as SocialService,
-  dealsService as DealsAPI
+  dealsService // Use the same name for export
 };
