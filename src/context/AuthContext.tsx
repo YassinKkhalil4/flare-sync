@@ -366,6 +366,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       supabaseProfileData.updated_at = new Date().toISOString();
 
+      // Remove the role property as it's not part of the profiles table schema
+      // We should NOT include role in the update to profiles table
+
       const { error } = await supabase
         .from('profiles')
         .update(supabaseProfileData)
