@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -42,24 +41,14 @@ const Login = () => {
     try {
       if (isLogin) {
         await login(email, password);
-        toast({
-          title: 'Login successful',
-          description: 'Welcome back to FlareSync!',
-        });
+        navigate('/dashboard');
       } else {
-        if (!name) {
-          throw new Error('Please enter your name');
-        }
-        if (!username) {
-          throw new Error('Please enter a username');
+        if (!name || !username || !role) {
+          throw new Error('Please fill in all required fields');
         }
         await signup(email, password, name, username, role);
-        toast({
-          title: 'Signup successful',
-          description: 'Welcome to FlareSync!',
-        });
+        navigate('/dashboard');
       }
-      navigate('/dashboard');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
       toast({

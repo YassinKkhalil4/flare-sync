@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router-dom';
 
 const Signup = () => {
   const navigate = useNavigate();
+  const { signup } = useAuth();
 
   useEffect(() => {
-    // Redirect to login page with signup mode
     navigate('/login', { state: { mode: 'signup' } });
   }, [navigate]);
 

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -45,7 +44,6 @@ const CreatorProfile = () => {
         description: 'Your profile has been successfully updated.',
       });
     } catch (error) {
-      console.error('Failed to update profile:', error);
       toast({
         title: 'Update failed',
         description: 'Could not update your profile. Please try again.',

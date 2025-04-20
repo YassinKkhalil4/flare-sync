@@ -1,4 +1,3 @@
-
 import { useAuth } from '../context/AuthContext';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
@@ -14,6 +13,8 @@ import { useTiktokConnect } from '@/hooks/useTiktokConnect';
 import { useTwitterConnect } from '@/hooks/useTwitterConnect';
 import { useYoutubeConnect } from '@/hooks/useYoutubeConnect';
 import { useTwitchConnect } from '@/hooks/useTwitchConnect';
+import { useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 const SocialConnect = () => {
   const { user } = useAuth();
@@ -84,6 +85,29 @@ const SocialConnect = () => {
     isTwitterLoading || 
     isYoutubeLoading || 
     isTwitchLoading;
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Check if any social account is connected
+    const checkConnections = async () => {
+      try {
+        const { data: connections } = await supabase
+          .from('social_connections')
+          .select('*')
+          .eq('user_id', user.id);
+
+        // Update state based on connections
+        if (connections) {
+          // Update connection states
+        }
+      } catch (error) {
+        console.error('Error checking social connections:', error);
+      }
+    };
+
+    checkConnections();
+  }, [user]);
 
   if (isLoading) {
     return (

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { usePaymentHistory } from '@/hooks/usePaymentHistory';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
