@@ -1,5 +1,5 @@
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { Notification, NotificationPreferences, NotificationType } from '@/types/notification';
 import { ContentPost, ContentTag, ContentApproval, ContentStatus, SocialPlatform } from '@/types/content';
 import { SocialProfile, Conversation, Message, MessageRequest } from '@/types/messaging';

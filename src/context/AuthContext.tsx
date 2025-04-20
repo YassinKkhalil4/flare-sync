@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from '../components/ui/use-toast';
-import { supabase, isRealSupabaseClient, persistSession, getPersistedSession } from '../lib/supabase';
+import { supabase } from '../integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 
 interface UserProfile {
@@ -94,23 +94,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     checkAuthStatus();
 
-    if (isRealSupabaseClient()) {
-      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          persistSession(session);
-          await fetchUserProfile(session.user.id);
-        } else if (event === 'SIGNED_OUT') {
-          persistSession(null);
-          setUser(null);
-        } else if (event === 'TOKEN_REFRESHED' && session) {
-          persistSession(session);
-        }
-      });
+    const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        await fetchUserProfile(session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+      }
+    });
 
-      return () => {
-        data.subscription.unsubscribe();
-      };
-    }
+    return () => {
+      data.subscription.unsubscribe();
+    };
   }, []);
 
   const fetchUserProfile = async (userId: string) => {
@@ -169,49 +163,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const checkAuthStatus = async () => {
     setIsLoading(true);
     try {
-      if (isRealSupabaseClient()) {
-        // First try to get session from Supabase
-        const { data } = await supabase.auth.getSession();
-        
-        if (data.session?.user) {
-          // If we have a session, fetch the user profile
-          await fetchUserProfile(data.session.user.id);
-        } else {
-          // Try to get persisted session from localStorage
-          const persistedSession = getPersistedSession();
-          if (persistedSession && persistedSession.user) {
-            // Use persisted session
-            const { error } = await supabase.auth.setSession({
-              access_token: persistedSession.access_token,
-              refresh_token: persistedSession.refresh_token,
-            });
-            
-            if (!error) {
-              await fetchUserProfile(persistedSession.user.id);
-            } else {
-              // Invalid persisted session
-              persistSession(null);
-              setUser(null);
-            }
+      // First try to get session from Supabase
+      const { data } = await supabase.auth.getSession();
+      
+      if (data.session?.user) {
+        // If we have a session, fetch the user profile
+        await fetchUserProfile(data.session.user.id);
+      } else {
+        // Try to get persisted session from localStorage
+        const persistedSession = getPersistedSession();
+        if (persistedSession && persistedSession.user) {
+          // Use persisted session
+          const { error } = await supabase.auth.setSession({
+            access_token: persistedSession.access_token,
+            refresh_token: persistedSession.refresh_token,
+          });
+          
+          if (!error) {
+            await fetchUserProfile(persistedSession.user.id);
           } else {
+            // Invalid persisted session
+            persistSession(null);
             setUser(null);
           }
-        }
-      } else {
-        // Mock authentication for development
-        const token = localStorage.getItem('flaresync_token');
-        if (!token) {
-          setUser(null);
-          setIsLoading(false);
-          return;
-        }
-
-        const storedUser = localStorage.getItem('flaresync_user');
-        if (storedUser) {
-          setUser(JSON.parse(storedUser));
         } else {
-          // Invalid state: token exists but no user data
-          logout();
+          setUser(null);
         }
       }
     } catch (error) {
