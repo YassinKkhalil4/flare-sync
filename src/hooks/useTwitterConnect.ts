@@ -35,7 +35,7 @@ export const useTwitterConnect = () => {
       // Store code verifier in localStorage for later use
       localStorage.setItem('twitter_code_verifier', codeVerifier);
       
-      // Construct Twitter OAuth URL
+      // Construct Twitter OAuth URL with proper scopes for read/write access
       const authUrl = `https://twitter.com/i/oauth2/authorize?` +
         `response_type=code` +
         `&client_id=${encodeURIComponent(process.env.TWITTER_CLIENT_ID || '')}` +
@@ -76,7 +76,7 @@ export const useTwitterConnect = () => {
     return base64Url;
   };
 
-  // Handle OAuth callback
+  // Handle OAuth callback with improved error handling
   const handleCallback = async (code: string) => {
     try {
       const codeVerifier = localStorage.getItem('twitter_code_verifier');
@@ -90,7 +90,7 @@ export const useTwitterConnect = () => {
       });
 
       if (error) throw error;
-      
+
       toast({
         title: 'Twitter Connected',
         description: 'Your Twitter account has been successfully connected.',
