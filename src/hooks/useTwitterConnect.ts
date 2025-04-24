@@ -27,9 +27,7 @@ export const useTwitterConnect = () => {
     isConnecting,
     isSyncing,
     twitterProfile: profile,
-    is
-
-TwitterConnected: isConnected,
+    isTwitterConnected: isConnected,
     initiateTwitterConnect,
     disconnectTwitter: disconnect,
     syncTwitterData: syncData,

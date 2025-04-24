@@ -1,7 +1,33 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase, getPersistedSession, persistSession, ExtendedProfile, mapDatabaseProfileToExtended } from '../lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation, useNavigate, NavigateFunction } from 'react-router-dom';
+
+// Create a context to store the navigate function
+const NavigationContext = createContext<NavigateFunction | undefined>(undefined);
+
+// Custom hook to access the navigate function
+export const useCustomNavigate = () => {
+  const navigate = useContext(NavigationContext);
+  if (!navigate) {
+    // This error will only occur if useCustomNavigate is used outside NavigationProvider
+    console.error('useCustomNavigate must be used within a NavigationProvider');
+    return () => {}; // Return a dummy function to avoid breaking the app
+  }
+  return navigate;
+};
+
+// Provider component for navigation
+export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const navigate = useNavigate();
+  
+  return (
+    <NavigationContext.Provider value={navigate}>
+      {children}
+    </NavigationContext.Provider>
+  );
+};
 
 interface AuthContextType {
   user: ExtendedProfile | null;
@@ -18,8 +44,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<ExtendedProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
   const { toast } = useToast();
+  const location = useLocation();
+  const navigate = useNavigate(); // This is now safe because AuthProvider is inside BrowserRouter
 
   useEffect(() => {
     const loadSession = async () => {
@@ -93,7 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, []);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
