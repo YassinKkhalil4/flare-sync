@@ -8,9 +8,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-  apiVersion: "2023-10-16",
-});
+// Helper to validate plan
+const ensureValidPlan = (plan: string): string => {
+  const validPlans = [
+    'free', 'basic', 'pro', 'enterprise', 
+    'agency-small', 'agency-medium', 'agency-large'
+  ];
+  
+  if (validPlans.includes(plan)) {
+    return plan;
+  }
+  return 'free'; // Default to free for any invalid value
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -61,6 +70,7 @@ serve(async (req) => {
       customer: profile.stripe_customer_id,
       status: 'active',
       limit: 1,
+      expand: ['data.items.data.price.product'],
     });
     
     if (subscriptions.data.length === 0) {
@@ -81,7 +91,7 @@ serve(async (req) => {
     
     // We have an active subscription
     const subscription = subscriptions.data[0];
-    const plan = subscription.metadata.plan || 'pro';
+    const plan = ensureValidPlan(subscription.metadata.plan || 'free');
     
     // Update user profile with subscription info
     await supabaseAdmin

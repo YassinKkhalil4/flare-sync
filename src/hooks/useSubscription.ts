@@ -3,11 +3,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { subscriptionService } from '@/services/subscriptionService';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { UserPlan } from '@/lib/supabase';
 
 export interface Subscription {
   id: string;
   user_id: string;
-  plan: 'free' | 'basic' | 'pro';
+  plan: UserPlan;
   stripe_subscription_id?: string;
   current_period_end?: string;
   status: 'active' | 'inactive' | 'past_due' | 'canceled';
@@ -72,7 +73,8 @@ export const useSubscription = () => {
     currentPeriodEnd: subscription?.current_period_end,
     isLoading,
     error,
-    startCheckout: startCheckoutMutation.mutate,
+    startCheckout: (priceId: string, planName: UserPlan) => 
+      startCheckoutMutation.mutate({ priceId, plan: planName }),
     openCustomerPortal: openCustomerPortalMutation.mutate,
     checkSubscription: checkSubscriptionMutation.mutate
   };

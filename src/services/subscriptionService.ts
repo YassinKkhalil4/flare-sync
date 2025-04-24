@@ -1,13 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { Subscription } from '@/hooks/useSubscription';
-
-// Type guards for safe casting
-const isValidPlan = (plan: any): plan is 'free' | 'basic' | 'pro' =>
-  plan === 'free' || plan === 'basic' || plan === 'pro';
-
-const isValidStatus = (status: any): status is 'active' | 'inactive' | 'past_due' | 'canceled' =>
-  status === 'active' || status === 'inactive' || status === 'past_due' || status === 'canceled';
+import { UserPlan, ensureValidPlan } from '@/lib/supabase';
 
 class SubscriptionService {
   // Fetch current subscription plan for the user
@@ -40,8 +34,8 @@ class SubscriptionService {
     return {
       id: subscription.id,
       user_id: subscription.user_id,
-      plan: isValidPlan(subscription.plan) ? subscription.plan : 'free',
-      status: isValidStatus(subscription.status) ? subscription.status : 'inactive',
+      plan: ensureValidPlan(subscription.plan),
+      status: this.validateStatus(subscription.status),
       created_at: subscription.created_at ?? new Date().toISOString(),
       updated_at: subscription.updated_at ?? new Date().toISOString(),
       stripe_subscription_id: subscription.stripe_subscription_id ?? null,
@@ -49,10 +43,19 @@ class SubscriptionService {
     };
   }
 
+  // Validate subscription status
+  private validateStatus(status: any): 'active' | 'inactive' | 'past_due' | 'canceled' {
+    const validStatuses = ['active', 'inactive', 'past_due', 'canceled'];
+    if (validStatuses.includes(status)) {
+      return status;
+    }
+    return 'inactive';
+  }
+
   // Start Stripe checkout
-  async checkout(priceId: string) {
+  async checkout({ priceId, plan }: { priceId: string, plan: UserPlan }) {
     const { data, error } = await supabase.functions.invoke('create-checkout', {
-      body: { priceId },
+      body: { priceId, plan },
     });
     if (error) throw error;
     return data;
@@ -74,4 +77,3 @@ class SubscriptionService {
 }
 
 export const subscriptionService = new SubscriptionService();
-

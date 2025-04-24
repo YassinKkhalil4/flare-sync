@@ -1,15 +1,20 @@
+
 import { useState } from 'react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Check, X } from 'lucide-react';
+import { Loader2, Check, X, Users, BarChart3, Crown, Headset, Palette, Code, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { PLAN_DETAILS, isAgencyPlan, UserPlan } from '@/lib/supabase';
 
 const Plans = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   
   const { 
     plan,
@@ -19,8 +24,134 @@ const Plans = () => {
     openCustomerPortal,
     checkSubscription
   } = useSubscription();
+
+  const planData = {
+    'free': {
+      title: 'Free',
+      description: 'For exploring the platform',
+      priceId: { monthly: '', yearly: '' },
+      highlight: false,
+      features: [
+        { name: '5 posts per month', included: true },
+        { name: 'Basic analytics', included: true },
+        { name: 'Single user', included: true },
+        { name: 'Community support', included: true },
+        { name: 'Advanced analytics', included: false },
+        { name: 'Priority support', included: false },
+        { name: 'Team collaboration', included: false },
+      ]
+    },
+    'basic': {
+      title: 'Basic',
+      description: 'For growing creators',
+      priceId: { 
+        monthly: 'price_1OlocDSB3KooqHkwHXaG9z9A', 
+        yearly: 'price_1OPnB1SB3KooqHkwjvg6YTq3'
+      },
+      highlight: false,
+      features: [
+        { name: '20 posts per month', included: true },
+        { name: 'Basic analytics', included: true },
+        { name: 'Single user', included: true },
+        { name: 'Email support', included: true },
+        { name: 'Advanced analytics', included: false },
+        { name: 'Priority support', included: false },
+        { name: 'Team collaboration', included: false },
+      ]
+    },
+    'pro': {
+      title: 'Pro',
+      description: 'For established creators',
+      priceId: { 
+        monthly: 'price_1OloeJSB3KooqHkwjvg3Cg9Y', 
+        yearly: 'price_1OPnGKSB3KooqHkwdmgl5Xhr' 
+      },
+      highlight: true,
+      features: [
+        { name: '100 posts per month', included: true },
+        { name: 'Advanced analytics', included: true },
+        { name: 'Up to 3 team members', included: true },
+        { name: 'Priority support', included: true },
+        { name: 'Team collaboration tools', included: true },
+        { name: 'Custom branding', included: false },
+        { name: 'API access', included: false },
+      ]
+    },
+    'enterprise': {
+      title: 'Enterprise',
+      description: 'For professional creators',
+      priceId: { 
+        monthly: 'price_1OPncKSB3KooqHkw6iGZk7NR', 
+        yearly: 'price_1OPnd8SB3KooqHkwdXrJiZmJ' 
+      },
+      highlight: false,
+      features: [
+        { name: '500 posts per month', included: true },
+        { name: 'Advanced analytics', included: true },
+        { name: 'Up to 10 team members', included: true },
+        { name: 'Priority support', included: true },
+        { name: 'Team collaboration tools', included: true },
+        { name: 'Custom branding', included: true },
+        { name: 'API access', included: true },
+      ]
+    },
+    'agency-small': {
+      title: 'Agency Small',
+      description: 'For small agencies',
+      priceId: { 
+        monthly: 'price_1OPnehSB3KooqHkwxJBXioDx', 
+        yearly: 'price_1OPnfiSB3KooqHkwNf9HvLtq' 
+      },
+      highlight: false,
+      features: [
+        { name: '1,000 posts per month', included: true },
+        { name: 'Advanced analytics', included: true },
+        { name: 'Up to 25 team members', included: true },
+        { name: 'Priority support', included: true },
+        { name: 'Team collaboration tools', included: true },
+        { name: 'Custom branding', included: true },
+        { name: 'API access', included: true },
+      ]
+    },
+    'agency-medium': {
+      title: 'Agency Medium',
+      description: 'For growing agencies',
+      priceId: { 
+        monthly: 'price_1OPnh1SB3KooqHkwpEWcaSHd', 
+        yearly: 'price_1OPniCSB3KooqHkwUm2kobVn' 
+      },
+      highlight: false,
+      features: [
+        { name: '5,000 posts per month', included: true },
+        { name: 'Advanced analytics', included: true },
+        { name: 'Up to 100 team members', included: true },
+        { name: 'Priority support', included: true },
+        { name: 'Team collaboration tools', included: true },
+        { name: 'Custom branding', included: true },
+        { name: 'API access', included: true },
+      ]
+    },
+    'agency-large': {
+      title: 'Agency Large',
+      description: 'For established agencies',
+      priceId: { 
+        monthly: 'price_1OPnjrSB3KooqHkwLHL1gr8c', 
+        yearly: 'price_1OPnkeSB3KooqHkwSwhUdWnE' 
+      },
+      highlight: false,
+      features: [
+        { name: '20,000 posts per month', included: true },
+        { name: 'Advanced analytics', included: true },
+        { name: 'Up to 500 team members', included: true },
+        { name: 'Priority support', included: true },
+        { name: 'Team collaboration tools', included: true },
+        { name: 'Custom branding', included: true },
+        { name: 'API access', included: true },
+      ]
+    },
+  };
   
-  const handleSubscribe = async (priceId: string, planName: string) => {
+  const handleSubscribe = async (planName: UserPlan) => {
     if (!user) {
       toast({
         title: "Login required",
@@ -30,9 +161,19 @@ const Plans = () => {
       return;
     }
     
+    const priceId = planData[planName].priceId[billingCycle];
+    if (!priceId) {
+      toast({
+        title: "Error",
+        description: "This plan is not available for the selected billing cycle.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsLoading({...isLoading, [planName]: true});
     try {
-      await startCheckout(priceId, planName.toLowerCase() as any);
+      await startCheckout(priceId, planName);
     } catch (error) {
       toast({
         title: "Error",
@@ -81,155 +222,270 @@ const Plans = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
+  const getFeatureIcon = (feature: string) => {
+    if (feature.includes('posts')) return <BarChart3 className="h-4 w-4" />;
+    if (feature.includes('analytics')) return <BarChart3 className="h-4 w-4" />;
+    if (feature.includes('team members') || feature.includes('user')) return <Users className="h-4 w-4" />;
+    if (feature.includes('priority')) return <Crown className="h-4 w-4" />;
+    if (feature.includes('support')) return <Headset className="h-4 w-4" />;
+    if (feature.includes('branding')) return <Palette className="h-4 w-4" />;
+    if (feature.includes('API')) return <Code className="h-4 w-4" />;
+    if (feature.includes('collaboration')) return <UserPlus className="h-4 w-4" />;
+    return null;
+  };
+
+  const getPlanPrice = (planName: UserPlan) => {
+    const pricing = PLAN_DETAILS[planName].pricing;
+    return billingCycle === 'monthly' ? pricing.monthly : pricing.yearly;
+  };
+
+  const savingsPercentage = (planName: UserPlan) => {
+    const pricing = PLAN_DETAILS[planName].pricing;
+    if (pricing.monthly === 0) return 0;
+    const monthlyCost = pricing.monthly * 12;
+    const yearlyCost = pricing.yearly;
+    return Math.round((1 - yearlyCost / monthlyCost) * 100);
+  };
+
   return (
-    <div className="container max-w-4xl py-12">
-      <h1 className="text-3xl font-bold mb-8">Choose Your Plan</h1>
+    <div className="container max-w-5xl py-12">
+      <h1 className="text-3xl font-bold mb-2">Choose Your Plan</h1>
+      <p className="text-muted-foreground mb-8">Select the plan that best fits your needs</p>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Free Plan */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Free</CardTitle>
-            <CardDescription>Perfect for getting started</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-2xl font-bold">$0 / month</p>
-            <ul className="list-disc pl-5 space-y-2 text-sm">
-              <li>Access to basic features</li>
-              <li>Limited content posts</li>
-              <li>Community support</li>
-            </ul>
-          </CardContent>
-          <CardFooter>
-            {subscribed ? (
-              plan === 'free' ? (
-                <Button variant="secondary" disabled>
-                  {isLoading['free'] ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Check className="mr-2 h-4 w-4" />
-                  )}
-                  Current Plan
-                </Button>
-              ) : (
-                <Button variant="outline" disabled>
-                  Current Plan
-                </Button>
-              )
-            ) : (
-              <Button variant="outline" disabled>
-                Get Started
+      <div className="mb-8 flex justify-center">
+        <Tabs 
+          defaultValue="individual" 
+          className="w-full max-w-md"
+        >
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="individual">Individual Plans</TabsTrigger>
+            <TabsTrigger value="agency">Agency Plans</TabsTrigger>
+          </TabsList>
+          
+          <div className="my-6 flex justify-center">
+            <div className="flex items-center space-x-2 bg-muted rounded-md p-1">
+              <Button
+                variant={billingCycle === 'monthly' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setBillingCycle('monthly')}
+                className="relative"
+              >
+                Monthly
               </Button>
-            )}
-          </CardFooter>
-        </Card>
-        
-        {/* Basic Plan */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Basic</CardTitle>
-            <CardDescription>For growing creators</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-2xl font-bold">$19 / month</p>
-            <ul className="list-disc pl-5 space-y-2 text-sm">
-              <li>All free features</li>
-              <li>Unlimited content posts</li>
-              <li>Advanced analytics</li>
-            </ul>
-          </CardContent>
-          <CardFooter>
-            {subscribed ? (
-              plan === 'basic' ? (
-                <Button variant="secondary" disabled>
-                  {isLoading['basic'] ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Check className="mr-2 h-4 w-4" />
-                  )}
-                  Current Plan
-                </Button>
-              ) : (
-                <Button variant="outline" onClick={() => handleSubscribe('price_1OlocDSB3KooqHkwHXaG9z9A', 'Basic')} disabled={isLoading['basic']}>
-                  {isLoading['basic'] ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    'Upgrade to Basic'
-                  )}
-                </Button>
-              )
-            ) : (
-              <Button onClick={() => handleSubscribe('price_1OlocDSB3KooqHkwHXaG9z9A', 'Basic')} disabled={isLoading['basic']}>
-                {isLoading['basic'] ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  'Subscribe to Basic'
-                )}
+              <Button
+                variant={billingCycle === 'yearly' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setBillingCycle('yearly')}
+                className="relative"
+              >
+                Yearly
+                <Badge className="absolute -top-2 -right-2 px-1 py-0 text-xs">Save 15%+</Badge>
               </Button>
-            )}
-          </CardFooter>
-        </Card>
-        
-        {/* Pro Plan */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Pro</CardTitle>
-            <CardDescription>For established creators</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-2xl font-bold">$49 / month</p>
-            <ul className="list-disc pl-5 space-y-2 text-sm">
-              <li>All basic features</li>
-              <li>Priority support</li>
-              <li>Team collaboration tools</li>
-            </ul>
-          </CardContent>
-          <CardFooter>
-            {subscribed ? (
-              plan === 'pro' ? (
-                <Button variant="secondary" disabled>
-                  {isLoading['pro'] ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Check className="mr-2 h-4 w-4" />
-                  )}
-                  Current Plan
-                </Button>
-              ) : (
-                <Button variant="outline" onClick={() => handleSubscribe('price_1OloeJSB3KooqHkwjvg3Cg9Y', 'Pro')} disabled={isLoading['pro']}>
-                  {isLoading['pro'] ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    'Upgrade to Pro'
-                  )}
-                </Button>
-              )
-            ) : (
-              <Button onClick={() => handleSubscribe('price_1OloeJSB3KooqHkwjvg3Cg9Y', 'Pro')} disabled={isLoading['pro']}>
-                {isLoading['pro'] ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  'Subscribe to Pro'
-                )}
-              </Button>
-            )}
-          </CardFooter>
-        </Card>
+            </div>
+          </div>
+          
+          <TabsContent value="individual" className="mt-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {(['free', 'basic', 'pro', 'enterprise'] as UserPlan[]).map((planName) => {
+                const planInfo = planData[planName];
+                const isCurrentPlan = plan === planName;
+                const price = getPlanPrice(planName);
+                const savings = savingsPercentage(planName);
+                
+                return (
+                  <Card key={planName} className={`relative ${planInfo.highlight ? 'border-primary' : ''}`}>
+                    {planInfo.highlight && (
+                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <Badge className="bg-primary hover:bg-primary">Most Popular</Badge>
+                      </div>
+                    )}
+                    <CardHeader>
+                      <CardTitle>{planInfo.title}</CardTitle>
+                      <CardDescription>{planInfo.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div>
+                        <span className="text-3xl font-bold">${price}</span>
+                        <span className="text-muted-foreground">/{billingCycle === 'monthly' ? 'month' : 'year'}</span>
+                        {billingCycle === 'yearly' && price > 0 && (
+                          <div className="text-sm text-muted-foreground mt-1">Save {savings}% with annual billing</div>
+                        )}
+                      </div>
+                      
+                      <ul className="space-y-2">
+                        {planInfo.features.map((feature, i) => (
+                          <li key={i} className="flex items-center gap-2">
+                            {feature.included ? (
+                              <Check className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <X className="h-4 w-4 text-gray-300" />
+                            )}
+                            <span className="flex items-center gap-1 text-sm">
+                              {getFeatureIcon(feature.name)}
+                              {feature.name}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                    <CardFooter>
+                      {subscribed ? (
+                        isCurrentPlan ? (
+                          <Button variant="secondary" disabled className="w-full">
+                            {isLoading[planName] ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Check className="mr-2 h-4 w-4" />
+                            )}
+                            Current Plan
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="outline" 
+                            onClick={() => handleSubscribe(planName)} 
+                            disabled={isLoading[planName] || planName === 'free'} 
+                            className="w-full"
+                          >
+                            {isLoading[planName] ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              planName === 'free' ? 'Free Plan' : `Upgrade to ${planInfo.title}`
+                            )}
+                          </Button>
+                        )
+                      ) : (
+                        <Button 
+                          onClick={() => handleSubscribe(planName)} 
+                          disabled={isLoading[planName] || planName === 'free'} 
+                          variant={planName === 'free' ? 'outline' : 'default'}
+                          className="w-full"
+                        >
+                          {isLoading[planName] ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            planName === 'free' ? 'Get Started' : `Subscribe`
+                          )}
+                        </Button>
+                      )}
+                    </CardFooter>
+                  </Card>
+                );
+              })}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="agency" className="mt-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {(['agency-small', 'agency-medium', 'agency-large'] as UserPlan[]).map((planName) => {
+                const planInfo = planData[planName];
+                const isCurrentPlan = plan === planName;
+                const price = getPlanPrice(planName);
+                const savings = savingsPercentage(planName);
+                const setupFee = PLAN_DETAILS[planName].pricing.setupFee;
+                
+                return (
+                  <Card key={planName} className="relative">
+                    <CardHeader>
+                      <CardTitle>{planInfo.title}</CardTitle>
+                      <CardDescription>{planInfo.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div>
+                        <span className="text-3xl font-bold">${price}</span>
+                        <span className="text-muted-foreground">/{billingCycle === 'monthly' ? 'month' : 'year'}</span>
+                        {setupFee && (
+                          <div className="text-sm text-muted-foreground mt-1">
+                            + ${setupFee} one-time setup fee
+                          </div>
+                        )}
+                        {billingCycle === 'yearly' && (
+                          <div className="text-sm text-muted-foreground mt-1">Save {savings}% with annual billing</div>
+                        )}
+                      </div>
+                      
+                      <ul className="space-y-2">
+                        {planInfo.features.map((feature, i) => (
+                          <li key={i} className="flex items-center gap-2">
+                            {feature.included ? (
+                              <Check className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <X className="h-4 w-4 text-gray-300" />
+                            )}
+                            <span className="flex items-center gap-1 text-sm">
+                              {getFeatureIcon(feature.name)}
+                              {feature.name}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                    <CardFooter>
+                      {subscribed ? (
+                        isCurrentPlan ? (
+                          <Button variant="secondary" disabled className="w-full">
+                            {isLoading[planName] ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Check className="mr-2 h-4 w-4" />
+                            )}
+                            Current Plan
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="outline" 
+                            onClick={() => handleSubscribe(planName)} 
+                            disabled={isLoading[planName]} 
+                            className="w-full"
+                          >
+                            {isLoading[planName] ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : `Upgrade to ${planInfo.title}`}
+                          </Button>
+                        )
+                      ) : (
+                        <Button 
+                          onClick={() => handleSubscribe(planName)} 
+                          disabled={isLoading[planName]} 
+                          className="w-full"
+                        >
+                          {isLoading[planName] ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : 'Subscribe'}
+                        </Button>
+                      )}
+                    </CardFooter>
+                  </Card>
+                );
+              })}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+      
+      {/* Enterprise Contact Section */}
+      <div className="mt-12 bg-muted/50 rounded-lg p-8 text-center">
+        <h2 className="text-2xl font-bold mb-4">Need a Custom Plan?</h2>
+        <p className="mb-6 max-w-xl mx-auto">
+          For larger agencies or enterprises with specific requirements, contact our sales team for a tailored solution.
+        </p>
+        <Button size="lg" variant="outline">
+          Contact Sales
+        </Button>
       </div>
       
       {/* Subscription Management */}
       {subscribed && (
-        <div className="mt-8 border rounded-md p-4 bg-muted/50">
+        <div className="mt-12 border rounded-md p-6 bg-muted/50">
           <h2 className="text-xl font-bold mb-4">Subscription Details</h2>
           <p>
-            You are currently subscribed to the <strong>{plan}</strong> plan.
+            You are currently subscribed to the <strong className="capitalize">{plan.replace('-', ' ')}</strong> plan.
           </p>
           {currentPeriodEnd && (
-            <p>
+            <p className="mb-4">
               Your subscription will renew on <strong>{formatDate(currentPeriodEnd)}</strong>.
             </p>
           )}
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex gap-3">
             <Button onClick={handleManageSubscription} disabled={isLoading['manage']}>
               {isLoading['manage'] ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -247,6 +503,37 @@ const Plans = () => {
           </div>
         </div>
       )}
+      
+      {/* FAQ Section */}
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold mb-6">Frequently Asked Questions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="font-bold mb-2">How do I change my plan?</h3>
+            <p className="text-muted-foreground">
+              You can upgrade or downgrade your plan at any time through the Manage Subscription button if you're already a subscriber.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-bold mb-2">Are there any setup fees?</h3>
+            <p className="text-muted-foreground">
+              Individual plans have no setup fees. Agency plans include a one-time setup fee to cover onboarding and account configuration.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-bold mb-2">Can I cancel anytime?</h3>
+            <p className="text-muted-foreground">
+              Yes, you can cancel your subscription at any time. You'll continue to have access to your plan features until the end of your billing period.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-bold mb-2">What payment methods do you accept?</h3>
+            <p className="text-muted-foreground">
+              We accept all major credit cards including Visa, Mastercard, American Express, and Discover.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

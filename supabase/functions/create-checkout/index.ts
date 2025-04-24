@@ -22,6 +22,14 @@ serve(async (req) => {
     // Get request data
     const { priceId, plan } = await req.json();
     
+    if (!priceId) {
+      throw new Error("Price ID is required");
+    }
+
+    if (!plan) {
+      throw new Error("Plan name is required");
+    }
+    
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") as string;
@@ -70,17 +78,55 @@ serve(async (req) => {
         .update({ stripe_customer_id: customerId })
         .eq("id", userData.user.id);
     }
+
+    // Check if it's an agency plan to include setup fee
+    const isAgencyPlan = plan.startsWith('agency-');
+    let setupFeeAmount = 0;
+    
+    if (isAgencyPlan) {
+      // Determine setup fee based on plan
+      switch(plan) {
+        case 'agency-small':
+          setupFeeAmount = 499;
+          break;
+        case 'agency-medium':
+          setupFeeAmount = 999;
+          break;
+        case 'agency-large':
+          setupFeeAmount = 1999;
+          break;
+      }
+    }
+
+    // Create line items array
+    const lineItems = [
+      {
+        price: priceId,
+        quantity: 1,
+      },
+    ];
+
+    // Add setup fee if applicable
+    if (setupFeeAmount > 0) {
+      lineItems.push({
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: "Setup Fee",
+            description: "One-time setup fee for agency account configuration",
+          },
+          unit_amount: setupFeeAmount * 100, // Convert to cents
+          tax_behavior: "exclusive",
+        },
+        quantity: 1,
+      });
+    }
     
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ["card"],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: lineItems,
       mode: "subscription",
       subscription_data: {
         metadata: {
