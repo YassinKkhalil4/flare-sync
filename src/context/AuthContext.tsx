@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { 
   supabase, 
@@ -252,7 +251,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.user) {
-        // Insert into profiles table (without role column)
+        // Insert into profiles table
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([
@@ -269,14 +268,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw profileError;
         }
 
-        // Insert into user_roles table - FIX: Map creator/brand to user role
-        // We need to use the 'user' role since our DB only accepts 'user' or 'admin'
+        // Insert into user_roles table with the actual role
         const { error: roleError } = await supabase
           .from('user_roles')
           .insert([
             {
               user_id: data.user.id,
-              role: 'user' // Using 'user' role instead of creator/brand
+              role: role // Now we can use creator/brand directly
             }
           ]);
 
@@ -296,8 +294,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         const extendedProfile = mapDatabaseProfileToExtended(profile, data.user.email);
-        // Add role information to the extended profile
-        extendedProfile.role = role; // We'll keep the role in the frontend as creator/brand
+        extendedProfile.role = role;
         setUser(extendedProfile);
       }
 
