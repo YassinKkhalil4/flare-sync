@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { 
   supabase, 
@@ -185,6 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         persistSession(data.session);
         
         try {
+          // Fetch the user profile
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
@@ -193,20 +195,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (profileError) {
             console.error("Profile fetch error after login:", profileError);
-            // Still set user with basic info from session
-            const basicProfile: ExtendedProfile = {
-              id: data.session.user.id,
-              email: data.session.user.email || '',
-              name: data.session.user.user_metadata?.full_name || 'User',
-              username: data.session.user.user_metadata?.username || '',
-              role: (data.session.user.user_metadata?.role as 'creator' | 'brand') || 'creator',
-              plan: ensureValidPlan(data.session.user.user_metadata?.plan || 'free')
-            };
-            setUser(basicProfile);
-            return;
+            throw profileError;
+          }
+
+          // Get the user role from user_roles table
+          const { data: roleData, error: roleError } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', data.session.user.id)
+            .single();
+
+          if (roleError) {
+            console.error("Role fetch error:", roleError);
+            // Continue with basic profile info
           }
 
           const extendedProfile = mapDatabaseProfileToExtended(profile, data.session.user.email);
+          
+          // Set the role from user_roles table if available
+          if (roleData && roleData.role) {
+            extendedProfile.role = roleData.role as 'creator' | 'brand';
+          }
+          
           setUser(extendedProfile);
         } catch (e) {
           console.error("Error processing profile after login:", e);
