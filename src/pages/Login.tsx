@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { AlertCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -111,6 +112,7 @@ const Login = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -122,6 +124,8 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
+                disabled={isLoading}
+                minLength={6}
               />
             </div>
 
@@ -136,6 +140,7 @@ const Login = () => {
                     onChange={(e) => setName(e.target.value)}
                     placeholder="John Doe"
                     required
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -147,6 +152,7 @@ const Login = () => {
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="johndoe"
                     required
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -161,6 +167,7 @@ const Login = () => {
                         checked={role === 'creator'}
                         onChange={() => setRole('creator')}
                         className="mr-2"
+                        disabled={isLoading}
                       />
                       <Label htmlFor="creator">Creator</Label>
                     </div>
@@ -173,6 +180,7 @@ const Login = () => {
                         checked={role === 'brand'}
                         onChange={() => setRole('brand')}
                         className="mr-2"
+                        disabled={isLoading}
                       />
                       <Label htmlFor="brand">Brand</Label>
                     </div>
@@ -185,10 +193,7 @@ const Login = () => {
             <Button disabled={isLoading} type="submit" className="w-full">
               {isLoading ? (
                 <div className="flex items-center">
-                  <svg className="animate-spin mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                  <Loader2 className="animate-spin mr-2 h-4 w-4" />
                   Processing...
                 </div>
               ) : isLogin ? (
@@ -202,6 +207,7 @@ const Login = () => {
                 type="button"
                 onClick={toggleAuthMode}
                 className="text-sm text-blue-600 hover:text-blue-800"
+                disabled={isLoading}
               >
                 {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
               </button>

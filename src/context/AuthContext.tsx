@@ -252,6 +252,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.user) {
+        // Insert into profiles table (without role column)
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([
@@ -259,13 +260,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               id: data.user.id,
               full_name: name,
               username: username,
-              role: role,
               updated_at: new Date().toISOString()
             }
           ]);
 
         if (profileError) {
+          console.error("Error creating profile:", profileError);
           throw profileError;
+        }
+
+        // Insert into user_roles table
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert([
+            {
+              user_id: data.user.id,
+              role: role
+            }
+          ]);
+
+        if (roleError) {
+          console.error("Error setting user role:", roleError);
+          // We'll continue even if role assignment fails to avoid blocking signup
         }
 
         const { data: profile, error: selectError } = await supabase
@@ -279,6 +295,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         const extendedProfile = mapDatabaseProfileToExtended(profile, data.user.email);
+        // Add role information to the extended profile
+        extendedProfile.role = role;
         setUser(extendedProfile);
       }
 
@@ -291,7 +309,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Signup error:', error);
       toast({
         title: "Signup failed",
-        description: "Could not create your account. Please try again.",
+        description: error instanceof Error ? error.message : "Could not create your account. Please try again.",
         variant: "destructive"
       });
       throw error;
