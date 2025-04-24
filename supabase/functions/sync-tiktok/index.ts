@@ -52,9 +52,6 @@ serve(async (req) => {
       throw new Error('No access token found for TikTok')
     }
     
-    // TikTok requires refreshing tokens that expire
-    // We would implement token refresh logic here in a real app
-    
     // Get TikTok credentials
     const clientKey = Deno.env.get('TIKTOK_CLIENT_ID')
     

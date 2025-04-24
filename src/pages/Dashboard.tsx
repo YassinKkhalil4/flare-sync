@@ -25,6 +25,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { supabase } from '@/lib/supabase';
+import { useEffect } from 'react';
 
 function Dashboard() {
   const { user } = useAuth();

@@ -100,8 +100,13 @@ export const useSocialConnect = (platform: string) => {
 
     setIsSyncing(true);
     try {
-      const updatedProfile = await SocialService.syncPlatform(profile.id);
-      setProfile(updatedProfile);
+      const { data, error } = await supabase.functions.invoke(`sync-${platform}`, {
+        body: { profileId: profile.id }
+      });
+
+      if (error) throw error;
+      
+      setProfile(data);
       
       toast({
         title: 'Sync completed',
