@@ -76,7 +76,7 @@ serve(async (req) => {
         newPosts = userData.data.public_metrics.tweet_count;
       }
     } else {
-      // If API call fails, simulate changes
+      // If API call fails, simulate changes for testing
       const followersChange = Math.floor(Math.random() * 100) - 30; // Between -30 and +70
       newFollowers = Math.max(0, (profile.followers || 5000) + followersChange);
       

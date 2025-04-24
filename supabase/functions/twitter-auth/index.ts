@@ -16,10 +16,10 @@ serve(async (req) => {
   try {
     // Get request parameters
     const body = await req.json();
-    const { code, state } = body;
+    const { code, code_verifier, state } = body;
 
-    if (!code) {
-      throw new Error('No code provided')
+    if (!code || !code_verifier) {
+      throw new Error('Missing required parameters')
     }
 
     // Create a Supabase client
@@ -30,8 +30,7 @@ serve(async (req) => {
     // Get Twitter credentials
     const clientId = Deno.env.get('TWITTER_CLIENT_ID')
     const clientSecret = Deno.env.get('TWITTER_CLIENT_SECRET')
-    const redirectUri = Deno.env.get('TWITTER_REDIRECT_URI') || 
-                        `${new URL(req.url).origin}/social-connect`
+    const redirectUri = `${new URL(req.url).origin}/social-connect`
 
     if (!clientId || !clientSecret) {
       throw new Error('Twitter configuration not set')
@@ -48,7 +47,7 @@ serve(async (req) => {
         code,
         grant_type: 'authorization_code',
         redirect_uri: redirectUri,
-        code_verifier: 'challenge' // Should match the code_challenge sent in the auth request
+        code_verifier: code_verifier,
       }),
     })
 

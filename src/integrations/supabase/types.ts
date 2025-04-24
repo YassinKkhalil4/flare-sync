@@ -397,6 +397,113 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_posts: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          media_urls: string[] | null
+          platform: string
+          platform_post_id: string | null
+          published_at: string | null
+          scheduled_for: string
+          social_profile_id: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          media_urls?: string[] | null
+          platform: string
+          platform_post_id?: string | null
+          published_at?: string | null
+          scheduled_for: string
+          social_profile_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          media_urls?: string[] | null
+          platform?: string
+          platform_post_id?: string | null
+          published_at?: string | null
+          scheduled_for?: string
+          social_profile_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_posts_social_profile_id_fkey"
+            columns: ["social_profile_id"]
+            isOneToOne: false
+            referencedRelation: "social_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_profiles: {
+        Row: {
+          access_token: string | null
+          connected: boolean | null
+          created_at: string | null
+          engagement: number | null
+          followers: number | null
+          id: string
+          last_synced: string | null
+          platform: string
+          posts: number | null
+          profile_url: string | null
+          refresh_token: string | null
+          stats: Json | null
+          updated_at: string | null
+          user_id: string
+          username: string
+        }
+        Insert: {
+          access_token?: string | null
+          connected?: boolean | null
+          created_at?: string | null
+          engagement?: number | null
+          followers?: number | null
+          id?: string
+          last_synced?: string | null
+          platform: string
+          posts?: number | null
+          profile_url?: string | null
+          refresh_token?: string | null
+          stats?: Json | null
+          updated_at?: string | null
+          user_id: string
+          username: string
+        }
+        Update: {
+          access_token?: string | null
+          connected?: boolean | null
+          created_at?: string | null
+          engagement?: number | null
+          followers?: number | null
+          id?: string
+          last_synced?: string | null
+          platform?: string
+          posts?: number | null
+          profile_url?: string | null
+          refresh_token?: string | null
+          stats?: Json | null
+          updated_at?: string | null
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string | null
