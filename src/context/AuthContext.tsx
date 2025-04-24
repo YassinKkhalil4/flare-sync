@@ -55,6 +55,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Helper function to fetch user profile data
+  const fetchUserProfile = async (userId: string, userEmail: string | null = null) => {
+    try {
+      // Fetch the profile data
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) {
+        console.error("Profile fetch error:", profileError);
+        throw profileError;
+      }
+
+      // Fetch role data
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (roleError && roleError.code !== 'PGRST116') {
+        // PGRST116 is the "no rows returned" error code, which is fine if the user doesn't have a role yet
+        console.error("Role fetch error:", roleError);
+      }
+
+      // Create extended profile with role
+      const extendedProfile = mapDatabaseProfileToExtended(profile, userEmail || '');
+      
+      if (roleData && roleData.role) {
+        extendedProfile.role = roleData.role as 'creator' | 'brand';
+      }
+      
+      return extendedProfile;
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     const loadSession = async () => {
       setIsLoading(true);
@@ -73,23 +114,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (session) {
           try {
-            const { data: profile, error: profileError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-
-            if (profileError) {
-              console.error("Profile fetch error:", profileError);
-              throw profileError;
-            }
-
-            console.log("Profile loaded:", profile);
-            const extendedProfile = mapDatabaseProfileToExtended(profile, session.user.email);
+            const extendedProfile = await fetchUserProfile(session.user.id, session.user.email);
             setUser(extendedProfile);
           } catch (error) {
             console.error("Error loading profile:", error);
-            // Still set user with basic info from session
+            // Set basic user info if profile fetch fails
             const basicProfile: ExtendedProfile = {
               id: session.user.id,
               email: session.user.email || '',
@@ -130,31 +159,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (session) {
         try {
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          if (profileError) {
-            console.error("Profile fetch error on auth change:", profileError);
-            // Still set user with basic info from session
-            const basicProfile: ExtendedProfile = {
-              id: session.user.id,
-              email: session.user.email || '',
-              name: session.user.user_metadata?.full_name || 'User',
-              username: session.user.user_metadata?.username || '',
-              role: (session.user.user_metadata?.role as 'creator' | 'brand') || 'creator',
-              plan: ensureValidPlan(session.user.user_metadata?.plan || 'free')
-            };
-            setUser(basicProfile);
-            return;
-          }
-
-          const extendedProfile = mapDatabaseProfileToExtended(profile, session.user.email);
-          setUser(extendedProfile);
+          // Use setTimeout to avoid potential deadlocks with Supabase client
+          setTimeout(async () => {
+            try {
+              const extendedProfile = await fetchUserProfile(session.user.id, session.user.email);
+              setUser(extendedProfile);
+            } catch (error) {
+              console.error('Error fetching profile on auth change:', error);
+              // Set basic user info if profile fetch fails
+              const basicProfile: ExtendedProfile = {
+                id: session.user.id,
+                email: session.user.email || '',
+                name: session.user.user_metadata?.full_name || 'User',
+                username: session.user.user_metadata?.username || '',
+                role: (session.user.user_metadata?.role as 'creator' | 'brand') || 'creator',
+                plan: ensureValidPlan(session.user.user_metadata?.plan || 'free')
+              };
+              setUser(basicProfile);
+            }
+          }, 0);
         } catch (error) {
-          console.error('Error fetching profile:', error);
+          console.error('Error in auth state change:', error);
           setUser(null);
         }
       } else {
@@ -186,48 +211,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         persistSession(data.session);
         
         try {
-          // Fetch the user profile
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', data.session.user.id)
-            .single();
-
-          if (profileError) {
-            console.error("Profile fetch error after login:", profileError);
-            throw profileError;
-          }
-
-          // Get the user role from user_roles table
-          const { data: roleData, error: roleError } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', data.session.user.id)
-            .single();
-
-          if (roleError) {
-            console.error("Role fetch error:", roleError);
-            // Continue with basic profile info
-          }
-
-          const extendedProfile = mapDatabaseProfileToExtended(profile, data.session.user.email);
-          
-          // Set the role from user_roles table if available
-          if (roleData && roleData.role) {
-            extendedProfile.role = roleData.role as 'creator' | 'brand';
-          }
-          
+          const extendedProfile = await fetchUserProfile(data.session.user.id, data.session.user.email);
           setUser(extendedProfile);
-        } catch (e) {
-          console.error("Error processing profile after login:", e);
-          throw e;
+          
+          toast({
+            title: "Login successful",
+            description: "You have successfully logged in."
+          });
+          
+          navigate('/dashboard');
+        } catch (error) {
+          console.error("Error processing profile after login:", error);
+          toast({
+            title: "Login issue",
+            description: "Logged in but couldn't fetch your profile. Some features may be limited.",
+            variant: "destructive"
+          });
+          throw error;
         }
       }
-
-      toast({
-        title: "Login successful",
-        description: "You have successfully logged in."
-      });
     } catch (error) {
       console.error('Login error:', error);
       toast({
@@ -284,7 +286,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .insert([
             {
               user_id: data.user.id,
-              role: role // Now we can use creator/brand directly
+              role: role
             }
           ]);
 

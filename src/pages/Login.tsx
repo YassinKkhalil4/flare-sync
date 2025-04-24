@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -46,32 +47,21 @@ const Login = () => {
       if (isLogin) {
         console.log('Attempting to log in with:', email);
         await login(email, password);
-        toast({
-          title: "Login successful",
-          description: "Welcome back to FlareSync!"
-        });
-        navigate('/dashboard');
+        // No need to navigate here as the login function already does it on success
       } else {
         if (!name || !username || !role) {
           throw new Error('Please fill in all required fields');
         }
         console.log('Attempting to sign up with:', email, 'as', role);
         await signup(email, password, name, username, role);
-        toast({
-          title: "Signup successful",
-          description: "Welcome to FlareSync!"
-        });
-        navigate('/dashboard');
+        // No need to navigate here as the signup function already does it on success
       }
     } catch (error) {
       console.error('Authentication error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
-      setErrorMessage(errorMessage);
-      toast({
-        title: isLogin ? 'Login failed' : 'Signup failed',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      const errorMsg = error instanceof Error ? error.message : 'Authentication failed';
+      setErrorMessage(errorMsg);
+      
+      // Don't show toast here as it's already shown in the login/signup functions
     } finally {
       setIsLoading(false);
     }
