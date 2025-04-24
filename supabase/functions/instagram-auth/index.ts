@@ -8,33 +8,21 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Get request parameters
-    const body = await req.json();
-    const { code, state } = body;
+    const { code, state } = await req.json();
+    if (!code) throw new Error('No authorization code provided');
 
-    if (!code) {
-      throw new Error('No code provided')
-    }
-
-    // Create a Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') as string
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') as string
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-    // Get Instagram credentials
-    const clientId = Deno.env.get('INSTAGRAM_CLIENT_ID')
-    const clientSecret = Deno.env.get('INSTAGRAM_CLIENT_SECRET')
-    const redirectUri = Deno.env.get('INSTAGRAM_REDIRECT_URI') || 
-                        `${new URL(req.url).origin}/social-connect`
+    // Get Instagram credentials from environment variables
+    const clientId = Deno.env.get('INSTAGRAM_APP_ID');
+    const clientSecret = Deno.env.get('INSTAGRAM_APP_SECRET');
+    const redirectUri = `${new URL(req.url).origin}/social-connect`;
 
     if (!clientId || !clientSecret) {
-      throw new Error('Instagram configuration not set')
+      throw new Error('Instagram credentials not configured');
     }
 
     // Exchange code for access token
@@ -45,43 +33,61 @@ serve(async (req) => {
         client_secret: clientSecret,
         grant_type: 'authorization_code',
         redirect_uri: redirectUri,
-        code: code,
-      }),
-    })
+        code: code
+      })
+    });
 
     if (!tokenResponse.ok) {
-      throw new Error('Failed to exchange code for token')
+      throw new Error('Failed to exchange code for token');
     }
 
-    const tokenData = await tokenResponse.json()
-    const accessToken = tokenData.access_token
-    const userId = tokenData.user_id
+    const tokenData = await tokenResponse.json();
+    const shortLivedToken = tokenData.access_token;
+    const userId = tokenData.user_id;
 
-    // Get user information
-    const userResponse = await fetch(`https://graph.instagram.com/me?fields=id,username&access_token=${accessToken}`)
-    
-    if (!userResponse.ok) {
-      throw new Error('Failed to fetch user data')
-    }
-    
-    const userData = await userResponse.json()
-
-    // Get long-lived token
+    // Exchange short-lived token for long-lived token
     const longLivedTokenResponse = await fetch(
-      `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${clientSecret}&access_token=${accessToken}`
+      `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${clientSecret}&access_token=${shortLivedToken}`
     );
-    
+
     if (!longLivedTokenResponse.ok) {
       throw new Error('Failed to get long-lived token');
     }
-    
-    const longLivedTokenData = await longLivedTokenResponse.json();
-    const longLivedAccessToken = longLivedTokenData.access_token;
 
-    // Get user from state param (contains JWT)
-    const { data: authData } = await supabase.auth.getUser(state)
+    const longLivedTokenData = await longLivedTokenResponse.json();
+    const accessToken = longLivedTokenData.access_token;
+
+    // Get user profile information
+    const userResponse = await fetch(
+      `https://graph.instagram.com/me?fields=id,username,account_type,media_count&access_token=${accessToken}`
+    );
+
+    if (!userResponse.ok) {
+      throw new Error('Failed to fetch user data');
+    }
+
+    const userData = await userResponse.json();
+
+    // Get recent media metrics
+    const mediaResponse = await fetch(
+      `https://graph.instagram.com/me/media?fields=id,media_type,media_url,thumbnail_url,permalink,timestamp&access_token=${accessToken}`
+    );
+
+    if (!mediaResponse.ok) {
+      throw new Error('Failed to fetch media data');
+    }
+
+    const mediaData = await mediaResponse.json();
+
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') as string;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') as string;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    // Get user from state (contains JWT)
+    const { data: authData } = await supabase.auth.getUser(state);
     if (!authData.user) {
-      throw new Error('User not authenticated')
+      throw new Error('User not authenticated');
     }
 
     // Store profile in database
@@ -94,65 +100,30 @@ serve(async (req) => {
         profile_url: `https://instagram.com/${userData.username}`,
         connected: true,
         last_synced: new Date().toISOString(),
-        access_token: longLivedAccessToken,
-        followers: 0,
-        posts: 0,
-        engagement: 0
+        access_token: accessToken,
+        posts: userData.media_count || mediaData.data?.length || 0,
+        followers: 0, // Basic Display API doesn't provide follower count
+        engagement: 0 // Will be calculated in sync function
       }, {
         onConflict: 'user_id, platform'
       })
       .select()
-      .single()
+      .single();
 
-    if (error) {
-      throw error
-    }
-
-    // After storing the profile, immediately fetch initial stats
-    try {
-      // Fetch user media to count posts
-      const mediaResponse = await fetch(
-        `https://graph.instagram.com/me/media?fields=id&access_token=${longLivedAccessToken}&limit=100`
-      );
-      
-      if (mediaResponse.ok) {
-        const mediaData = await mediaResponse.json();
-        const postsCount = mediaData.data?.length || 0;
-        
-        // Update the profile with initial stats (using mock data for followers and engagement since these require business account)
-        await supabase
-          .from('social_profiles')
-          .update({
-            posts: postsCount,
-            followers: Math.floor(Math.random() * 2000) + 10000, // Mock data
-            engagement: parseFloat((Math.random() * 2 + 3).toFixed(1)), // Mock data
-            last_synced: new Date().toISOString()
-          })
-          .eq('id', profile.id);
-      }
-    } catch (statsError) {
-      console.error('Error fetching initial stats:', statsError);
-      // Don't fail the whole process if stats fetch fails
-    }
+    if (error) throw error;
 
     return new Response(JSON.stringify({ success: true, profile }), {
       status: 200,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
-    })
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
   } catch (error) {
-    console.error('Error:', error)
-    
+    console.error('Error:', error);
     return new Response(JSON.stringify({
       error: error.message || 'An unknown error occurred'
     }), {
       status: 400,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
-    })
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
-})
+});

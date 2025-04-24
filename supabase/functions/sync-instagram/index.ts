@@ -8,30 +8,28 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Create a Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') as string
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') as string
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') as string;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') as string;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    const { method, headers } = req
-    const authorization = headers.get('Authorization')
+    const { method, headers } = req;
+    const authorization = headers.get('Authorization');
     
     if (!authorization) {
-      throw new Error('Missing authorization header')
+      throw new Error('Missing authorization header');
     }
     
     // Get user from token
-    const token = authorization.replace('Bearer ', '')
-    const { data: authData, error: authError } = await supabase.auth.getUser(token)
+    const token = authorization.replace('Bearer ', '');
+    const { data: authData, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !authData.user) {
-      throw new Error('Invalid token')
+      throw new Error('Invalid token');
     }
     
     // Get user's Instagram profile
@@ -40,74 +38,70 @@ serve(async (req) => {
       .select('*')
       .eq('user_id', authData.user.id)
       .eq('platform', 'instagram')
-      .eq('connected', true)
+      .eq('connected', true);
       
-    if (profileError) throw profileError
+    if (profileError) throw profileError;
     if (!profiles || profiles.length === 0) {
-      throw new Error('No connected Instagram profile found')
+      throw new Error('No connected Instagram profile found');
     }
     
-    const profile = profiles[0]
+    const profile = profiles[0];
     if (!profile.access_token) {
-      throw new Error('No access token found for Instagram')
+      throw new Error('No access token found for Instagram');
     }
-    
-    // Fetch media data to update posts count
+
+    // Get latest media data
     const mediaResponse = await fetch(
-      `https://graph.instagram.com/me/media?fields=id&access_token=${profile.access_token}&limit=100`
+      `https://graph.instagram.com/me/media?fields=id,media_type,media_url,permalink,timestamp,like_count,comments_count&access_token=${profile.access_token}`
     );
-    
-    let postsCount = profile.posts || 0;
-    
-    if (mediaResponse.ok) {
-      const mediaData = await mediaResponse.json();
-      if (mediaData.data) {
-        postsCount = mediaData.data.length;
-      }
+
+    if (!mediaResponse.ok) {
+      throw new Error('Failed to fetch media data');
     }
+
+    const mediaData = await mediaResponse.json();
+    const posts = mediaData.data || [];
+
+    // Calculate total engagement from available metrics
+    let totalEngagement = 0;
+    let totalInteractions = 0;
     
-    // Check if we need to refresh the token
-    // For Instagram, the long-lived token lasts 60 days
-    // We should implement token refresh logic here in a real app
-    
-    // In a real app, we would use the Instagram Graph API to get actual followers
-    // For this demo, we'll simulate changes in followers and engagement
-    const followersChange = Math.floor(Math.random() * 100) - 20; // Between -20 and +80
-    const newFollowers = Math.max(0, (profile.followers || 10000) + followersChange);
-    
-    const engagementChange = (Math.random() * 0.4) - 0.1; // Between -0.1 and +0.3
-    const newEngagement = Math.max(1, Math.min(10, (profile.engagement || 4) + engagementChange));
-    
-    // Update the profile with new stats
+    posts.forEach((post: any) => {
+      const likes = post.like_count || 0;
+      const comments = post.comments_count || 0;
+      totalInteractions += likes + comments;
+    });
+
+    // Calculate engagement rate (interactions per post)
+    const engagementRate = posts.length > 0 ? (totalInteractions / posts.length) / 100 : 0;
+
+    // Update profile with new stats
     const { error: updateError } = await supabase
       .from('social_profiles')
       .update({
-        followers: newFollowers,
-        posts: postsCount,
-        engagement: parseFloat(newEngagement.toFixed(1)),
+        posts: posts.length,
+        engagement: parseFloat(engagementRate.toFixed(2)),
         last_synced: new Date().toISOString()
       })
-      .eq('id', profile.id)
+      .eq('id', profile.id);
       
-    if (updateError) throw updateError
-    
+    if (updateError) throw updateError;
+
     return new Response(JSON.stringify({
       message: 'Instagram stats updated successfully',
       stats: {
-        followers: newFollowers,
-        posts: postsCount,
-        engagement: parseFloat(newEngagement.toFixed(1))
+        posts: posts.length,
+        engagement: parseFloat(engagementRate.toFixed(2))
       }
     }), {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json'
       }
-    })
+    });
     
   } catch (error) {
-    console.error('Error:', error)
-    
+    console.error('Error:', error);
     return new Response(JSON.stringify({
       error: error.message || 'An unknown error occurred'
     }), {
@@ -116,6 +110,6 @@ serve(async (req) => {
         ...corsHeaders,
         'Content-Type': 'application/json'
       }
-    })
+    });
   }
-})
+});
