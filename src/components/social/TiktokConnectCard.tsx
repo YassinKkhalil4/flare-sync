@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { SocialProfile } from '@/types/messaging';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
-import { TiktokIcon } from './SocialIcons';
+import { PlatformIcon } from './PlatformIcon';
 
 interface TiktokConnectCardProps {
   profile?: SocialProfile;
@@ -29,7 +28,7 @@ const TiktokConnectCard: React.FC<TiktokConnectCardProps> = ({
     <Card>
       <CardHeader className="flex flex-row items-center gap-4">
         <div className="rounded-full bg-black p-3">
-          <TiktokIcon className="h-6 w-6 text-white" />
+          <PlatformIcon platform="tiktok" className="h-6 w-6 text-white" />
         </div>
         <div>
           <CardTitle>TikTok</CardTitle>
