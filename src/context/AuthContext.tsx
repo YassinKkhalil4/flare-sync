@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase, getPersistedSession, persistSession, ExtendedProfile, mapDatabaseProfileToExtended } from '../lib/supabase';
 import { useToast } from '@/hooks/use-toast';
@@ -46,37 +45,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const location = useLocation();
-  const navigate = useNavigate(); // This is now safe because AuthProvider is inside BrowserRouter
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadSession = async () => {
       setIsLoading(true);
       try {
+        console.log("Loading session...");
         // Check persisted session
         const persistedSession = getPersistedSession();
         if (persistedSession) {
+          console.log("Found persisted session, setting it");
           await supabase.auth.setSession(persistedSession);
         }
 
         // Get current session
         const { data: { session } } = await supabase.auth.getSession();
+        console.log("Current session:", session ? "exists" : "none");
 
         if (session) {
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
 
-          if (profileError) {
-            throw profileError;
+            if (profileError) {
+              console.error("Profile fetch error:", profileError);
+              throw profileError;
+            }
+
+            console.log("Profile loaded:", profile);
+            const extendedProfile = mapDatabaseProfileToExtended(profile, session.user.email);
+            setUser(extendedProfile);
+          } catch (error) {
+            console.error("Error loading profile:", error);
+            // Still set user with basic info from session
+            const basicProfile = {
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.user_metadata?.full_name || 'User',
+              username: session.user.user_metadata?.username || '',
+              role: (session.user.user_metadata?.role as 'creator' | 'brand') || 'creator',
+              plan: 'free'
+            };
+            setUser(basicProfile);
           }
-
-          const extendedProfile = mapDatabaseProfileToExtended(profile, session.user.email);
-          setUser(extendedProfile);
+        } else {
+          setUser(null);
         }
       } catch (error) {
         console.error('Error loading session:', error);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -87,7 +108,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Subscribe to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth event:', event);
-      persistSession(session);
+      
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        persistSession(session);
+      } else if (event === 'SIGNED_OUT') {
+        persistSession(null);
+      }
 
       if (event === 'INITIAL_SESSION') {
         // Skip initial session event, already handled
@@ -103,7 +129,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             .single();
 
           if (profileError) {
-            throw profileError;
+            console.error("Profile fetch error on auth change:", profileError);
+            // Still set user with basic info from session
+            const basicProfile = {
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.user_metadata?.full_name || 'User',
+              username: session.user.user_metadata?.username || '',
+              role: (session.user.user_metadata?.role as 'creator' | 'brand') || 'creator',
+              plan: 'free'
+            };
+            setUser(basicProfile);
+            return;
           }
 
           const extendedProfile = mapDatabaseProfileToExtended(profile, session.user.email);
@@ -125,40 +162,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
+      console.log("Logging in with email:", email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
       });
 
       if (error) {
+        console.error("Login error:", error);
         throw error;
       }
 
       if (data.session) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.session.user.id)
-          .single();
+        console.log("Login successful, fetching profile");
+        persistSession(data.session);
+        
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.session.user.id)
+            .single();
 
-        if (profileError) {
-          throw profileError;
+          if (profileError) {
+            console.error("Profile fetch error after login:", profileError);
+            // Still set user with basic info from session
+            const basicProfile = {
+              id: data.session.user.id,
+              email: data.session.user.email || '',
+              name: data.session.user.user_metadata?.full_name || 'User',
+              username: data.session.user.user_metadata?.username || '',
+              role: (data.session.user.user_metadata?.role as 'creator' | 'brand') || 'creator',
+              plan: 'free'
+            };
+            setUser(basicProfile);
+            return;
+          }
+
+          const extendedProfile = mapDatabaseProfileToExtended(profile, data.session.user.email);
+          setUser(extendedProfile);
+        } catch (e) {
+          console.error("Error processing profile after login:", e);
+          throw e;
         }
-
-        const extendedProfile = mapDatabaseProfileToExtended(profile, data.session.user.email);
-        setUser(extendedProfile);
       }
 
       toast({
         title: "Login successful",
         description: "You have successfully logged in."
       });
-      navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
       toast({
         title: "Login failed",
-        description: "Invalid credentials. Please try again.",
+        description: error instanceof Error ? error.message : "Invalid credentials. Please try again.",
         variant: "destructive"
       });
       throw error;

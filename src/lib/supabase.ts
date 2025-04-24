@@ -7,15 +7,34 @@ export { supabase };
 // Helper functions for session persistence
 export const persistSession = (session: any) => {
   if (session) {
-    localStorage.setItem('supabase_session', JSON.stringify(session));
+    try {
+      localStorage.setItem('supabase_session', JSON.stringify(session));
+      console.log("Session persisted to localStorage");
+    } catch (error) {
+      console.error("Error persisting session:", error);
+    }
   } else {
-    localStorage.removeItem('supabase_session');
+    try {
+      localStorage.removeItem('supabase_session');
+      console.log("Session removed from localStorage");
+    } catch (error) {
+      console.error("Error removing session:", error);
+    }
   }
 };
 
 export const getPersistedSession = () => {
-  const sessionStr = localStorage.getItem('supabase_session');
-  return sessionStr ? JSON.parse(sessionStr) : null;
+  try {
+    const sessionStr = localStorage.getItem('supabase_session');
+    if (!sessionStr) return null;
+    
+    const session = JSON.parse(sessionStr);
+    console.log("Retrieved persisted session from localStorage");
+    return session;
+  } catch (error) {
+    console.error("Error retrieving persisted session:", error);
+    return null;
+  }
 };
 
 // Function to check if we're using a real Supabase client
@@ -40,7 +59,7 @@ export const mapDatabaseProfileToExtended = (dbProfile: any, email: string = '')
     email: email,
     name: dbProfile.full_name || 'User',
     username: dbProfile.username || '',
-    role: 'creator', // Default role
+    role: dbProfile.role || 'creator',
     plan: 'free',    // Default plan
     avatar: dbProfile.avatar_url,
     user_metadata: {}

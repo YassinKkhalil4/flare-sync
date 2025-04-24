@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { AlertCircle } from 'lucide-react';
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -16,6 +17,7 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [role, setRole] = useState<'creator' | 'brand'>('creator');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { login, signup, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -38,20 +40,33 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMessage(null);
 
     try {
       if (isLogin) {
+        console.log('Attempting to log in with:', email);
         await login(email, password);
+        toast({
+          title: "Login successful",
+          description: "Welcome back to FlareSync!"
+        });
         navigate('/dashboard');
       } else {
         if (!name || !username || !role) {
           throw new Error('Please fill in all required fields');
         }
+        console.log('Attempting to sign up with:', email);
         await signup(email, password, name, username, role);
+        toast({
+          title: "Signup successful",
+          description: "Welcome to FlareSync!"
+        });
         navigate('/dashboard');
       }
     } catch (error) {
+      console.error('Authentication error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
+      setErrorMessage(errorMessage);
       toast({
         title: isLogin ? 'Login failed' : 'Signup failed',
         description: errorMessage,
@@ -64,6 +79,7 @@ const Login = () => {
 
   const toggleAuthMode = () => {
     setIsLogin(!isLogin);
+    setErrorMessage(null);
   };
 
   return (
@@ -79,6 +95,13 @@ const Login = () => {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            {errorMessage && (
+              <div className="bg-destructive/15 text-destructive p-3 rounded-md flex items-start">
+                <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+                <span className="text-sm">{errorMessage}</span>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
