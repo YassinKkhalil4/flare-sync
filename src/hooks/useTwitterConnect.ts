@@ -90,7 +90,7 @@ export const useTwitterConnect = () => {
       });
 
       if (error) throw error;
-
+      
       toast({
         title: 'Twitter Connected',
         description: 'Your Twitter account has been successfully connected.',
