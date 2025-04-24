@@ -59,36 +59,72 @@ serve(async (req) => {
       throw new Error('TikTok configuration not set')
     }
     
-    // In a real app, we would call the TikTok API to get stats
-    // For this demo, we'll simulate changes in stats
-    const followersChange = Math.floor(Math.random() * 200) - 50; // Between -50 and +150
-    const newFollowers = Math.max(0, (profile.followers || 10000) + followersChange);
+    // Get user information including follower count and video count
+    const userResponse = await fetch(
+      `https://open-api.tiktok.com/user/info/?access_token=${profile.access_token}`
+    )
     
-    const postsChange = Math.floor(Math.random() * 3) - 1; // Between -1 and +2
-    const newPosts = Math.max(0, (profile.posts || 50) + postsChange);
+    if (!userResponse.ok) {
+      throw new Error('Failed to fetch user data')
+    }
     
-    const engagementChange = (Math.random() * 0.6) - 0.2; // Between -0.2 and +0.4
-    const newEngagement = Math.max(1, Math.min(15, (profile.engagement || 5) + engagementChange));
+    const userData = await userResponse.json()
     
-    // Update the profile with new stats
+    if (userData.message !== 'success') {
+      throw new Error('Failed to get user info: ' + userData.data.description)
+    }
+    
+    const userInfo = userData.data.user;
+
+    // Get recent videos to calculate engagement
+    const videosResponse = await fetch(
+      `https://open-api.tiktok.com/video/list/?access_token=${profile.access_token}`
+    )
+
+    if (!videosResponse.ok) {
+      throw new Error('Failed to fetch videos')
+    }
+
+    const videosData = await videosResponse.json()
+    
+    if (videosData.message !== 'success') {
+      throw new Error('Failed to get videos: ' + videosData.data.description)
+    }
+
+    // Calculate engagement rate from recent videos
+    const videos = videosData.data.videos || [];
+    let totalEngagement = 0;
+    
+    videos.forEach((video: any) => {
+      const likes = video.like_count || 0;
+      const comments = video.comment_count || 0;
+      const shares = video.share_count || 0;
+      totalEngagement += likes + comments + shares;
+    });
+
+    const engagementRate = videos.length > 0 
+      ? ((totalEngagement / videos.length) / userInfo.follower_count) * 100 
+      : 0;
+
+    // Update profile with new stats
     const { error: updateError } = await supabase
       .from('social_profiles')
       .update({
-        followers: newFollowers,
-        posts: newPosts,
-        engagement: parseFloat(newEngagement.toFixed(1)),
+        followers: userInfo.follower_count,
+        posts: userInfo.video_count,
+        engagement: parseFloat(engagementRate.toFixed(2)),
         last_synced: new Date().toISOString()
       })
       .eq('id', profile.id)
       
     if (updateError) throw updateError
-    
+
     return new Response(JSON.stringify({
       message: 'TikTok stats updated successfully',
       stats: {
-        followers: newFollowers,
-        posts: newPosts,
-        engagement: parseFloat(newEngagement.toFixed(1))
+        followers: userInfo.follower_count,
+        posts: userInfo.video_count,
+        engagement: parseFloat(engagementRate.toFixed(2))
       }
     }), {
       headers: {

@@ -34,10 +34,10 @@ serve(async (req: Request) => {
       );
     }
 
-    // Get the post
+    // Get the post and TikTok profile
     const { data: post, error: postError } = await supabaseAdmin
-      .from('content_posts')
-      .select('*')
+      .from('scheduled_posts')
+      .select('*, social_profiles!inner(*)')
       .eq('id', postId)
       .eq('user_id', userId)
       .single();
@@ -50,54 +50,92 @@ serve(async (req: Request) => {
       );
     }
 
-    // Get the TikTok credentials
-    const { data: tiktokProfile, error: profileError } = await supabaseAdmin
-      .from('social_profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('platform', 'tiktok')
-      .eq('connected', true)
-      .single();
-
-    if (profileError || !tiktokProfile) {
-      console.error('Error fetching TikTok profile:', profileError);
-      return new Response(
-        JSON.stringify({ error: 'TikTok profile not found or not connected' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-      );
+    const accessToken = post.social_profiles.access_token;
+    if (!accessToken) {
+      throw new Error('No access token found for TikTok account');
     }
 
-    // In a real implementation, this would use the TikTok API to post the content
-    // using the access token from the social_profiles table
-    // For now, we'll simulate a successful post and update the post status
+    // First, create a video upload URL
+    const createUploadResponse = await fetch(
+      `https://open-api.tiktok.com/share/video/upload/?access_token=${accessToken}`,
+      { method: 'POST' }
+    );
 
-    // Simulate posting to TikTok
-    console.log(`Posting to TikTok for user ${userId}:`, post.title);
+    if (!createUploadResponse.ok) {
+      throw new Error('Failed to get upload URL');
+    }
 
-    // Update the post status to published
-    const { data: updatedPost, error: updateError } = await supabaseAdmin
-      .from('content_posts')
+    const uploadData = await createUploadResponse.json();
+    
+    if (uploadData.message !== 'success') {
+      throw new Error('Failed to get upload URL: ' + uploadData.data.description);
+    }
+
+    // Upload the video
+    const videoUrl = post.media_urls[0]; // Get the first video URL
+    const videoResponse = await fetch(videoUrl);
+    const videoBlob = await videoResponse.blob();
+
+    const uploadResponse = await fetch(uploadData.data.upload_url, {
+      method: 'POST',
+      body: videoBlob,
+      headers: {
+        'Content-Type': 'video/mp4'
+      }
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error('Failed to upload video');
+    }
+
+    const uploadResult = await uploadResponse.json();
+
+    // Create the post with the uploaded video
+    const createPostResponse = await fetch(
+      `https://open-api.tiktok.com/share/video/create/?access_token=${accessToken}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          video_id: uploadResult.data.video_id,
+          title: post.content,
+          privacy_level: 'public'
+        })
+      }
+    );
+
+    if (!createPostResponse.ok) {
+      throw new Error('Failed to create TikTok post');
+    }
+
+    const postResult = await createPostResponse.json();
+
+    if (postResult.message !== 'success') {
+      throw new Error('Failed to create post: ' + postResult.data.description);
+    }
+
+    // Update post status
+    const { error: updateError } = await supabaseAdmin
+      .from('scheduled_posts')
       .update({ 
         status: 'published',
-        platform_post_id: `tiktok-${Date.now()}-${Math.floor(Math.random() * 1000)}` // Simulate a TikTok post ID
+        platform_post_id: postResult.data.share_id,
+        published_at: new Date().toISOString()
       })
-      .eq('id', postId)
-      .select()
-      .single();
+      .eq('id', postId);
 
     if (updateError) {
       console.error('Error updating post status:', updateError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to update post status' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
+      throw new Error('Failed to update post status');
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'Post published to TikTok',
-        post: updatedPost
+        postId: postResult.data.share_id
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -109,4 +147,4 @@ serve(async (req: Request) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
-})
+});

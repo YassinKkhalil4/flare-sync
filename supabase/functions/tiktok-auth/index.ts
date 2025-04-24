@@ -37,7 +37,7 @@ serve(async (req) => {
       throw new Error('TikTok configuration not set')
     }
 
-    // Exchange code for access token
+    // Exchange code for access token using TikTok's OAuth endpoint
     const tokenResponse = await fetch('https://open-api.tiktok.com/oauth/access_token/', {
       method: 'POST',
       body: new URLSearchParams({
