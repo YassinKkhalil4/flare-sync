@@ -269,13 +269,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw profileError;
         }
 
-        // Insert into user_roles table
+        // Insert into user_roles table - FIX: Map creator/brand to user role
+        // We need to use the 'user' role since our DB only accepts 'user' or 'admin'
         const { error: roleError } = await supabase
           .from('user_roles')
           .insert([
             {
               user_id: data.user.id,
-              role: role
+              role: 'user' // Using 'user' role instead of creator/brand
             }
           ]);
 
@@ -296,7 +297,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const extendedProfile = mapDatabaseProfileToExtended(profile, data.user.email);
         // Add role information to the extended profile
-        extendedProfile.role = role;
+        extendedProfile.role = role; // We'll keep the role in the frontend as creator/brand
         setUser(extendedProfile);
       }
 

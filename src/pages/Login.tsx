@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -56,7 +55,7 @@ const Login = () => {
         if (!name || !username || !role) {
           throw new Error('Please fill in all required fields');
         }
-        console.log('Attempting to sign up with:', email);
+        console.log('Attempting to sign up with:', email, 'as', role);
         await signup(email, password, name, username, role);
         toast({
           title: "Signup successful",
