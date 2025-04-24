@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { SocialService } from '@/services/api';
 import { SocialProfile } from '@/types/messaging';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 // Create a base hook for social connection logic
 export const useSocialConnect = (platform: string) => {

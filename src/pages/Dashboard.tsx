@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import { useState, useEffect } from 'react';
 import OverviewCard from '@/components/Dashboard/OverviewCard';
 import { Sidebar } from '@/components/Sidebar';
 import { Button } from '@/components/ui/button';
@@ -26,7 +27,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { supabase } from '@/lib/supabase';
-import { useEffect } from 'react';
 
 function Dashboard() {
   const { user } = useAuth();
