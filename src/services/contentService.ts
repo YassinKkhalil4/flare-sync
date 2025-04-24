@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { ContentPost, ContentStatus, ContentTag, ContentApproval } from '@/types/content';
+import { scheduledPostService } from './scheduledPostService';
 
 export class ContentAPIClass {
   async getPosts(): Promise<ContentPost[]> {
@@ -229,6 +230,16 @@ export class ContentAPIClass {
         console.error('Failed to send rejection notification:', notificationError);
       }
     }
+  }
+
+  async schedulePost(post: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>): Promise<ContentPost> {
+    // First create the content post
+    const contentPost = await this.createPost(post);
+    
+    // Then schedule it
+    await scheduledPostService.schedulePost(post);
+    
+    return contentPost;
   }
 }
 

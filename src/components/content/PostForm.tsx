@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { Editor } from '@tinymce/tinymce-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ContentPost, ContentStatus, SocialPlatform } from '@/types/content';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { ContentService } from '@/services/api';
 
 interface PostFormProps {
   onSubmit: (data: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>, tagIds?: string[]) => Promise<void>;
@@ -20,6 +22,7 @@ interface PostFormProps {
 }
 
 const PostForm: React.FC<PostFormProps> = ({ onSubmit, onCancel, initialValues, tags, isLoading }) => {
+  const navigate = useNavigate();
   const {
     handleSubmit,
     control,
@@ -96,6 +99,24 @@ const PostForm: React.FC<PostFormProps> = ({ onSubmit, onCancel, initialValues, 
       toast({
         title: 'Error',
         description: error?.message || 'Failed to save post. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleScheduledSubmit = async (data: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      await ContentService.schedulePost(data);
+      toast({
+        title: 'Success',
+        description: 'Post scheduled successfully!',
+      });
+      navigate('/content');
+    } catch (error: any) {
+      console.error("Error scheduling post:", error);
+      toast({
+        title: 'Error',
+        description: error?.message || 'Failed to schedule post. Please try again.',
         variant: 'destructive',
       });
     }
