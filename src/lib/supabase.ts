@@ -40,6 +40,9 @@ export const getPersistedSession = () => {
 // Function to check if we're using a real Supabase client
 export const isRealSupabaseClient = () => true;
 
+// Define plan type
+export type UserPlan = 'free' | 'basic' | 'pro';
+
 // Extended profile interface that includes fields we need
 export interface ExtendedProfile {
   id: string;
@@ -47,10 +50,18 @@ export interface ExtendedProfile {
   name: string;
   username: string;
   role: 'creator' | 'brand';
-  plan: 'free' | 'basic' | 'pro';
+  plan: UserPlan;
   avatar?: string;
   user_metadata?: Record<string, any>;
 }
+
+// Function to ensure plan is one of the allowed values
+export const ensureValidPlan = (plan: string): UserPlan => {
+  if (plan === 'basic' || plan === 'pro') {
+    return plan;
+  }
+  return 'free'; // Default to free for any invalid value
+};
 
 // Function to convert database profile to extended profile
 export const mapDatabaseProfileToExtended = (dbProfile: any, email: string = ''): ExtendedProfile => {
@@ -60,7 +71,7 @@ export const mapDatabaseProfileToExtended = (dbProfile: any, email: string = '')
     name: dbProfile.full_name || 'User',
     username: dbProfile.username || '',
     role: dbProfile.role || 'creator',
-    plan: 'free',    // Default plan
+    plan: ensureValidPlan(dbProfile.plan || 'free'),
     avatar: dbProfile.avatar_url,
     user_metadata: {}
   };
