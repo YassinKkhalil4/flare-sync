@@ -1,10 +1,11 @@
-
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, CheckCircle2, Instagram, Twitter, Facebook } from 'lucide-react';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth } from '../context/AuthContext';
+import { PLAN_DETAILS } from '@/lib/supabase';
+import PlatformIcon from '@/components/social/PlatformIcon';
 
 const Landing = () => {
   const { user } = useAuth();
@@ -13,11 +14,7 @@ const Landing = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 10) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
+      setIsScrolled(window.scrollY > 10);
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -29,6 +26,15 @@ const Landing = () => {
       navigate('/dashboard');
     }
   }, [user, navigate]);
+
+  const popularFeatures = [
+    "Schedule & automate posts",
+    "Advanced analytics dashboard",
+    "Brand partnerships",
+    "Creator discovery",
+    "Media kit builder",
+    "Secure messaging"
+  ];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -71,18 +77,21 @@ const Landing = () => {
             </Button>
           </div>
           
-          <div className="mt-20 flex flex-wrap justify-center gap-10 md:gap-16 opacity-70">
-            <Instagram size={32} />
-            <Twitter size={32} />
-            <Facebook size={32} />
-            <Instagram size={32} />
-            <Twitter size={32} />
-            <Facebook size={32} />
+          <div className="mt-20 flex justify-center gap-16">
+            <a href="https://instagram.com/flaresync" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <PlatformIcon platform="instagram" size={32} />
+            </a>
+            <a href="https://twitter.com/flaresync" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <PlatformIcon platform="twitter" size={32} />
+            </a>
+            <a href="https://tiktok.com/@flaresync" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <PlatformIcon platform="tiktok" size={32} />
+            </a>
           </div>
         </div>
       </section>
 
-      {/* Features */}
+      {/* Features Section */}
       <section id="features" className="py-20 bg-muted/50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -135,7 +144,7 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Pricing */}
+      {/* Pricing Section */}
       <section id="pricing" className="py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -145,67 +154,66 @@ const Landing = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Free Plan */}
-            <div className="border border-border rounded-lg overflow-hidden">
-              <div className="p-6">
-                <h3 className="text-xl font-bold mb-2">Free</h3>
-                <div className="flex items-baseline mb-4">
-                  <span className="text-4xl font-bold">$0</span>
-                  <span className="text-muted-foreground ml-2">/month</span>
-                </div>
-                <p className="text-muted-foreground mb-6">Perfect for creators who are just getting started.</p>
-                <Button variant="outline" className="w-full" asChild>
-                  <Link to="/signup">Get Started</Link>
-                </Button>
-              </div>
-              <div className="bg-muted p-6">
-                <ul className="space-y-2">
-                  {["3 social accounts", "Basic analytics", "Content calendar", "10 scheduled posts/month"].map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-primary" />
-                      <span>{feature}</span>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+            {(['free', 'basic', 'pro', 'enterprise'] as const).map((plan) => {
+              const planInfo = PLAN_DETAILS[plan];
+              const features = planInfo.features;
+              
+              return (
+                <div key={plan} className="border border-border rounded-lg p-6 space-y-4">
+                  <h3 className="text-xl font-bold capitalize">{plan}</h3>
+                  <div className="text-3xl font-bold">
+                    ${planInfo.pricing.monthly}
+                    <span className="text-base font-normal text-muted-foreground">/month</span>
+                  </div>
+                  
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                      <span>{features.maxPosts} posts/month</span>
                     </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            
-            {/* Pro Plan */}
-            <div className="border border-primary rounded-lg overflow-hidden shadow-md relative">
-              <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-3 py-1 text-xs font-bold uppercase rounded-bl">
-                Popular
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold mb-2">Pro</h3>
-                <div className="flex items-baseline mb-4">
-                  <span className="text-4xl font-bold">$29</span>
-                  <span className="text-muted-foreground ml-2">/month</span>
-                </div>
-                <p className="text-muted-foreground mb-6">For growing creators and professional brands.</p>
-                <Button className="w-full" asChild>
-                  <Link to="/signup">Upgrade to Pro</Link>
-                </Button>
-              </div>
-              <div className="bg-muted p-6">
-                <ul className="space-y-2">
-                  {[
-                    "Unlimited social accounts",
-                    "Advanced analytics",
-                    "Content calendar",
-                    "Unlimited scheduled posts",
-                    "Priority brand matches",
-                    "Media kit generator",
-                    "Email & chat support"
-                  ].map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-primary" />
-                      <span>{feature}</span>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                      <span>Up to {features.maxUsers} users</span>
                     </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
+                    {features.advancedAnalytics && (
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                        <span>Advanced analytics</span>
+                      </li>
+                    )}
+                    {features.prioritySupport && (
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                        <span>Priority support</span>
+                      </li>
+                    )}
+                    {features.customBranding && (
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                        <span>Custom branding</span>
+                      </li>
+                    )}
+                    {features.apiAccess && (
+                      <li className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                        <span>API access</span>
+                      </li>
+                    )}
+                  </ul>
+
+                  <Button 
+                    className="w-full mt-4" 
+                    variant={plan === 'free' ? 'outline' : 'default'}
+                    asChild
+                  >
+                    <Link to="/signup">
+                      {plan === 'free' ? 'Get Started' : 'Choose Plan'}
+                    </Link>
+                  </Button>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -258,15 +266,15 @@ const Landing = () => {
           <div className="border-t border-border pt-8 flex flex-col sm:flex-row justify-between items-center">
             <p className="text-sm text-muted-foreground">© 2025 FlareSync. All rights reserved.</p>
             <div className="flex gap-4 mt-4 sm:mt-0">
-              <Link to="#" className="text-muted-foreground hover:text-primary">
-                <Instagram size={20} />
-              </Link>
-              <Link to="#" className="text-muted-foreground hover:text-primary">
-                <Twitter size={20} />
-              </Link>
-              <Link to="#" className="text-muted-foreground hover:text-primary">
-                <Facebook size={20} />
-              </Link>
+              <a href="https://instagram.com/flaresync" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
+                <PlatformIcon platform="instagram" size={20} />
+              </a>
+              <a href="https://twitter.com/flaresync" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
+                <PlatformIcon platform="twitter" size={20} />
+              </a>
+              <a href="https://tiktok.com/@flaresync" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
+                <PlatformIcon platform="tiktok" size={20} />
+              </a>
             </div>
           </div>
         </div>
