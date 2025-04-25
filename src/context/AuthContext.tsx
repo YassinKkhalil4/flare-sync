@@ -63,9 +63,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to handle cases where profile doesn't exist yet
 
-      if (profileError) {
+      if (profileError && profileError.code !== 'PGRST116') { // PGRST116 is "no rows returned" which we handle below
         console.error("Profile fetch error:", profileError);
         throw profileError;
       }
@@ -75,24 +75,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single
 
       if (roleError && roleError.code !== 'PGRST116') {
-        // PGRST116 is the "no rows returned" error code, which is fine if the user doesn't have a role yet
         console.error("Role fetch error:", roleError);
       }
 
-      // Create extended profile with role
-      const extendedProfile = mapDatabaseProfileToExtended(profile, userEmail || '');
+      // If profile doesn't exist yet, create basic profile data
+      const basicProfile = {
+        id: userId,
+        email: userEmail || '',
+        name: '',
+        username: '',
+        role: (roleData?.role as 'creator' | 'brand') || 'creator', // Default to creator if no role
+        plan: 'free' as const
+      };
       
-      if (roleData && roleData.role) {
+      // Create extended profile with profile data or fallback to basic profile
+      const extendedProfile = profile 
+        ? mapDatabaseProfileToExtended(profile, userEmail || '')
+        : basicProfile;
+      
+      if (roleData?.role) {
         extendedProfile.role = roleData.role as 'creator' | 'brand';
       }
       
       return extendedProfile;
     } catch (error) {
       console.error("Error fetching user profile:", error);
-      throw error;
+      // Return basic profile if fetch fails
+      return {
+        id: userId,
+        email: userEmail || '',
+        name: '',
+        username: '',
+        role: 'creator' as const, // Default to creator if fetch fails
+        plan: 'free' as const
+      };
     }
   };
 

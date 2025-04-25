@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { SocialService } from '@/services/api';
 import { SocialProfile } from '@/types/messaging';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 // Create a base hook for social connection logic
 export const useSocialConnect = (platform: string) => {
@@ -14,8 +14,17 @@ export const useSocialConnect = (platform: string) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [profile, setProfile] = useState<SocialProfile | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Force loading to false after 5 seconds to prevent infinite loading state
+    const timeout = setTimeout(() => {
+      if (isLoading) {
+        setIsLoading(false);
+        setError(`Couldn't load ${platform} profile data. Timeout reached.`);
+      }
+    }, 5000);
+
     const fetchProfile = async () => {
       if (!user) {
         setIsLoading(false);
@@ -29,17 +38,15 @@ export const useSocialConnect = (platform: string) => {
         setProfile(foundProfile || null);
       } catch (error) {
         console.error(`Error fetching ${platform} profile:`, error);
-        toast({
-          title: `Error loading ${platform} account`,
-          description: `Could not load your ${platform} account. Please try again.`,
-          variant: 'destructive',
-        });
+        setError(`Couldn't load ${platform} profile`);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchProfile();
+    
+    return () => clearTimeout(timeout);
   }, [user, platform, toast]);
 
   const initiateConnect = async (clientId?: string, redirectUri?: string, scope?: string) => {
@@ -101,10 +108,19 @@ export const useSocialConnect = (platform: string) => {
 
     setIsSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke(`sync-${platform}`, {
-        body: { profileId: profile.id }
+      // Add timeout logic to prevent hanging on sync
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Sync timeout')), 10000);
       });
-
+      
+      // Race between actual sync and timeout
+      const { data, error } = await Promise.race([
+        supabase.functions.invoke(`sync-${platform}`, {
+          body: { profileId: profile.id }
+        }),
+        timeoutPromise
+      ]) as any;
+      
       if (error) throw error;
       
       setProfile(data);
@@ -130,6 +146,7 @@ export const useSocialConnect = (platform: string) => {
     isConnecting,
     isSyncing,
     profile,
+    error,
     isConnected: !!profile?.connected,
     initiateConnect,
     disconnect,

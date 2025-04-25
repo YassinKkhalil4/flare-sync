@@ -1,3 +1,5 @@
+
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
@@ -13,11 +15,13 @@ import { useTiktokConnect } from '@/hooks/useTiktokConnect';
 import { useTwitterConnect } from '@/hooks/useTwitterConnect';
 import { useYoutubeConnect } from '@/hooks/useYoutubeConnect';
 import { useTwitchConnect } from '@/hooks/useTwitchConnect';
-import { useEffect } from 'react';
 import { SocialAPI } from '@/services/socialService';
+import { useToast } from '@/hooks/use-toast';
 
 const SocialConnect = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   
   // Instagram
   const {
@@ -89,6 +93,11 @@ const SocialConnect = () => {
   useEffect(() => {
     if (!user) return;
 
+    // Timeout to ensure we don't get stuck in loading state
+    const loadTimeout = setTimeout(() => {
+      setInitialLoadComplete(true);
+    }, 5000); // 5 seconds timeout
+
     // Check if any social account is connected using the SocialAPI
     const checkConnections = async () => {
       try {
@@ -97,16 +106,38 @@ const SocialConnect = () => {
         
         // Process the fetched profiles if needed
         console.log("Connected social profiles:", profiles);
+        setInitialLoadComplete(true);
         
       } catch (error) {
         console.error('Error checking social connections:', error);
+        toast({
+          title: "Couldn't load social profiles",
+          description: "There was an error loading your social profiles. Please try again later.",
+          variant: "destructive"
+        });
+        setInitialLoadComplete(true);
       }
     };
 
     checkConnections();
-  }, [user]);
+    
+    return () => {
+      clearTimeout(loadTimeout);
+    };
+  }, [user, toast]);
 
-  if (isLoading) {
+  // Force complete loading after 5 seconds to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isLoading && !initialLoadComplete) {
+        setInitialLoadComplete(true);
+      }
+    }, 5000);
+    
+    return () => clearTimeout(timeout);
+  }, [isLoading, initialLoadComplete]);
+
+  if (isLoading && !initialLoadComplete) {
     return (
       <div className="container max-w-4xl py-12 flex justify-center">
         <div className="text-center">
