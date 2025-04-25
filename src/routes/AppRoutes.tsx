@@ -1,6 +1,7 @@
 
 import { Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import MainLayout from "@/components/layouts/MainLayout";
 
 // Pages
 import Landing from "@/pages/Landing";
@@ -32,79 +33,29 @@ const AppRoutes = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       
-      {/* Protected Routes */}
-      <Route path="/dashboard" element={
+      {/* Protected Routes - All wrapped in MainLayout */}
+      <Route element={
         <ProtectedRoute>
-          <Dashboard />
+          <MainLayout />
         </ProtectedRoute>
-      } />
-      <Route path="/social-connect" element={
-        <ProtectedRoute>
-          <SocialConnect />
-        </ProtectedRoute>
-      } />
-      <Route path="/messages" element={
-        <ProtectedRoute>
-          <Messaging />
-        </ProtectedRoute>
-      } />
-      <Route path="/profile" element={
-        <ProtectedRoute>
-          <CreatorProfile />
-        </ProtectedRoute>
-      } />
-      <Route path="/deals" element={
-        <ProtectedRoute>
-          <BrandDeals />
-        </ProtectedRoute>
-      } />
-      <Route path="/plans" element={
-        <ProtectedRoute>
-          <Plans />
-        </ProtectedRoute>
-      } />
-      <Route path="/admin" element={
-        <ProtectedRoute>
-          <AdminDashboard />
-        </ProtectedRoute>
-      } />
-      <Route path="/notifications" element={
-        <ProtectedRoute>
-          <NotificationsPage />
-        </ProtectedRoute>
-      } />
-      
-      {/* Content Management Routes */}
-      <Route path="/content" element={
-        <ProtectedRoute>
-          <ContentListPage />
-        </ProtectedRoute>
-      } />
-      <Route path="/content/create" element={
-        <ProtectedRoute>
-          <ContentCreatePage />
-        </ProtectedRoute>
-      } />
-      <Route path="/content/edit/:id" element={
-        <ProtectedRoute>
-          <ContentEditPage />
-        </ProtectedRoute>
-      } />
-      <Route path="/content/:id" element={
-        <ProtectedRoute>
-          <ContentDetailPage />
-        </ProtectedRoute>
-      } />
-      <Route path="/content/approvals" element={
-        <ProtectedRoute>
-          <ContentApprovalPage />
-        </ProtectedRoute>
-      } />
-       <Route path="/payment-history" element={
-        <ProtectedRoute>
-          <PaymentHistory />
-        </ProtectedRoute>
-      } />
+      }>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/social-connect" element={<SocialConnect />} />
+        <Route path="/messages" element={<Messaging />} />
+        <Route path="/profile" element={<CreatorProfile />} />
+        <Route path="/deals" element={<BrandDeals />} />
+        <Route path="/plans" element={<Plans />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/payment-history" element={<PaymentHistory />} /> 
+        
+        {/* Content Management Routes */}
+        <Route path="/content" element={<ContentListPage />} />
+        <Route path="/content/create" element={<ContentCreatePage />} />
+        <Route path="/content/edit/:id" element={<ContentEditPage />} />
+        <Route path="/content/:id" element={<ContentDetailPage />} />
+        <Route path="/content/approvals" element={<ContentApprovalPage />} />
+      </Route>
       
       {/* Catch-all route */}
       <Route path="*" element={<NotFound />} />
