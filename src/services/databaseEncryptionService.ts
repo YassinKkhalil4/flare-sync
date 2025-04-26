@@ -67,8 +67,8 @@ export class DatabaseEncryptionService {
         throw error;
       }
       
-      // Fix: Properly check if result exists and has an id property
-      if (result && typeof result === 'object' && 'id' in result) {
+      // Fix: Properly check if result exists and has an id property with null safety
+      if (result && typeof result === 'object' && result !== null && 'id' in result) {
         return result.id as string;
       }
       return null;
@@ -101,23 +101,24 @@ export class DatabaseEncryptionService {
         return null;
       }
       
-      // Fix: Create a new object for decrypted data, ensuring data is an object
+      // Create a new object for decrypted data, ensuring data is an object
       const decryptedData: Record<string, any> = {};
       
-      // First, copy all non-sensitive fields
-      if (data && typeof data === 'object') {
+      // First, copy all non-sensitive fields only if data is not null
+      if (data !== null && typeof data === 'object') {
         Object.keys(data).forEach(key => {
           decryptedData[key] = data[key];
         });
       }
       
-      // Then decrypt sensitive fields
+      // Then decrypt sensitive fields with proper null checks
       for (const field of sensitiveFields) {
         const fieldStr = String(field);
         const encryptedField = `${fieldStr}_encrypted`;
         const ivField = `${fieldStr}_iv`;
         
-        if (data && typeof data === 'object' && 
+        if (data !== null && 
+            typeof data === 'object' && 
             encryptedField in data && 
             ivField in data && 
             data[encryptedField] !== null && 

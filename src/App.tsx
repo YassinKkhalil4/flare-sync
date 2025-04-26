@@ -9,21 +9,33 @@ import CookieConsent from "./components/CookieConsent";
 import AppRoutes from "./routes/AppRoutes";
 import { useEffect } from "react";
 import { encryptionService } from "./services/encryptionService";
+import { databaseEncryptionService } from "./services/databaseEncryptionService";
 
-// Initialize encryption as early as possible
+// Create a new QueryClient instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 30000,
+    },
+  },
+});
+
+// Initialize both encryption services at app start
 const initEncryption = async () => {
   try {
-    await encryptionService.initialize();
-    console.log("Encryption initialized");
+    await Promise.all([
+      encryptionService.initialize(),
+      databaseEncryptionService.initialize()
+    ]);
+    console.log("Encryption services initialized");
   } catch (error) {
-    console.error("Failed to initialize encryption:", error);
+    console.error("Failed to initialize encryption services:", error);
   }
 };
 
-// Initialize encryption
+// Call initialization function
 initEncryption();
-
-const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
