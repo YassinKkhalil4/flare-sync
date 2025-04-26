@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import * as crypto from '@/utils/cryptography';
 import { Database } from '@/types/supabase';
@@ -66,7 +67,8 @@ export class DatabaseEncryptionService {
         throw error;
       }
       
-      return result?.id || null;
+      // Fix: Check if result exists before accessing id property
+      return result ? result.id : null;
     } catch (error) {
       console.error('Failed to store encrypted data:', error);
       return null;
@@ -96,7 +98,8 @@ export class DatabaseEncryptionService {
         return null;
       }
       
-      const decryptedData = { ...data } as Record<string, any>;
+      // Fix: Create a new object for decrypted data instead of spreading potentially non-object data
+      const decryptedData: Record<string, any> = { ...data };
       
       // Decrypt sensitive fields
       for (const field of sensitiveFields) {
