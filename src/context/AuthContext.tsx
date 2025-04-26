@@ -7,7 +7,7 @@ import {
 } from '../lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation, useNavigate, NavigateFunction } from 'react-router-dom';
-import { setCookie, getCookie } from '@/utils/cookies';
+import { setCookie, getCookie, hasCookieConsent } from '@/utils/cookies';
 
 // Create a context to store the navigate function
 const NavigationContext = createContext<NavigateFunction | undefined>(undefined);
@@ -118,11 +118,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       try {
         console.log("Loading session...");
-        // Check for session in cookies first
-        const cookieSession = getCookie('supabase_session');
-        if (cookieSession) {
-          console.log("Found session in cookies, setting it");
-          await supabase.auth.setSession(JSON.parse(cookieSession));
+        
+        // Only try to load session from cookies if consent was given
+        if (hasCookieConsent()) {
+          const cookieSession = getCookie('supabase_session');
+          if (cookieSession) {
+            console.log("Found session in cookies, setting it");
+            await supabase.auth.setSession(JSON.parse(cookieSession));
+          }
         }
 
         // Get current session
@@ -131,8 +134,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (session) {
           try {
-            // Store session in cookies
-            setCookie('supabase_session', JSON.stringify(session));
+            // Only store session in cookies if consent was given
+            if (hasCookieConsent()) {
+              setCookie('supabase_session', JSON.stringify(session));
+            }
             const extendedProfile = await fetchUserProfile(session.user.id, session.user.email);
             setUser(extendedProfile);
           } catch (error) {
@@ -166,11 +171,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Auth event:', event);
       
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        if (session) {
+        if (session && hasCookieConsent()) {
           setCookie('supabase_session', JSON.stringify(session));
         }
       } else if (event === 'SIGNED_OUT') {
-        setCookie('supabase_session', '', 0); // Remove the cookie
+        if (hasCookieConsent()) {
+          setCookie('supabase_session', '', 0); // Remove the cookie
+        }
       }
 
       if (event === 'INITIAL_SESSION') {
@@ -445,6 +452,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         variant: "destructive"
       });
       return null;
+    }
+  };
+
+  const persistSession = (session: any) => {
+    if (hasCookieConsent()) {
+      setCookie('supabase_session', JSON.stringify(session));
     }
   };
 

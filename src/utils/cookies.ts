@@ -1,5 +1,12 @@
 
 export const setCookie = (name: string, value: string, days: number = 365) => {
+  // Check if user has consented to cookies first
+  const cookieConsent = getCookie('cookie-consent');
+  if (!cookieConsent || cookieConsent === 'declined') {
+    console.log('Cookie consent not granted');
+    return;
+  }
+
   const date = new Date();
   date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
   const expires = `expires=${date.toUTCString()}`;
@@ -13,4 +20,10 @@ export const getCookie = (name: string): string | null => {
     return parts.pop()?.split(';').shift() || null;
   }
   return null;
+};
+
+// New helper function to check cookie consent
+export const hasCookieConsent = (): boolean => {
+  const consent = getCookie('cookie-consent');
+  return consent === 'accepted';
 };
