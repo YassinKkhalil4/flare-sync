@@ -33,29 +33,45 @@ const BrandDeals = () => {
         </Card>
       ) : (
         <div className="grid gap-6">
-          {deals.map(deal => (
-            <BrandDealCard
-              key={deal.id}
-              deal={{
-                id: deal.id,
-                brand_id: deal.brand_id,
-                brand_name: deal.profiles?.name || 'Unknown Brand',
-                brand_logo: deal.profiles?.avatar_url || '',
-                creator_id: deal.creator_id,
-                title: deal.description?.substring(0, 50) || 'Untitled Deal',
-                description: deal.description || '',
-                budget: deal.price,
-                status: deal.status,
-                requirements: ['Content creation', 'Social media posting'],
-                deliverables: ['One post per week', 'Monthly analytics report'],
-                deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                created_at: deal.created_at
-              }}
-              userType={userType}
-              actionInProgress={false}
-              onStatusUpdate={handleStatusUpdate}
-            />
-          ))}
+          {deals.map(deal => {
+            // Safely extract profile data with fallbacks
+            const brandName = deal.profiles ? 
+              (typeof deal.profiles === 'object' && 'name' in deal.profiles ? deal.profiles.name : 'Unknown Brand') 
+              : 'Unknown Brand';
+            
+            const brandLogo = deal.profiles ? 
+              (typeof deal.profiles === 'object' && 'avatar_url' in deal.profiles ? deal.profiles.avatar_url : '') 
+              : '';
+            
+            // Ensure status is one of the allowed literal types
+            const dealStatus = ['pending', 'accepted', 'rejected', 'completed'].includes(deal.status) 
+              ? deal.status as 'pending' | 'accepted' | 'rejected' | 'completed'
+              : 'pending';
+            
+            return (
+              <BrandDealCard
+                key={deal.id}
+                deal={{
+                  id: deal.id,
+                  brand_id: deal.brand_id,
+                  brand_name: brandName,
+                  brand_logo: brandLogo,
+                  creator_id: deal.creator_id,
+                  title: deal.description?.substring(0, 50) || 'Untitled Deal',
+                  description: deal.description || '',
+                  budget: deal.price,
+                  status: dealStatus,
+                  requirements: ['Content creation', 'Social media posting'],
+                  deliverables: ['One post per week', 'Monthly analytics report'],
+                  deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                  created_at: deal.created_at
+                }}
+                userType={userType}
+                actionInProgress={false}
+                onStatusUpdate={handleStatusUpdate}
+              />
+            );
+          })}
         </div>
       )}
     </div>

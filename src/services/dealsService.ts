@@ -9,13 +9,17 @@ export interface Deal {
   price: number;
   description: string;
   created_at: string;
+  profiles?: {
+    name?: string;
+    avatar_url?: string;
+  };
 }
 
 class DealsService {
   async getDeals() {
     const { data: deals, error } = await supabase
       .from('deals')
-      .select('*, profiles!deals_creator_id_fkey(*), profiles!deals_brand_id_fkey(*)')
+      .select('*, profiles!deals_brand_id_fkey(*)')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -45,8 +49,7 @@ class DealsService {
     return data;
   }
   
-  // Add respondToDeal method that was missing
-  async respondToDeal(dealId: string, status: 'accepted' | 'rejected') {
+  async respondToDeal(dealId: string, status: 'accepted' | 'rejected' | 'completed') {
     return this.updateDealStatus(dealId, status);
   }
 }

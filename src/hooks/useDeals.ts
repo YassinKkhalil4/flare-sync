@@ -31,7 +31,7 @@ export const useDeals = () => {
   });
 
   const respondToDealMutation = useMutation({
-    mutationFn: ({ dealId, status }: { dealId: string; status: 'accepted' | 'rejected' }) =>
+    mutationFn: ({ dealId, status }: { dealId: string; status: 'accepted' | 'rejected' | 'completed' }) =>
       dealsService.respondToDeal(dealId, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deals'] });
