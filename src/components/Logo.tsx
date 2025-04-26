@@ -10,7 +10,7 @@ const Logo: React.FC<LogoProps> = ({ variant = 'default' }) => {
     <Link to="/" className="flex items-center justify-center">
       <div className="flex items-center justify-center h-8 w-8">
         <img 
-          src="/lovable-uploads/b9ed3f54-ea3d-4c31-b542-9535b274fa3d.png" 
+          src="/lovable-uploads/e747331f-a5fa-47e5-b176-e76f155c8b8c.png" 
           alt="FlareSync Logo" 
           className="h-full w-full object-contain"
         />
