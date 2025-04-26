@@ -68,7 +68,7 @@ export class DatabaseEncryptionService {
       }
       
       // Fix: Properly check if result exists and has an id property
-      if (result && 'id' in result) {
+      if (result && typeof result === 'object' && 'id' in result) {
         return result.id as string;
       }
       return null;
@@ -101,16 +101,27 @@ export class DatabaseEncryptionService {
         return null;
       }
       
-      // Fix: Ensure data is treated as an object before spreading
-      const decryptedData: Record<string, any> = typeof data === 'object' && data !== null ? { ...data } : {};
+      // Fix: Create a new object for decrypted data, ensuring data is an object
+      const decryptedData: Record<string, any> = {};
       
-      // Decrypt sensitive fields
+      // First, copy all non-sensitive fields
+      if (data && typeof data === 'object') {
+        Object.keys(data).forEach(key => {
+          decryptedData[key] = data[key];
+        });
+      }
+      
+      // Then decrypt sensitive fields
       for (const field of sensitiveFields) {
         const fieldStr = String(field);
         const encryptedField = `${fieldStr}_encrypted`;
         const ivField = `${fieldStr}_iv`;
         
-        if (data && typeof data === 'object' && encryptedField in data && ivField in data) {
+        if (data && typeof data === 'object' && 
+            encryptedField in data && 
+            ivField in data && 
+            data[encryptedField] !== null && 
+            data[ivField] !== null) {
           const decrypted = await crypto.decrypt(
             data[encryptedField],
             data[ivField],
