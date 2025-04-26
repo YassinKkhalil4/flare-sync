@@ -1,5 +1,26 @@
+import * as encryption from './encryption';
 
-export const setCookie = (name: string, value: string, days: number = 365) => {
+// Get the encryption key from local storage or create one if it doesn't exist
+async function getCookieEncryptionKey(): Promise<CryptoKey | null> {
+  try {
+    const keyName = 'cookie_encryption_key';
+    const storedKey = localStorage.getItem(keyName);
+    
+    if (storedKey) {
+      return await encryption.importKeyFromBase64(storedKey);
+    } else {
+      // Generate a new key
+      const newKey = await encryption.generateEncryptionKey();
+      localStorage.setItem(keyName, await encryption.exportKeyToBase64(newKey));
+      return newKey;
+    }
+  } catch (error) {
+    console.error('Failed to get cookie encryption key:', error);
+    return null;
+  }
+}
+
+export const setCookie = async (name: string, value: string, days: number = 365) => {
   // Check if user has consented to cookies first
   const cookieConsent = getCookie('cookie-consent');
   if (!cookieConsent || cookieConsent === 'declined') {
@@ -7,17 +28,70 @@ export const setCookie = (name: string, value: string, days: number = 365) => {
     return;
   }
 
+  // For sensitive cookies, encrypt the value
+  if (name === 'supabase_session') {
+    try {
+      const key = await getCookieEncryptionKey();
+      if (key) {
+        const { encrypted, iv } = await encryption.encrypt(value, key);
+        const encryptedValue = JSON.stringify({ encrypted, iv });
+        
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        const expires = `expires=${date.toUTCString()}`;
+        document.cookie = `${name}=${encodeURIComponent(encryptedValue)};${expires};path=/;SameSite=Lax;`;
+        return;
+      }
+    } catch (error) {
+      console.error('Failed to encrypt cookie:', error);
+    }
+  }
+  
+  // Fallback to unencrypted for non-sensitive cookies or if encryption fails
   const date = new Date();
   date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
   const expires = `expires=${date.toUTCString()}`;
-  document.cookie = `${name}=${value};${expires};path=/`;
+  document.cookie = `${name}=${value};${expires};path=/;SameSite=Lax;`;
 };
 
 export const getCookie = (name: string): string | null => {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
+  
   if (parts.length === 2) {
-    return parts.pop()?.split(';').shift() || null;
+    const cookieValue = parts.pop()?.split(';').shift() || null;
+    
+    // For sensitive cookies, try to decrypt
+    if (name === 'supabase_session' && cookieValue) {
+      try {
+        // The cookie might be encrypted
+        const decoded = decodeURIComponent(cookieValue);
+        const { encrypted, iv } = JSON.parse(decoded);
+        
+        // Decrypt asynchronously and return in the next tick
+        getCookieEncryptionKey().then(key => {
+          if (key) {
+            encryption.decrypt(encrypted, iv, key).then(decrypted => {
+              // Store the decrypted value temporarily in memory
+              (window as any).__decryptedCookie = decrypted;
+            });
+          }
+        });
+        
+        // If we have a previously decrypted value, return it
+        if ((window as any).__decryptedCookie) {
+          return (window as any).__decryptedCookie;
+        }
+        
+        // Otherwise return the encrypted value for now
+        return cookieValue;
+      } catch {
+        // If parsing fails, it wasn't encrypted
+        return cookieValue;
+      }
+    }
+    
+    return cookieValue;
   }
   return null;
 };
@@ -26,4 +100,33 @@ export const getCookie = (name: string): string | null => {
 export const hasCookieConsent = (): boolean => {
   const consent = getCookie('cookie-consent');
   return consent === 'accepted';
+};
+
+// Asynchronous version of getCookie for encrypted cookies
+export const getEncryptedCookie = async (name: string): Promise<string | null> => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  
+  if (parts.length === 2) {
+    const cookieValue = parts.pop()?.split(';').shift() || null;
+    
+    if (cookieValue) {
+      try {
+        // Try to parse as JSON to check if it's encrypted
+        const decoded = decodeURIComponent(cookieValue);
+        const { encrypted, iv } = JSON.parse(decoded);
+        
+        const key = await getCookieEncryptionKey();
+        if (key) {
+          return await encryption.decrypt(encrypted, iv, key);
+        }
+      } catch {
+        // If parsing fails, it wasn't encrypted
+        return cookieValue;
+      }
+    }
+    
+    return cookieValue;
+  }
+  return null;
 };

@@ -7,6 +7,21 @@ import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import CookieConsent from "./components/CookieConsent";
 import AppRoutes from "./routes/AppRoutes";
+import { useEffect } from "react";
+import { encryptionService } from "./services/encryptionService";
+
+// Initialize encryption as early as possible
+const initEncryption = async () => {
+  try {
+    await encryptionService.initialize();
+    console.log("Encryption initialized");
+  } catch (error) {
+    console.error("Failed to initialize encryption:", error);
+  }
+};
+
+// Initialize encryption
+initEncryption();
 
 const queryClient = new QueryClient();
 

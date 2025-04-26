@@ -5,11 +5,13 @@ import { SocialService } from '@/services/api';
 import { SocialProfile } from '@/types/messaging';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
+import { useEncryption } from './useEncryption';
 
 // Create a base hook for social connection logic
 export const useSocialConnect = (platform: string) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isReady: encryptionReady, storeEncrypted, retrieveDecrypted } = useEncryption();
   const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -26,7 +28,7 @@ export const useSocialConnect = (platform: string) => {
     }, 5000);
 
     const fetchProfile = async () => {
-      if (!user) {
+      if (!user || !encryptionReady) {
         setIsLoading(false);
         return;
       }
@@ -44,10 +46,12 @@ export const useSocialConnect = (platform: string) => {
       }
     };
 
-    fetchProfile();
+    if (encryptionReady) {
+      fetchProfile();
+    }
     
     return () => clearTimeout(timeout);
-  }, [user, platform, toast]);
+  }, [user, platform, toast, encryptionReady]);
 
   const initiateConnect = async (clientId?: string, redirectUri?: string, scope?: string) => {
     if (!user) {
@@ -59,11 +63,32 @@ export const useSocialConnect = (platform: string) => {
       return;
     }
 
+    if (!encryptionReady) {
+      toast({
+        title: 'Encryption not ready',
+        description: 'Please wait while encryption is being initialized.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsConnecting(true);
     try {
       // For OAuth platforms, this would normally redirect to the platform's auth page
       // In our mock implementation, we'll just update the local state
       const newProfile = await SocialService.connectPlatform(platform);
+      
+      // In a real implementation, we would encrypt sensitive tokens
+      if (newProfile.token) {
+        // Encrypt the token before storing it
+        await storeEncrypted('social_profiles', {
+          user_id: user.id,
+          platform,
+          username: newProfile.username,
+          token: newProfile.token // This will be encrypted
+        }, ['token']);
+      }
+      
       setProfile(newProfile);
       
       toast({
@@ -142,5 +167,6 @@ export const useSocialConnect = (platform: string) => {
     initiateConnect,
     disconnect,
     syncData,
+    encryptionReady,
   };
 };

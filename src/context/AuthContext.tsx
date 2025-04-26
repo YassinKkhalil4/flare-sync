@@ -7,7 +7,8 @@ import {
 } from '../lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation, useNavigate, NavigateFunction } from 'react-router-dom';
-import { setCookie, getCookie, hasCookieConsent } from '@/utils/cookies';
+import { setCookie, getCookie, hasCookieConsent, getEncryptedCookie } from '@/utils/cookies';
+import { encryptionService } from '@/services/encryptionService';
 
 // Create a context to store the navigate function
 const NavigationContext = createContext<NavigateFunction | undefined>(undefined);
@@ -49,9 +50,20 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<ExtendedProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [encryptionReady, setEncryptionReady] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Initialize encryption service
+  useEffect(() => {
+    const initEncryption = async () => {
+      const success = await encryptionService.initialize();
+      setEncryptionReady(success);
+    };
+    
+    initEncryption();
+  }, []);
 
   // Helper function to fetch user profile data
   const fetchUserProfile = async (userId: string, userEmail: string | null = null) => {
@@ -121,10 +133,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Only try to load session from cookies if consent was given
         if (hasCookieConsent()) {
-          const cookieSession = getCookie('supabase_session');
-          if (cookieSession) {
-            console.log("Found session in cookies, setting it");
-            await supabase.auth.setSession(JSON.parse(cookieSession));
+          try {
+            const cookieSession = await getEncryptedCookie('supabase_session');
+            if (cookieSession) {
+              console.log("Found session in cookies, setting it");
+              await supabase.auth.setSession(JSON.parse(cookieSession));
+            }
+          } catch (error) {
+            console.error("Error decrypting cookie session:", error);
           }
         }
 
@@ -135,8 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session) {
           try {
             // Only store session in cookies if consent was given
-            if (hasCookieConsent()) {
-              setCookie('supabase_session', JSON.stringify(session));
+            if (hasCookieConsent() && encryptionReady) {
+              await persistSession(session);
             }
             const extendedProfile = await fetchUserProfile(session.user.id, session.user.email);
             setUser(extendedProfile);
@@ -164,19 +180,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    loadSession();
+    // Only load session when encryption is ready
+    if (encryptionReady) {
+      loadSession();
+    }
 
     // Subscribe to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth event:', event);
       
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        if (session && hasCookieConsent()) {
-          setCookie('supabase_session', JSON.stringify(session));
+        if (session && hasCookieConsent() && encryptionReady) {
+          await persistSession(session);
         }
       } else if (event === 'SIGNED_OUT') {
         if (hasCookieConsent()) {
-          setCookie('supabase_session', '', 0); // Remove the cookie
+          await setCookie('supabase_session', '', 0); // Remove the cookie
         }
       }
 
@@ -218,7 +237,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [encryptionReady]);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
@@ -236,7 +255,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data.session) {
         console.log("Login successful, fetching profile");
-        persistSession(data.session);
+        if (encryptionReady) {
+          await persistSession(data.session);
+        }
         
         try {
           const extendedProfile = await fetchUserProfile(data.session.user.id, data.session.user.email);
@@ -455,9 +476,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const persistSession = (session: any) => {
-    if (hasCookieConsent()) {
-      setCookie('supabase_session', JSON.stringify(session));
+  const persistSession = async (session: any) => {
+    if (hasCookieConsent() && encryptionReady) {
+      await setCookie('supabase_session', JSON.stringify(session));
     }
   };
 
@@ -473,7 +494,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider value={value}>
-      {!isLoading && children}
+      {(!isLoading || encryptionReady) && children}
     </AuthContext.Provider>
   );
 };
