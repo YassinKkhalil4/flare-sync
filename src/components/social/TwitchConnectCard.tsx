@@ -4,7 +4,7 @@ import { SocialProfile } from '@/types/messaging';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
-import { TwitchIcon } from './SocialIcons';
+import { useToast } from '@/hooks/use-toast';
 
 interface TwitchConnectCardProps {
   profile?: SocialProfile;
@@ -28,8 +28,19 @@ const TwitchConnectCard: React.FC<TwitchConnectCardProps> = ({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center gap-4">
-        <div className="rounded-full bg-purple-600 p-3">
-          <TwitchIcon className="h-6 w-6 text-white" />
+        <div className="rounded-full bg-purple-100 p-3">
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="24" 
+            height="24" 
+            viewBox="0 0 24 24" 
+            fill="currentColor" 
+            className="h-6 w-6 text-purple-600"
+          >
+            <path d="M2.149 0L0.349 4.8V20.8H6.149V24H9.749L12.949 20.8H17.749L23.549 15V0H2.149ZM21.349 13.9L17.749 17.5H12.149L8.949 20.7V17.5H4.349V2.2H21.349V13.9Z" />
+            <path d="M18.949 5.5H16.749V11.3H18.949V5.5Z" />
+            <path d="M13.549 5.5H11.349V11.3H13.549V5.5Z" />
+          </svg>
         </div>
         <div>
           <CardTitle>Twitch</CardTitle>

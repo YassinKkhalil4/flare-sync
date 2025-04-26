@@ -4,7 +4,7 @@ import { SocialProfile } from '@/types/messaging';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
-import { TwitterIcon } from './SocialIcons';
+import { useToast } from '@/hooks/use-toast';
 
 interface TwitterConnectCardProps {
   profile?: SocialProfile;
@@ -28,13 +28,22 @@ const TwitterConnectCard: React.FC<TwitterConnectCardProps> = ({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center gap-4">
-        <div className="rounded-full bg-blue-500 p-3">
-          <TwitterIcon className="h-6 w-6 text-white" />
+        <div className="rounded-full bg-blue-100 p-3">
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 24 24" 
+            width="24" 
+            height="24" 
+            className="h-6 w-6 text-blue-500"
+            fill="currentColor"
+          >
+            <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
+          </svg>
         </div>
         <div>
-          <CardTitle>Twitter / X</CardTitle>
+          <CardTitle>Twitter/X</CardTitle>
           <CardDescription>
-            Connect your Twitter account to share tweets and analytics
+            Connect your Twitter account to share posts and analytics
           </CardDescription>
         </div>
         {isConnected && (
@@ -53,7 +62,7 @@ const TwitterConnectCard: React.FC<TwitterConnectCardProps> = ({
               </div>
               <div className="p-2 bg-muted rounded-md">
                 <p className="text-xl font-bold">{profile.stats.posts}</p>
-                <p className="text-xs text-muted-foreground">Tweets</p>
+                <p className="text-xs text-muted-foreground">Posts</p>
               </div>
               <div className="p-2 bg-muted rounded-md">
                 <p className="text-xl font-bold">{profile.stats.engagement}%</p>
@@ -83,8 +92,8 @@ const TwitterConnectCard: React.FC<TwitterConnectCardProps> = ({
         ) : null}
         <p className="text-sm text-muted-foreground">
           {isConnected 
-            ? "Your Twitter account is connected. You can now schedule tweets and view analytics."
-            : "Connect your Twitter account to schedule tweets and view analytics from within FlareSync."}
+            ? "Your Twitter account is connected. You can now schedule posts and view analytics."
+            : "Connect your Twitter account to schedule posts and view analytics from within FlareSync."}
         </p>
       </CardContent>
       <CardFooter>

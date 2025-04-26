@@ -85,6 +85,7 @@ export const useSocialConnect = (platform: string) => {
   const disconnect = async () => {
     if (!profile) return;
 
+    setIsConnecting(true);
     try {
       await SocialService.disconnectPlatform(profile.id);
       setProfile(prev => prev ? {...prev, connected: false} : null);
@@ -100,6 +101,8 @@ export const useSocialConnect = (platform: string) => {
         description: `Failed to disconnect your ${platform} account. Please try again.`,
         variant: 'destructive',
       });
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -108,22 +111,10 @@ export const useSocialConnect = (platform: string) => {
 
     setIsSyncing(true);
     try {
-      // Add timeout logic to prevent hanging on sync
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Sync timeout')), 10000);
-      });
-      
-      // Race between actual sync and timeout
-      const { data, error } = await Promise.race([
-        supabase.functions.invoke(`sync-${platform}`, {
-          body: { profileId: profile.id }
-        }),
-        timeoutPromise
-      ]) as any;
-      
-      if (error) throw error;
-      
-      setProfile(data);
+      // In a real app, this would call the appropriate sync API
+      // For our mock implementation, we'll simulate a sync
+      const updatedProfile = await SocialService.syncPlatform(profile.id);
+      setProfile(updatedProfile);
       
       toast({
         title: 'Sync completed',
