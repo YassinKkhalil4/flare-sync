@@ -1,9 +1,10 @@
+
 import { Routes, Route } from 'react-router-dom';
 import Dashboard from '@/pages/Dashboard';
-import Content from '@/pages/Content';
+import Content from '@/pages/Content/ContentListPage';
 import SocialConnect from '@/pages/SocialConnect';
-import Messages from '@/pages/Messages';
-import Profile from '@/pages/Profile';
+import Messages from '@/pages/Messaging';
+import Profile from '@/pages/CreatorProfile';
 import BrandDeals from '@/pages/BrandDeals';
 import NotificationsPage from '@/pages/NotificationsPage';
 import Settings from '@/pages/Settings';
