@@ -28,7 +28,7 @@ export class DatabaseEncryptionService {
   }
 
   async storeEncryptedData<T extends Record<string, any>>(
-    table: keyof typeof supabase.schema,
+    table: string,
     data: T,
     encryptedFields: (keyof T)[]
   ): Promise<string | null> {
@@ -40,13 +40,13 @@ export class DatabaseEncryptionService {
       for (const field of encryptedFields) {
         if (data[field]) {
           const valueToEncrypt = typeof data[field] === 'string' ? 
-            data[field] : 
+            data[field] as string : 
             JSON.stringify(data[field]);
             
           const encrypted = await crypto.encrypt(valueToEncrypt, this.masterKey!);
           processedData[`${String(field)}_encrypted`] = encrypted.encrypted;
           processedData[`${String(field)}_iv`] = encrypted.iv;
-          delete processedData[field];
+          delete processedData[field as string];
         }
       }
 
@@ -57,7 +57,7 @@ export class DatabaseEncryptionService {
         .single();
 
       if (error) throw error;
-      return result.id;
+      return result?.id || null;
     } catch (error) {
       console.error('Failed to store encrypted data:', error);
       return null;
@@ -65,7 +65,7 @@ export class DatabaseEncryptionService {
   }
 
   async retrieveAndDecryptData<T extends Record<string, any>>(
-    table: keyof typeof supabase.schema,
+    table: string,
     query: Record<string, any>,
     sensitiveFields: (keyof T)[]
   ): Promise<T | null> {
@@ -85,11 +85,12 @@ export class DatabaseEncryptionService {
         return null;
       }
       
-      const decryptedData = { ...data } as T;
+      const decryptedData = { ...data } as Record<string, any>;
       
       for (const field of sensitiveFields) {
-        const encryptedField = `${String(field)}_encrypted`;
-        const ivField = `${String(field)}_iv`;
+        const fieldStr = String(field);
+        const encryptedField = `${fieldStr}_encrypted`;
+        const ivField = `${fieldStr}_iv`;
         
         if (data[encryptedField] && data[ivField]) {
           const decrypted = await crypto.decrypt(
@@ -99,17 +100,17 @@ export class DatabaseEncryptionService {
           );
           
           try {
-            decryptedData[field] = JSON.parse(decrypted);
+            decryptedData[fieldStr] = JSON.parse(decrypted);
           } catch {
-            decryptedData[field] = decrypted;
+            decryptedData[fieldStr] = decrypted;
           }
           
-          delete decryptedData[encryptedField as keyof T];
-          delete decryptedData[ivField as keyof T];
+          delete decryptedData[encryptedField];
+          delete decryptedData[ivField];
         }
       }
       
-      return decryptedData;
+      return decryptedData as T;
     } catch (error) {
       console.error('Failed to retrieve and decrypt data:', error);
       return null;
@@ -117,7 +118,7 @@ export class DatabaseEncryptionService {
   }
 
   async updateEncryptedData<T extends Record<string, any>>(
-    table: keyof typeof supabase.schema,
+    table: string,
     id: string,
     data: Partial<T>,
     sensitiveFields: (keyof T)[]
@@ -130,13 +131,13 @@ export class DatabaseEncryptionService {
       for (const field of sensitiveFields) {
         if (data[field] !== undefined) {
           const valueToEncrypt = typeof data[field] === 'string' ? 
-            data[field] : 
+            data[field] as string : 
             JSON.stringify(data[field]);
           
           const encrypted = await crypto.encrypt(valueToEncrypt, this.masterKey!);
           processedData[`${String(field)}_encrypted`] = encrypted.encrypted;
           processedData[`${String(field)}_iv`] = encrypted.iv;
-          delete processedData[field];
+          delete processedData[field as string];
         }
       }
 

@@ -4,8 +4,8 @@ export interface Conversation {
   partner: {
     id: string;
     name: string;
-    avatar: string; // Making this required to match usage
-    type: string;   // Making this required to match usage
+    avatar: string;
+    type: string;
   };
   lastMessage: {
     content: string;
@@ -39,4 +39,7 @@ export interface SocialProfile {
     posts?: number;
     engagement?: number;
   };
+  // Add the missing properties
+  access_token?: string;
+  refresh_token?: string;
 }
