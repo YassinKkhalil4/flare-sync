@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import CookieConsent from "./components/CookieConsent";
 import AppRoutes from "./routes/AppRoutes";
 
 const queryClient = new QueryClient();
@@ -17,6 +18,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <AppRoutes />
+          <CookieConsent />
         </TooltipProvider>
       </AuthProvider>
     </BrowserRouter>
