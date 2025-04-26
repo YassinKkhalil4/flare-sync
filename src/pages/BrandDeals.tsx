@@ -34,9 +34,12 @@ const BrandDeals = () => {
       ) : (
         <div className="grid gap-6">
           {deals.map(deal => {
-            // Handle the potential error type by using type guards
-            const brandName = typeof deal.profiles === 'object' && deal.profiles ? deal.profiles.full_name || 'Unknown Brand' : 'Unknown Brand';
-            const brandLogo = typeof deal.profiles === 'object' && deal.profiles ? deal.profiles.avatar_url || '' : '';
+            // Use proper type assertion to handle the profiles object
+            const profiles = deal.profiles as { full_name?: string; avatar_url?: string } | null;
+            
+            // Now safely extract values from the profiles object
+            const brandName = profiles?.full_name || 'Unknown Brand';
+            const brandLogo = profiles?.avatar_url || '';
             
             const dealStatus = (['pending', 'accepted', 'rejected', 'completed'].includes(deal.status) 
               ? deal.status 
