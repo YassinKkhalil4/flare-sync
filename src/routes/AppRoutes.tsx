@@ -8,6 +8,8 @@ import Profile from '@/pages/CreatorProfile';
 import BrandDeals from '@/pages/BrandDeals';
 import NotificationsPage from '@/pages/NotificationsPage';
 import Settings from '@/pages/Settings';
+import TermsOfUse from '@/pages/TermsOfUse';
+import TermsAndConditions from '@/pages/TermsAndConditions';
 import MainLayout from '@/components/layouts/MainLayout';
 
 const AppRoutes = () => {
@@ -23,6 +25,8 @@ const AppRoutes = () => {
         <Route path="/deals" element={<BrandDeals />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/terms-of-use" element={<TermsOfUse />} />
+        <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
       </Route>
     </Routes>
   );

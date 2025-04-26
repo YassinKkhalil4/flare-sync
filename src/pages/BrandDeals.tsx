@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useDeals } from '@/hooks/useDeals';
@@ -34,22 +33,12 @@ const BrandDeals = () => {
       ) : (
         <div className="grid gap-6">
           {deals.map(deal => {
-            // Make sure deal.profiles exists and handle it safely
-            let brandName = 'Unknown Brand';
-            let brandLogo = '';
+            const brandName = deal.profiles?.name ?? 'Unknown Brand';
+            const brandLogo = deal.profiles?.avatar_url ?? '';
             
-            if (deal.profiles !== null && 
-                deal.profiles !== undefined && 
-                typeof deal.profiles === 'object') {
-              // Now TypeScript knows deal.profiles is a non-null object
-              brandName = 'name' in deal.profiles ? String(deal.profiles.name) : 'Unknown Brand';
-              brandLogo = 'avatar_url' in deal.profiles ? String(deal.profiles.avatar_url) : '';
-            }
-            
-            // Ensure status is one of the allowed literal types
-            const dealStatus = ['pending', 'accepted', 'rejected', 'completed'].includes(deal.status) 
-              ? deal.status as 'pending' | 'accepted' | 'rejected' | 'completed'
-              : 'pending';
+            const dealStatus = (['pending', 'accepted', 'rejected', 'completed'].includes(deal.status) 
+              ? deal.status 
+              : 'pending') as 'pending' | 'accepted' | 'rejected' | 'completed';
             
             return (
               <BrandDealCard
