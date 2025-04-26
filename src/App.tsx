@@ -21,8 +21,8 @@ const queryClient = new QueryClient({
   },
 });
 
-// Initialize both encryption services at app start
-const initEncryption = async () => {
+// Initialize function for encryption services
+const initEncryptionServices = async () => {
   try {
     await Promise.all([
       encryptionService.initialize(),
@@ -34,22 +34,30 @@ const initEncryption = async () => {
   }
 };
 
-// Call initialization function
-initEncryption();
+// We'll call initialization immediately to ensure encryption services
+// are ready as soon as possible
+initEncryptionServices();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <AppRoutes />
-          <CookieConsent />
-        </TooltipProvider>
-      </AuthProvider>
-    </BrowserRouter>
-  </QueryClientProvider>
-);
+const App = () => {
+  // Ensure encryption services are initialized when the app component mounts
+  useEffect(() => {
+    initEncryptionServices();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <AppRoutes />
+            <CookieConsent />
+          </TooltipProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

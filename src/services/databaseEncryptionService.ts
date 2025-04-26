@@ -66,8 +66,8 @@ export class DatabaseEncryptionService {
         throw error;
       }
       
-      // Fix: Properly check if result exists and has an id property with null safety
-      if (result !== null && typeof result === 'object' && 'id' in result) {
+      // Properly check if result exists and has an id property with null safety
+      if (result && 'id' in result) {
         return result.id as string;
       }
       return null;
@@ -95,7 +95,7 @@ export class DatabaseEncryptionService {
       
       const { data, error } = await supabaseQuery.maybeSingle();
       
-      if (error || data === null) {
+      if (error || !data) {
         console.error(`Error retrieving data from ${tableName}:`, error);
         return null;
       }
@@ -103,40 +103,42 @@ export class DatabaseEncryptionService {
       // Create a new object for decrypted data
       const decryptedData: Record<string, any> = {};
       
-      // First, copy all non-sensitive fields only if data is not null
-      if (typeof data === 'object') {
+      // First, copy all non-sensitive fields
+      if (data) {
         Object.keys(data).forEach(key => {
           decryptedData[key] = data[key];
         });
       }
       
       // Then decrypt sensitive fields with proper null checks
-      for (const field of sensitiveFields) {
-        const fieldStr = String(field);
-        const encryptedField = `${fieldStr}_encrypted`;
-        const ivField = `${fieldStr}_iv`;
-        
-        if (typeof data === 'object' && 
-            encryptedField in data && 
-            ivField in data && 
-            data[encryptedField] !== null && 
-            data[ivField] !== null) {
-          const decrypted = await crypto.decrypt(
-            data[encryptedField],
-            data[ivField],
-            this.masterKey!
-          );
+      if (data) {
+        for (const field of sensitiveFields) {
+          const fieldStr = String(field);
+          const encryptedField = `${fieldStr}_encrypted`;
+          const ivField = `${fieldStr}_iv`;
           
-          try {
-            // Try to parse as JSON if possible
-            decryptedData[fieldStr] = JSON.parse(decrypted);
-          } catch {
-            // Otherwise just use the raw decrypted string
-            decryptedData[fieldStr] = decrypted;
+          if (encryptedField in data && 
+              ivField in data && 
+              data[encryptedField] !== null && 
+              data[ivField] !== null) {
+            
+            const decrypted = await crypto.decrypt(
+              data[encryptedField],
+              data[ivField],
+              this.masterKey!
+            );
+            
+            try {
+              // Try to parse as JSON if possible
+              decryptedData[fieldStr] = JSON.parse(decrypted);
+            } catch {
+              // Otherwise just use the raw decrypted string
+              decryptedData[fieldStr] = decrypted;
+            }
+            
+            delete decryptedData[encryptedField];
+            delete decryptedData[ivField];
           }
-          
-          delete decryptedData[encryptedField];
-          delete decryptedData[ivField];
         }
       }
       
