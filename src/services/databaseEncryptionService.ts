@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import * as crypto from '@/utils/cryptography';
 import { Database } from '@/types/supabase';
@@ -68,7 +67,7 @@ export class DatabaseEncryptionService {
       }
       
       // Fix: Properly check if result exists and has an id property with null safety
-      if (result && typeof result === 'object' && result !== null && 'id' in result) {
+      if (result !== null && typeof result === 'object' && 'id' in result) {
         return result.id as string;
       }
       return null;
@@ -96,16 +95,16 @@ export class DatabaseEncryptionService {
       
       const { data, error } = await supabaseQuery.maybeSingle();
       
-      if (error || !data) {
+      if (error || data === null) {
         console.error(`Error retrieving data from ${tableName}:`, error);
         return null;
       }
       
-      // Create a new object for decrypted data, ensuring data is an object
+      // Create a new object for decrypted data
       const decryptedData: Record<string, any> = {};
       
       // First, copy all non-sensitive fields only if data is not null
-      if (data !== null && typeof data === 'object') {
+      if (typeof data === 'object') {
         Object.keys(data).forEach(key => {
           decryptedData[key] = data[key];
         });
@@ -117,8 +116,7 @@ export class DatabaseEncryptionService {
         const encryptedField = `${fieldStr}_encrypted`;
         const ivField = `${fieldStr}_iv`;
         
-        if (data !== null && 
-            typeof data === 'object' && 
+        if (typeof data === 'object' && 
             encryptedField in data && 
             ivField in data && 
             data[encryptedField] !== null && 
