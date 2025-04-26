@@ -50,6 +50,15 @@ class EncryptionService {
   async encryptWithMasterKey(data: string): Promise<{ encrypted: string; iv: string }> {
     if (!this.masterKey) {
       await this.initialize();
+      // Initialize masterKey if not done already
+      const masterKeyBase64 = localStorage.getItem('app_master_key');
+      if (masterKeyBase64) {
+        this.masterKey = await crypto.importKeyFromBase64(masterKeyBase64);
+      } else {
+        const newKey = await crypto.generateEncryptionKey();
+        this.masterKey = newKey;
+        localStorage.setItem('app_master_key', await crypto.exportKeyToBase64(newKey));
+      }
     }
     return crypto.encrypt(data, this.masterKey!);
   }
@@ -57,6 +66,13 @@ class EncryptionService {
   async decryptWithMasterKey(encryptedData: { encrypted: string; iv: string }): Promise<string> {
     if (!this.masterKey) {
       await this.initialize();
+      // Initialize masterKey if not done already
+      const masterKeyBase64 = localStorage.getItem('app_master_key');
+      if (masterKeyBase64) {
+        this.masterKey = await crypto.importKeyFromBase64(masterKeyBase64);
+      } else {
+        throw new Error('Encryption key not found');
+      }
     }
     return crypto.decrypt(encryptedData.encrypted, encryptedData.iv, this.masterKey!);
   }

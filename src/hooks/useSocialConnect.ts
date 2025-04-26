@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { SocialService } from '@/services/api';
 import { SocialProfile } from '@/types/messaging';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { encryptionService } from '@/services/encryptionService';
 
 // Create a base hook for social connection logic
@@ -76,7 +76,8 @@ const useSocialConnect = (platform: string) => {
     try {
       const newProfile = await SocialService.connectPlatform(platform);
       
-      if (newProfile.access_token) {
+      // Update to use type-safe property access
+      if (newProfile && newProfile.access_token) {
         await encryptionService.storeEncryptedData('social_profiles', {
           user_id: user.id,
           platform,

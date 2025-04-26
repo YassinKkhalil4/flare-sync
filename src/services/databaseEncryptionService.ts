@@ -1,6 +1,9 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import * as crypto from '@/utils/cryptography';
+import { Database } from '@/types/supabase';
+
+// Define a type for tables in our database to make TypeScript happy
+type TableNames = keyof Database['public']['Tables'];
 
 export class DatabaseEncryptionService {
   private masterKey: CryptoKey | null = null;
@@ -28,7 +31,7 @@ export class DatabaseEncryptionService {
   }
 
   async storeEncryptedData<T extends Record<string, any>>(
-    table: string,
+    tableName: string,
     data: T,
     encryptedFields: (keyof T)[]
   ): Promise<string | null> {
@@ -37,6 +40,7 @@ export class DatabaseEncryptionService {
     try {
       const processedData: Record<string, any> = { ...data };
       
+      // Encrypt sensitive fields
       for (const field of encryptedFields) {
         if (data[field]) {
           const valueToEncrypt = typeof data[field] === 'string' ? 
@@ -50,13 +54,18 @@ export class DatabaseEncryptionService {
         }
       }
 
+      // Use type assertion to handle dynamic table name
       const { data: result, error } = await supabase
-        .from(table)
-        .insert(processedData)
+        .from(tableName as any)
+        .insert(processedData as any)
         .select('id')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error(`Error storing encrypted data in ${tableName}:`, error);
+        throw error;
+      }
+      
       return result?.id || null;
     } catch (error) {
       console.error('Failed to store encrypted data:', error);
@@ -65,28 +74,31 @@ export class DatabaseEncryptionService {
   }
 
   async retrieveAndDecryptData<T extends Record<string, any>>(
-    table: string,
+    tableName: string,
     query: Record<string, any>,
     sensitiveFields: (keyof T)[]
   ): Promise<T | null> {
     if (!this.masterKey) await this.initialize();
     
     try {
-      let supabaseQuery = supabase.from(table).select('*');
+      // Use type assertion to handle dynamic table name
+      let supabaseQuery = supabase.from(tableName as any).select('*');
       
+      // Apply query filters
       Object.entries(query).forEach(([key, value]) => {
-        supabaseQuery = supabaseQuery.eq(key, value);
+        supabaseQuery = supabaseQuery.eq(key, value) as any;
       });
       
       const { data, error } = await supabaseQuery.maybeSingle();
       
       if (error || !data) {
-        console.error(`Error retrieving data from ${table}:`, error);
+        console.error(`Error retrieving data from ${tableName}:`, error);
         return null;
       }
       
       const decryptedData = { ...data } as Record<string, any>;
       
+      // Decrypt sensitive fields
       for (const field of sensitiveFields) {
         const fieldStr = String(field);
         const encryptedField = `${fieldStr}_encrypted`;
@@ -100,8 +112,10 @@ export class DatabaseEncryptionService {
           );
           
           try {
+            // Try to parse as JSON if possible
             decryptedData[fieldStr] = JSON.parse(decrypted);
           } catch {
+            // Otherwise just use the raw decrypted string
             decryptedData[fieldStr] = decrypted;
           }
           
@@ -118,7 +132,7 @@ export class DatabaseEncryptionService {
   }
 
   async updateEncryptedData<T extends Record<string, any>>(
-    table: string,
+    tableName: string,
     id: string,
     data: Partial<T>,
     sensitiveFields: (keyof T)[]
@@ -128,6 +142,7 @@ export class DatabaseEncryptionService {
     try {
       const processedData: Record<string, any> = { ...data };
       
+      // Process sensitive fields for encryption
       for (const field of sensitiveFields) {
         if (data[field] !== undefined) {
           const valueToEncrypt = typeof data[field] === 'string' ? 
@@ -141,12 +156,18 @@ export class DatabaseEncryptionService {
         }
       }
 
+      // Update the record with encrypted data
       const { error } = await supabase
-        .from(table)
-        .update(processedData)
+        .from(tableName as any)
+        .update(processedData as any)
         .eq('id', id);
 
-      return !error;
+      if (error) {
+        console.error(`Error updating encrypted data in ${tableName}:`, error);
+        throw error;
+      }
+
+      return true;
     } catch (error) {
       console.error('Failed to update encrypted data:', error);
       return false;
