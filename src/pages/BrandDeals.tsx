@@ -35,11 +35,17 @@ const BrandDeals = () => {
         <div className="grid gap-6">
           {deals.map(deal => {
             // Safely extract profile data with fallbacks - fixed null checks
-            const brandName = deal.profiles && typeof deal.profiles === 'object' && 'name' in deal.profiles ? 
-              deal.profiles.name : 'Unknown Brand';
+            const brandName = deal.profiles && 
+              typeof deal.profiles === 'object' && 
+              deal.profiles !== null &&
+              'name' in deal.profiles ? 
+                deal.profiles.name : 'Unknown Brand';
             
-            const brandLogo = deal.profiles && typeof deal.profiles === 'object' && 'avatar_url' in deal.profiles ? 
-              deal.profiles.avatar_url : '';
+            const brandLogo = deal.profiles && 
+              typeof deal.profiles === 'object' && 
+              deal.profiles !== null &&
+              'avatar_url' in deal.profiles ? 
+                deal.profiles.avatar_url : '';
             
             // Ensure status is one of the allowed literal types
             const dealStatus = ['pending', 'accepted', 'rejected', 'completed'].includes(deal.status) 
