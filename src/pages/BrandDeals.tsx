@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useDeals } from '@/hooks/useDeals';
@@ -33,8 +34,9 @@ const BrandDeals = () => {
       ) : (
         <div className="grid gap-6">
           {deals.map(deal => {
-            const brandName = deal.profiles?.name ?? 'Unknown Brand';
-            const brandLogo = deal.profiles?.avatar_url ?? '';
+            // Handle the potential error type by using type guards
+            const brandName = typeof deal.profiles === 'object' && deal.profiles ? deal.profiles.full_name || 'Unknown Brand' : 'Unknown Brand';
+            const brandLogo = typeof deal.profiles === 'object' && deal.profiles ? deal.profiles.avatar_url || '' : '';
             
             const dealStatus = (['pending', 'accepted', 'rejected', 'completed'].includes(deal.status) 
               ? deal.status 

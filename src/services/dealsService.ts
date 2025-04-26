@@ -10,23 +10,23 @@ export interface Deal {
   description: string;
   created_at: string;
   profiles?: {
-    name?: string;
+    full_name?: string;
     avatar_url?: string;
-  };
+  } | null;
 }
 
 class DealsService {
   async getDeals() {
     const { data: deals, error } = await supabase
       .from('deals')
-      .select('*, profiles!deals_brand_id_fkey(*)')
+      .select('*, profiles:brand_id(full_name, avatar_url)')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
     return deals;
   }
 
-  async createDeal(deal: Omit<Deal, 'id' | 'created_at'>) {
+  async createDeal(deal: Omit<Deal, 'id' | 'created_at' | 'profiles'>) {
     const { data, error } = await supabase
       .from('deals')
       .insert([deal])
