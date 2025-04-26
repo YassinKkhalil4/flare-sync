@@ -5,12 +5,10 @@ import { useAuth } from '@/context/AuthContext';
 
 /**
  * Admin service for accessing encrypted data
- * This should only be used by administrators
  */
 class AdminService {
   /**
    * Check if the current user is an admin
-   * @returns Promise<boolean> True if user is admin
    */
   async isAdmin(): Promise<boolean> {
     try {
@@ -30,27 +28,24 @@ class AdminService {
 
   /**
    * Log admin access to sensitive data
-   * @param adminId The admin's user ID
-   * @param action The action performed
-   * @param resourceType The type of resource accessed
-   * @param resourceId The ID of the resource accessed
    */
-  async logAdminAccess(
+  private async logAdminAccess(
     adminId: string,
     action: 'view' | 'update' | 'delete',
     resourceType: string,
     resourceId: string
   ): Promise<void> {
     try {
-      await supabase
+      const { error } = await supabase
         .from('admin_access_logs')
         .insert({
           admin_id: adminId,
           action,
           resource_type: resourceType,
-          resource_id: resourceId,
-          access_time: new Date().toISOString()
+          resource_id: resourceId
         });
+
+      if (error) throw error;
     } catch (error) {
       console.error('Failed to log admin access:', error);
     }
@@ -58,8 +53,6 @@ class AdminService {
 
   /**
    * Get decrypted social profile data (admin only)
-   * @param profileId The ID of the social profile
-   * @returns The decrypted profile data or null
    */
   async getDecryptedSocialProfile(profileId: string): Promise<any | null> {
     if (!(await this.isAdmin())) {
@@ -69,24 +62,19 @@ class AdminService {
 
     try {
       const userId = (await supabase.auth.getUser()).data.user?.id;
-      if (!userId) {
-        throw new Error('Not authenticated');
-      }
+      if (!userId) throw new Error('Not authenticated');
 
-      // Log this admin access
-      await this.logAdminAccess(
-        userId, 
-        'view', 
-        'social_profile', 
-        profileId
-      );
+      await this.logAdminAccess(userId, 'view', 'social_profile', profileId);
 
-      // Retrieve the encrypted data
-      return encryptionService.retrieveAndDecryptData(
-        'social_profiles',
-        { id: profileId },
-        ['access_token', 'refresh_token']
-      );
+      const { data: profile, error } = await supabase
+        .from('social_profiles')
+        .select('*')
+        .eq('id', profileId)
+        .single();
+
+      if (error || !profile) throw error;
+
+      return encryptionService.decryptFields(profile, ['access_token', 'refresh_token']);
     } catch (error) {
       console.error('Failed to get decrypted social profile:', error);
       return null;
@@ -94,8 +82,7 @@ class AdminService {
   }
 
   /**
-   * Get all admin access logs
-   * @returns Array of access logs or null
+   * Get admin access logs
    */
   async getAdminAccessLogs(): Promise<any[] | null> {
     if (!(await this.isAdmin())) {
@@ -120,10 +107,7 @@ class AdminService {
         `)
         .order('access_time', { ascending: false });
 
-      if (error) {
-        throw error;
-      }
-
+      if (error) throw error;
       return data;
     } catch (error) {
       console.error('Failed to get admin access logs:', error);
@@ -150,6 +134,6 @@ export const useAdmin = () => {
     getAdminAccessLogs: async () => {
       if (!user) return null;
       return adminService.getAdminAccessLogs();
-    },
+    }
   };
 };

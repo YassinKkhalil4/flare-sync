@@ -1,4 +1,3 @@
-
 /**
  * Encryption utilities for AES-256-GCM encryption/decryption
  */
@@ -246,4 +245,13 @@ export async function importPrivateKeyFromBase64(base64Key: string): Promise<Cry
     true,
     ['decrypt']
   );
+}
+
+// Add new utility functions for handling social profile tokens
+export async function encryptToken(token: string, key: CryptoKey): Promise<{ encrypted: string; iv: string }> {
+  return encrypt(token, key);
+}
+
+export async function decryptToken(encryptedData: { encrypted: string; iv: string }, key: CryptoKey): Promise<string> {
+  return decrypt(encryptedData.encrypted, encryptedData.iv, key);
 }

@@ -9,6 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_access_logs: {
+        Row: {
+          access_time: string
+          action: Database["public"]["Enums"]["admin_action"]
+          admin_id: string
+          id: string
+          resource_id: string
+          resource_type: string
+        }
+        Insert: {
+          access_time?: string
+          action: Database["public"]["Enums"]["admin_action"]
+          admin_id: string
+          id?: string
+          resource_id: string
+          resource_type: string
+        }
+        Update: {
+          access_time?: string
+          action?: Database["public"]["Enums"]["admin_action"]
+          admin_id?: string
+          id?: string
+          resource_id?: string
+          resource_type?: string
+        }
+        Relationships: []
+      }
       content_approval_flows: {
         Row: {
           created_at: string | null
@@ -453,6 +480,8 @@ export type Database = {
       social_profiles: {
         Row: {
           access_token: string | null
+          access_token_encrypted: string | null
+          access_token_iv: string | null
           connected: boolean | null
           created_at: string | null
           engagement: number | null
@@ -463,6 +492,8 @@ export type Database = {
           posts: number | null
           profile_url: string | null
           refresh_token: string | null
+          refresh_token_encrypted: string | null
+          refresh_token_iv: string | null
           stats: Json | null
           updated_at: string | null
           user_id: string
@@ -470,6 +501,8 @@ export type Database = {
         }
         Insert: {
           access_token?: string | null
+          access_token_encrypted?: string | null
+          access_token_iv?: string | null
           connected?: boolean | null
           created_at?: string | null
           engagement?: number | null
@@ -480,6 +513,8 @@ export type Database = {
           posts?: number | null
           profile_url?: string | null
           refresh_token?: string | null
+          refresh_token_encrypted?: string | null
+          refresh_token_iv?: string | null
           stats?: Json | null
           updated_at?: string | null
           user_id: string
@@ -487,6 +522,8 @@ export type Database = {
         }
         Update: {
           access_token?: string | null
+          access_token_encrypted?: string | null
+          access_token_iv?: string | null
           connected?: boolean | null
           created_at?: string | null
           engagement?: number | null
@@ -497,6 +534,8 @@ export type Database = {
           posts?: number | null
           profile_url?: string | null
           refresh_token?: string | null
+          refresh_token_encrypted?: string | null
+          refresh_token_iv?: string | null
           stats?: Json | null
           updated_at?: string | null
           user_id?: string
@@ -618,6 +657,7 @@ export type Database = {
       }
     }
     Enums: {
+      admin_action: "view" | "update" | "delete"
       app_role: "admin" | "user" | "creator" | "brand"
     }
     CompositeTypes: {
@@ -734,6 +774,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_action: ["view", "update", "delete"],
       app_role: ["admin", "user", "creator", "brand"],
     },
   },

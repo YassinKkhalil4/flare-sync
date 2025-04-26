@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import * as encryption from '@/utils/encryption';
@@ -124,53 +123,37 @@ class EncryptionService {
 
   /**
    * Store encrypted data in Supabase
-   * @param tableName The table to store the data in
-   * @param data The data object to encrypt and store
-   * @param sensitiveFields Array of field names to encrypt
-   * @returns The stored record ID or null if the operation fails
    */
   async storeEncryptedData(
     tableName: string, 
     data: Record<string, any>, 
-    sensitiveFields: string[]
+    encryptedFields: string[]
   ): Promise<string | null> {
     if (!this.isInitialized) await this.initialize();
     
     try {
-      // Create a copy of the data to modify
       const processedData: Record<string, any> = { ...data };
       
-      // Encrypt sensitive fields
-      for (const field of sensitiveFields) {
-        if (processedData[field]) {
-          // Skip if field doesn't exist or is null/undefined
-          const fieldValue = typeof processedData[field] === 'string' 
-            ? processedData[field] 
-            : JSON.stringify(processedData[field]);
-          
-          const encrypted = await this.encryptWithMasterKey(fieldValue);
+      for (const field of encryptedFields) {
+        if (data[field]) {
+          const encrypted = await this.encryptWithMasterKey(
+            typeof data[field] === 'string' ? data[field] : JSON.stringify(data[field])
+          );
           if (encrypted) {
-            // Store the encrypted data with its IV
             processedData[`${field}_encrypted`] = encrypted.encrypted;
             processedData[`${field}_iv`] = encrypted.iv;
-            // Remove the original field
             delete processedData[field];
           }
         }
       }
 
-      // Store in Supabase
       const { data: result, error } = await supabase
         .from(tableName)
         .insert(processedData)
         .select('id')
         .single();
 
-      if (error) {
-        console.error(`Error storing encrypted data in ${tableName}:`, error);
-        return null;
-      }
-
+      if (error) throw error;
       return result.id;
     } catch (error) {
       console.error('Failed to store encrypted data:', error);
@@ -299,6 +282,40 @@ class EncryptionService {
       console.error('Failed to update encrypted data:', error);
       return false;
     }
+  }
+
+  /**
+   * Decrypt specific fields from a record
+   */
+  async decryptFields<T extends Record<string, any>>(
+    record: T,
+    encryptedFields: string[]
+  ): Promise<T> {
+    const decrypted = { ...record };
+    
+    for (const field of encryptedFields) {
+      const encryptedField = `${field}_encrypted`;
+      const ivField = `${field}_iv`;
+      
+      if (record[encryptedField] && record[ivField]) {
+        try {
+          const decryptedValue = await this.decryptWithMasterKey({
+            encrypted: record[encryptedField],
+            iv: record[ivField]
+          });
+          
+          if (decryptedValue) {
+            decrypted[field] = decryptedValue;
+            delete decrypted[encryptedField];
+            delete decrypted[ivField];
+          }
+        } catch (error) {
+          console.error(`Failed to decrypt ${field}:`, error);
+        }
+      }
+    }
+    
+    return decrypted;
   }
 }
 
