@@ -1,15 +1,13 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { 
   supabase, 
-  getPersistedSession, 
-  persistSession, 
   ExtendedProfile, 
   mapDatabaseProfileToExtended,
   ensureValidPlan
 } from '../lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation, useNavigate, NavigateFunction } from 'react-router-dom';
+import { setCookie, getCookie } from '@/utils/cookies';
 
 // Create a context to store the navigate function
 const NavigationContext = createContext<NavigateFunction | undefined>(undefined);
@@ -120,11 +118,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       try {
         console.log("Loading session...");
-        // Check persisted session
-        const persistedSession = getPersistedSession();
-        if (persistedSession) {
-          console.log("Found persisted session, setting it");
-          await supabase.auth.setSession(persistedSession);
+        // Check for session in cookies first
+        const cookieSession = getCookie('supabase_session');
+        if (cookieSession) {
+          console.log("Found session in cookies, setting it");
+          await supabase.auth.setSession(JSON.parse(cookieSession));
         }
 
         // Get current session
@@ -133,6 +131,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (session) {
           try {
+            // Store session in cookies
+            setCookie('supabase_session', JSON.stringify(session));
             const extendedProfile = await fetchUserProfile(session.user.id, session.user.email);
             setUser(extendedProfile);
           } catch (error) {
@@ -166,9 +166,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Auth event:', event);
       
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        persistSession(session);
+        if (session) {
+          setCookie('supabase_session', JSON.stringify(session));
+        }
       } else if (event === 'SIGNED_OUT') {
-        persistSession(null);
+        setCookie('supabase_session', '', 0); // Remove the cookie
       }
 
       if (event === 'INITIAL_SESSION') {
