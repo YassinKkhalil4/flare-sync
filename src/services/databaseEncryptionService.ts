@@ -67,8 +67,11 @@ export class DatabaseEncryptionService {
         throw error;
       }
       
-      // Fix: Check if result exists before accessing id property
-      return result ? result.id : null;
+      // Fix: Properly check if result exists and has an id property
+      if (result && 'id' in result) {
+        return result.id as string;
+      }
+      return null;
     } catch (error) {
       console.error('Failed to store encrypted data:', error);
       return null;
@@ -98,8 +101,8 @@ export class DatabaseEncryptionService {
         return null;
       }
       
-      // Fix: Create a new object for decrypted data instead of spreading potentially non-object data
-      const decryptedData: Record<string, any> = { ...data };
+      // Fix: Ensure data is treated as an object before spreading
+      const decryptedData: Record<string, any> = typeof data === 'object' && data !== null ? { ...data } : {};
       
       // Decrypt sensitive fields
       for (const field of sensitiveFields) {
@@ -107,7 +110,7 @@ export class DatabaseEncryptionService {
         const encryptedField = `${fieldStr}_encrypted`;
         const ivField = `${fieldStr}_iv`;
         
-        if (data[encryptedField] && data[ivField]) {
+        if (data && typeof data === 'object' && encryptedField in data && ivField in data) {
           const decrypted = await crypto.decrypt(
             data[encryptedField],
             data[ivField],
