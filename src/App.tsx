@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +12,7 @@ import { databaseEncryptionService } from "./services/databaseEncryptionService"
 import { supabase } from "./integrations/supabase/client";
 import LandingPage from "./pages/Landing";
 import { toast } from "./components/ui/use-toast";
+import { initializeAppEnvironment } from "./utils/appSetup";
 
 // Create a new QueryClient instance
 const queryClient = new QueryClient({
@@ -47,27 +47,18 @@ const LANDING_PAGE_URL = "https://flaresync.org";
 const App = () => {
   const [isAuthenticating, setIsAuthenticating] = useState(true);
   
-  // Ensure encryption services are initialized when the app component mounts
+  // Ensure encryption services and app environment are initialized when the app component mounts
   useEffect(() => {
-    initEncryptionServices();
-  }, []);
-
-  // Call the init-storage function to ensure the avatars bucket exists
-  useEffect(() => {
-    const initStorage = async () => {
+    const initApp = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke('init-storage');
-        if (error) {
-          console.error('Failed to initialize storage:', error);
-        } else {
-          console.log('Storage initialization response:', data);
-        }
+        await initEncryptionServices();
+        await initializeAppEnvironment();
       } catch (error) {
-        console.error('Error invoking storage initialization:', error);
+        console.error("App initialization error:", error);
       }
     };
     
-    initStorage();
+    initApp();
   }, []);
 
   // Check if the user is coming from the external landing page

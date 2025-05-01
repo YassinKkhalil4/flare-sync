@@ -41,8 +41,18 @@ export const useOnboarding = () => {
     checkOnboardingStatus();
   }, [user]);
 
-  const completeOnboarding = () => {
-    setShowOnboarding(false);
+  const completeOnboarding = async () => {
+    if (user) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ onboarded: true })
+          .eq('id', user.id);
+        setShowOnboarding(false);
+      } catch (error) {
+        console.error('Error completing onboarding:', error);
+      }
+    }
   };
 
   return {

@@ -1,4 +1,3 @@
-
 export type Json =
   | string
   | number
@@ -24,6 +23,7 @@ export interface Database {
           current_period_end: string | null
           created_at: string
           updated_at: string
+          onboarded: boolean | null
         }
         Insert: {
           id: string
@@ -38,6 +38,7 @@ export interface Database {
           current_period_end?: string | null
           created_at?: string
           updated_at?: string
+          onboarded?: boolean | null
         }
         Update: {
           id?: string
@@ -52,6 +53,7 @@ export interface Database {
           current_period_end?: string | null
           created_at?: string
           updated_at?: string
+          onboarded?: boolean | null
         }
       }
       social_profiles: {

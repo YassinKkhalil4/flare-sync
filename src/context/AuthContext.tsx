@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +7,7 @@ interface UserProfile {
   avatar_url?: string;
   full_name?: string;
   username?: string;
+  onboarded?: boolean;
   [key: string]: any;
 }
 
@@ -18,6 +18,8 @@ interface AuthContextType {
   signUp: (details: { email: string; password: string; fullName: string; username: string; role: 'creator' | 'brand' }) => Promise<void>;
   signOut: () => Promise<void>;
   updateUserProfile: (profileData: UserProfile) => Promise<void>;
+  updateProfile: (profileData: { name?: string; username?: string }) => Promise<void>;
+  uploadAvatar: (file: File) => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -27,6 +29,8 @@ const AuthContext = createContext<AuthContextType>({
   signUp: async () => {},
   signOut: async () => {},
   updateUserProfile: async () => {},
+  updateProfile: async () => {},
+  uploadAvatar: async () => null,
 });
 
 interface AuthProviderProps {
@@ -206,6 +210,88 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, externalLa
     }
   };
 
+  // Update profile (simplified helper for common profile updates)
+  const updateProfile = async (profileData: { name?: string; username?: string }) => {
+    try {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      
+      const updateData: UserProfile = {};
+      
+      if (profileData.name) {
+        updateData.full_name = profileData.name;
+      }
+      
+      if (profileData.username) {
+        updateData.username = profileData.username;
+      }
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Profile update failed",
+        description: error.message || "Failed to update profile. Please try again.",
+      });
+      throw error;
+    }
+  };
+  
+  // Upload avatar
+  const uploadAvatar = async (file: File): Promise<string | null> => {
+    try {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+      
+      // Upload file to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+      
+      if (uploadError) throw uploadError;
+      
+      // Get the public URL
+      const { data: publicURL } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+      
+      if (!publicURL?.publicUrl) {
+        throw new Error("Failed to get the image URL");
+      }
+      
+      // Update user profile with new avatar URL
+      await updateUserProfile({ 
+        avatar_url: publicURL.publicUrl
+      });
+      
+      return publicURL.publicUrl;
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Avatar upload failed",
+        description: error.message || "Failed to upload avatar. Please try again.",
+      });
+      console.error('Error uploading avatar:', error);
+      return null;
+    }
+  };
+
   // Context value
   const value = {
     user,
@@ -214,6 +300,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children, externalLa
     signUp,
     signOut,
     updateUserProfile,
+    updateProfile,
+    uploadAvatar,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
