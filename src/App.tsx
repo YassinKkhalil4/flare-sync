@@ -34,7 +34,7 @@ const initEncryptionServices = async () => {
   }
 };
 
-// We'll call initialization immediately to ensure encryption services
+// Call initialization immediately to ensure encryption services
 // are ready as soon as possible
 initEncryptionServices();
 
@@ -42,6 +42,24 @@ const App = () => {
   // Ensure encryption services are initialized when the app component mounts
   useEffect(() => {
     initEncryptionServices();
+  }, []);
+
+  // Call the init-storage function to ensure the avatars bucket exists
+  useEffect(() => {
+    const initStorage = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('init-storage');
+        if (error) {
+          console.error('Failed to initialize storage:', error);
+        } else {
+          console.log('Storage initialization response:', data);
+        }
+      } catch (error) {
+        console.error('Error invoking storage initialization:', error);
+      }
+    };
+    
+    initStorage();
   }, []);
 
   return (

@@ -1,308 +1,118 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { 
-  supabase, 
-  ExtendedProfile, 
-  mapDatabaseProfileToExtended,
-  ensureValidPlan
-} from '../lib/supabase';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {
+  Session,
+  User as SupabaseUser,
+  AuthChangeEvent,
+} from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { ExtendedProfile, mapDatabaseProfileToExtended } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
-import { useLocation, useNavigate, NavigateFunction } from 'react-router-dom';
-import { setCookie, getCookie, hasCookieConsent, getEncryptedCookie } from '@/utils/cookies';
-import { encryptionService } from '@/services/encryptionService';
-
-// Create a context to store the navigate function
-const NavigationContext = createContext<NavigateFunction | undefined>(undefined);
-
-// Custom hook to access the navigate function
-export const useCustomNavigate = () => {
-  const navigate = useContext(NavigationContext);
-  if (!navigate) {
-    // This error will only occur if useCustomNavigate is used outside NavigationProvider
-    console.error('useCustomNavigate must be used within a NavigationProvider');
-    return () => {}; // Return a dummy function to avoid breaking the app
-  }
-  return navigate;
-};
-
-// Provider component for navigation
-export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const navigate = useNavigate();
-  
-  return (
-    <NavigationContext.Provider value={navigate}>
-      {children}
-    </NavigationContext.Provider>
-  );
-};
 
 interface AuthContextType {
   user: ExtendedProfile | null;
+  session: Session | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string, username: string, role: 'creator' | 'brand') => Promise<void>;
-  logout: () => Promise<void>;
-  updateProfile: (updates: { name?: string; username?: string; avatar_url?: string }) => Promise<void>;
+  signUp: (credentials: any) => Promise<any>;
+  signIn: (credentials: any) => Promise<any>;
+  signOut: () => Promise<void>;
   uploadAvatar: (file: File) => Promise<string | null>;
+  updateProfile: (data: any) => Promise<void>;
+  sendPasswordResetEmail: (email: string) => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
+
+interface Props {
+  children: ReactNode;
+}
+
+export const AuthProvider = ({ children }: Props) => {
   const [user, setUser] = useState<ExtendedProfile | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [encryptionReady, setEncryptionReady] = useState(false);
   const { toast } = useToast();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  // Initialize encryption service
-  useEffect(() => {
-    const initEncryption = async () => {
-      const success = await encryptionService.initialize();
-      setEncryptionReady(success);
-    };
-    
-    initEncryption();
-  }, []);
-
-  // Helper function to fetch user profile data
-  const fetchUserProfile = async (userId: string, userEmail: string | null = null) => {
-    try {
-      // Fetch the profile data
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle(); // Use maybeSingle instead of single to handle cases where profile doesn't exist yet
-
-      if (profileError && profileError.code !== 'PGRST116') { // PGRST116 is "no rows returned" which we handle below
-        console.error("Profile fetch error:", profileError);
-        throw profileError;
-      }
-
-      // Fetch role data
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle(); // Use maybeSingle instead of single
-
-      if (roleError && roleError.code !== 'PGRST116') {
-        console.error("Role fetch error:", roleError);
-      }
-
-      // If profile doesn't exist yet, create basic profile data
-      const basicProfile = {
-        id: userId,
-        email: userEmail || '',
-        name: '',
-        username: '',
-        role: (roleData?.role as 'creator' | 'brand') || 'creator', // Default to creator if no role
-        plan: 'free' as const
-      };
-      
-      // Create extended profile with profile data or fallback to basic profile
-      const extendedProfile = profile 
-        ? mapDatabaseProfileToExtended(profile, userEmail || '')
-        : basicProfile;
-      
-      if (roleData?.role) {
-        extendedProfile.role = roleData.role as 'creator' | 'brand';
-      }
-      
-      return extendedProfile;
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-      // Return basic profile if fetch fails
-      return {
-        id: userId,
-        email: userEmail || '',
-        name: '',
-        username: '',
-        role: 'creator' as const, // Default to creator if fetch fails
-        plan: 'free' as const
-      };
-    }
-  };
 
   useEffect(() => {
     const loadSession = async () => {
-      setIsLoading(true);
-      try {
-        console.log("Loading session...");
-        
-        // Only try to load session from cookies if consent was given
-        if (hasCookieConsent()) {
-          try {
-            const cookieSession = await getEncryptedCookie('supabase_session');
-            if (cookieSession) {
-              console.log("Found session in cookies, setting it");
-              await supabase.auth.setSession(JSON.parse(cookieSession));
-            }
-          } catch (error) {
-            console.error("Error decrypting cookie session:", error);
-          }
-        }
+      const { data: { session } } = await supabase.auth.getSession();
 
-        // Get current session
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log("Current session:", session ? "exists" : "none");
+      setSession(session);
 
+      if (session) {
+        await fetchUserProfile(session.user);
+      }
+      setIsLoading(false);
+    };
+
+    loadSession();
+
+    // Listen for changes on auth state (logout, sign in, register)
+    const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange(
+      async (_event: AuthChangeEvent, session: Session | null) => {
+        setSession(session);
         if (session) {
-          try {
-            // Only store session in cookies if consent was given
-            if (hasCookieConsent() && encryptionReady) {
-              await persistSession(session);
-            }
-            const extendedProfile = await fetchUserProfile(session.user.id, session.user.email);
-            setUser(extendedProfile);
-          } catch (error) {
-            console.error("Error loading profile:", error);
-            // Set basic user info if profile fetch fails
-            const basicProfile: ExtendedProfile = {
-              id: session.user.id,
-              email: session.user.email || '',
-              name: session.user.user_metadata?.full_name || 'User',
-              username: session.user.user_metadata?.username || '',
-              role: (session.user.user_metadata?.role as 'creator' | 'brand') || 'creator',
-              plan: ensureValidPlan(session.user.user_metadata?.plan || 'free')
-            };
-            setUser(basicProfile);
-          }
+          await fetchUserProfile(session.user);
         } else {
           setUser(null);
         }
-      } catch (error) {
-        console.error('Error loading session:', error);
-        setUser(null);
-      } finally {
         setIsLoading(false);
       }
-    };
-
-    // Only load session when encryption is ready
-    if (encryptionReady) {
-      loadSession();
-    }
-
-    // Subscribe to auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth event:', event);
-      
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        if (session && hasCookieConsent() && encryptionReady) {
-          await persistSession(session);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        if (hasCookieConsent()) {
-          await setCookie('supabase_session', '', 0); // Remove the cookie
-        }
-      }
-
-      if (event === 'INITIAL_SESSION') {
-        // Skip initial session event, already handled
-        return;
-      }
-
-      if (session) {
-        try {
-          // Use setTimeout to avoid potential deadlocks with Supabase client
-          setTimeout(async () => {
-            try {
-              const extendedProfile = await fetchUserProfile(session.user.id, session.user.email);
-              setUser(extendedProfile);
-            } catch (error) {
-              console.error('Error fetching profile on auth change:', error);
-              // Set basic user info if profile fetch fails
-              const basicProfile: ExtendedProfile = {
-                id: session.user.id,
-                email: session.user.email || '',
-                name: session.user.user_metadata?.full_name || 'User',
-                username: session.user.user_metadata?.username || '',
-                role: (session.user.user_metadata?.role as 'creator' | 'brand') || 'creator',
-                plan: ensureValidPlan(session.user.user_metadata?.plan || 'free')
-              };
-              setUser(basicProfile);
-            }
-          }, 0);
-        } catch (error) {
-          console.error('Error in auth state change:', error);
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-      }
-    });
+    );
 
     return () => {
-      subscription.unsubscribe();
+      authListener?.unsubscribe();
     };
-  }, [encryptionReady]);
+  }, []);
 
-  const login = async (email: string, password: string) => {
+  const fetchUserProfile = async (supabaseUser: SupabaseUser) => {
     setIsLoading(true);
     try {
-      console.log("Logging in with email:", email);
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
+      let { data: profile, error } = await supabase
+        .from('profiles')
+        .select(`id, full_name, username, avatar_url, role, plan`)
+        .eq('id', supabaseUser.id)
+        .single();
 
       if (error) {
-        console.error("Login error:", error);
         throw error;
       }
 
-      if (data.session) {
-        console.log("Login successful, fetching profile");
-        if (encryptionReady) {
-          await persistSession(data.session);
-        }
-        
-        try {
-          const extendedProfile = await fetchUserProfile(data.session.user.id, data.session.user.email);
-          setUser(extendedProfile);
-          
-          toast({
-            title: "Login successful",
-            description: "You have successfully logged in."
-          });
-          
-          navigate('/dashboard');
-        } catch (error) {
-          console.error("Error processing profile after login:", error);
-          toast({
-            title: "Login issue",
-            description: "Logged in but couldn't fetch your profile. Some features may be limited.",
-            variant: "destructive"
-          });
-          throw error;
-        }
+      if (profile) {
+        const extendedProfile = mapDatabaseProfileToExtended(profile, supabaseUser.email || '');
+        setUser(extendedProfile);
       }
-    } catch (error) {
-      console.error('Login error:', error);
+    } catch (error: any) {
+      console.error("Error fetching user profile:", error.message);
       toast({
-        title: "Login failed",
-        description: error instanceof Error ? error.message : "Invalid credentials. Please try again.",
-        variant: "destructive"
+        title: "Error",
+        description: "Failed to fetch user profile.",
+        variant: "destructive",
       });
-      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const signup = async (email: string, password: string, name: string, username: string, role: 'creator' | 'brand') => {
+  const signUp = async (credentials: any) => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: email,
-        password: password,
+        email: credentials.email,
+        password: credentials.password,
         options: {
           data: {
-            full_name: name,
-            username: username,
-            role: role
+            full_name: credentials.fullName,
+            username: credentials.username,
+            role: credentials.role
           }
         }
       });
@@ -311,198 +121,252 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
 
-      if (data.user) {
-        // Insert into profiles table
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: data.user.id,
-              full_name: name,
-              username: username,
-              updated_at: new Date().toISOString()
-            }
-          ]);
-
-        if (profileError) {
-          console.error("Error creating profile:", profileError);
-          throw profileError;
-        }
-
-        // Insert into user_roles table with the actual role
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert([
-            {
-              user_id: data.user.id,
-              role: role
-            }
-          ]);
-
-        if (roleError) {
-          console.error("Error setting user role:", roleError);
-          // We'll continue even if role assignment fails to avoid blocking signup
-        }
-
-        const { data: profile, error: selectError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-
-        if (selectError) {
-          throw selectError;
-        }
-
-        const extendedProfile = mapDatabaseProfileToExtended(profile, data.user.email);
-        extendedProfile.role = role;
-        setUser(extendedProfile);
-      }
+      setSession(data.session);
+      await fetchUserProfile(data.user);
 
       toast({
-        title: "Signup successful",
-        description: "Account created successfully. Please check your email to verify your account."
+        title: "Success",
+        description: "Account created successfully.",
       });
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Signup error:', error);
+
+      return data;
+    } catch (error: any) {
+      console.error("Signup error:", error.message);
       toast({
-        title: "Signup failed",
-        description: error instanceof Error ? error.message : "Could not create your account. Please try again.",
-        variant: "destructive"
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
       });
-      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = async () => {
+  const signIn = async (credentials: any) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setSession(data.session);
+      await fetchUserProfile(data.user);
+
+      toast({
+        title: "Success",
+        description: "Signed in successfully.",
+      });
+
+      return data;
+    } catch (error: any) {
+      console.error("Signin error:", error.message);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signOut = async () => {
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+
       setUser(null);
-      navigate('/login');
+      setSession(null);
+
       toast({
-        title: "Logout successful",
-        description: "You have been successfully logged out."
+        title: "Success",
+        description: "Signed out successfully.",
       });
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch (error: any) {
+      console.error("Signout error:", error.message);
       toast({
-        title: "Logout failed",
-        description: "Could not log you out. Please try again.",
-        variant: "destructive"
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const updateProfile = async (updates: { 
-    name?: string;
-    username?: string;
-    avatar_url?: string;
-  }) => {
-    if (!user) throw new Error('No user logged in');
-
-    try {
-      const { error } = await supabase.from('profiles')
-        .update({
-          full_name: updates.name,
-          username: updates.username,
-          avatar_url: updates.avatar_url,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      // Update local user state
-      setUser(prev => prev ? {
-        ...prev,
-        name: updates.name || prev.name,
-        username: updates.username || prev.username,
-        avatar: updates.avatar_url || prev.avatar
-      } : null);
-
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been successfully updated."
-      });
-
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast({
-        title: "Update failed",
-        description: "Could not update your profile. Please try again.",
-        variant: "destructive"
-      });
-      throw error;
-    }
-  };
-
   const uploadAvatar = async (file: File): Promise<string | null> => {
-    if (!user) throw new Error('No user logged in');
-
     try {
-      const filePath = `avatars/${user.id}/${file.name}`;
-      const { data, error } = await supabase.storage
+      if (!user?.id) return null;
+      
+      // Ensure the file is an image
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: 'Invalid file type',
+          description: 'Please upload an image file.',
+          variant: 'destructive'
+        });
+        return null;
+      }
+      
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: 'File too large',
+          description: 'Image must be less than 5MB.',
+          variant: 'destructive'
+        });
+        return null;
+      }
+      
+      const filePath = `${user.id}/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: true
         });
-
-      if (error) {
-        throw error;
+      
+      if (uploadError) {
+        console.error('Error uploading avatar:', uploadError);
+        toast({
+          title: 'Upload failed',
+          description: 'Could not upload avatar. Please try again.',
+          variant: 'destructive'
+        });
+        return null;
       }
-
-      const avatarUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${data.path}`;
-
-      // Update profile with avatar URL
-      await updateProfile({ avatar_url: avatarUrl });
-
-      return avatarUrl;
-    } catch (error) {
-      console.error('Error uploading avatar:', error);
+      
+      const { data: publicUrl } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+      
+      // Update user profile with new avatar
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl.publicUrl })
+        .eq('id', user.id);
+      
+      if (updateError) {
+        console.error('Error updating profile:', updateError);
+        toast({
+          title: 'Update failed',
+          description: 'Could not update profile. Please try again.',
+          variant: 'destructive'
+        });
+        return null;
+      }
+      
+      // Update local state
+      setUser(prev => prev ? { ...prev, avatar: publicUrl.publicUrl } : null);
+      
       toast({
-        title: "Upload failed",
-        description: "Could not upload your avatar. Please try again.",
-        variant: "destructive"
+        title: 'Avatar updated',
+        description: 'Your profile picture has been updated.',
+      });
+      
+      return publicUrl.publicUrl;
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      toast({
+        title: 'Upload error',
+        description: 'An unexpected error occurred. Please try again.',
+        variant: 'destructive'
       });
       return null;
     }
   };
 
-  const persistSession = async (session: any) => {
-    if (hasCookieConsent() && encryptionReady) {
-      await setCookie('supabase_session', JSON.stringify(session));
+  const updateProfile = async (data: any) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: data.name,
+          username: data.username,
+        })
+        .eq('id', user?.id);
+
+      if (error) {
+        throw error;
+      }
+
+      setUser((prev) =>
+        prev ? { ...prev, name: data.name, username: data.username } : null
+      );
+
+      toast({
+        title: "Success",
+        description: "Profile updated successfully.",
+      });
+    } catch (error: any) {
+      console.error("Update profile error:", error.message);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const value = {
-    user,
-    isLoading,
-    login,
-    signup,
-    logout,
-    updateProfile,
-    uploadAvatar
+  const sendPasswordResetEmail = async (email: string) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/update-password`,
+      });
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Password reset email sent.",
+      });
+    } catch (error: any) {
+      console.error("Password reset error:", error.message);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
+  const refreshSession = async () => {
+    const { data, error } = await supabase.auth.refreshSession()
+
+    if (error) {
+      console.log('Error refreshing session:', error)
+    } else {
+      setSession(data.session)
+    }
+  }
+
   return (
-    <AuthContext.Provider value={value}>
-      {(!isLoading || encryptionReady) && children}
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        isLoading,
+        signUp,
+        signIn,
+        signOut,
+        uploadAvatar,
+        updateProfile,
+        sendPasswordResetEmail,
+        refreshSession,
+      }}
+    >
+      {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };

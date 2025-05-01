@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -175,6 +174,7 @@ const Plans = () => {
     try {
       await startCheckout(priceId, planName);
     } catch (error) {
+      console.error('Checkout error:', error);
       toast({
         title: "Error",
         description: "Failed to start checkout process. Please try again.",
@@ -189,6 +189,7 @@ const Plans = () => {
     try {
       await openCustomerPortal();
     } catch (error) {
+      console.error('Portal error:', error);
       toast({
         title: "Error",
         description: "Could not open subscription management. Please try again.",
@@ -207,6 +208,7 @@ const Plans = () => {
         description: "Subscription status has been refreshed.",
       });
     } catch (error) {
+      console.error('Refresh error:', error);
       toast({
         title: "Error",
         description: "Could not refresh subscription status. Please try again.",
@@ -217,6 +219,12 @@ const Plans = () => {
     }
   };
   
+  useEffect(() => {
+    if (user) {
+      handleRefreshSubscription();
+    }
+  }, [user]);
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
     return new Date(dateString).toLocaleDateString();

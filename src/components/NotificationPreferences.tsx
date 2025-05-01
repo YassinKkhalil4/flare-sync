@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 export const NotificationPreferences: React.FC = () => {
   const queryClient = useQueryClient();
@@ -50,11 +51,29 @@ export const NotificationPreferences: React.FC = () => {
   };
 
   if (isLoading) {
-    return <div>Loading preferences...</div>;
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Notification Preferences</CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center py-6">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
   }
 
   if (!preferences) {
-    return <div>Failed to load notification preferences</div>;
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Notification Preferences</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center text-muted-foreground">Failed to load notification preferences</p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

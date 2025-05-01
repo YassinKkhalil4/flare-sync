@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,10 +12,66 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 const CreatorProfile = () => {
   const { user } = useAuth();
-  const { plan } = useSubscription();
+  const { plan, openCustomerPortal } = useSubscription();
+  const { toast } = useToast();
+  
+  // State for notification preferences
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    notifyMessages: true,
+    notifyDeals: true,
+    notifyUpdates: false
+  });
+  
+  // State for contact preferences
+  const [contactPrefs, setContactPrefs] = useState({
+    contactDirect: true,
+    contactCollab: true,
+    contactBrand: true
+  });
+  
+  // State for selected categories
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [brandPitch, setBrandPitch] = useState('');
+  
+  const handleCategoryClick = (category: string) => {
+    if (selectedCategories.includes(category)) {
+      setSelectedCategories(prev => prev.filter(c => c !== category));
+    } else if (selectedCategories.length < 3) {
+      setSelectedCategories(prev => [...prev, category]);
+    } else {
+      toast({
+        title: 'Maximum categories selected',
+        description: 'You can select up to 3 categories',
+        variant: 'destructive'
+      });
+    }
+  };
+  
+  const handleSaveBranding = () => {
+    toast({
+      title: 'Branding settings saved',
+      description: 'Your branding preferences have been updated'
+    });
+  };
+  
+  const handleManageSubscription = async () => {
+    try {
+      await openCustomerPortal();
+    } catch (error) {
+      console.error('Error opening customer portal:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not open subscription management portal',
+        variant: 'destructive'
+      });
+    }
+  };
   
   if (!user) {
     return (
@@ -96,16 +153,28 @@ const CreatorProfile = () => {
                     <h3 className="font-medium mb-3">Email Notifications</h3>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <label htmlFor="notify-messages" className="text-sm">New messages</label>
-                        <input type="checkbox" id="notify-messages" defaultChecked className="toggle" />
+                        <Label htmlFor="notify-messages">New messages</Label>
+                        <Switch 
+                          id="notify-messages" 
+                          checked={notificationPrefs.notifyMessages}
+                          onCheckedChange={(checked) => setNotificationPrefs(prev => ({...prev, notifyMessages: checked}))}
+                        />
                       </div>
                       <div className="flex items-center justify-between">
-                        <label htmlFor="notify-deals" className="text-sm">New brand deals</label>
-                        <input type="checkbox" id="notify-deals" defaultChecked className="toggle" />
+                        <Label htmlFor="notify-deals">New brand deals</Label>
+                        <Switch 
+                          id="notify-deals" 
+                          checked={notificationPrefs.notifyDeals}
+                          onCheckedChange={(checked) => setNotificationPrefs(prev => ({...prev, notifyDeals: checked}))}
+                        />
                       </div>
                       <div className="flex items-center justify-between">
-                        <label htmlFor="notify-updates" className="text-sm">Platform updates</label>
-                        <input type="checkbox" id="notify-updates" className="toggle" />
+                        <Label htmlFor="notify-updates">Platform updates</Label>
+                        <Switch 
+                          id="notify-updates" 
+                          checked={notificationPrefs.notifyUpdates}
+                          onCheckedChange={(checked) => setNotificationPrefs(prev => ({...prev, notifyUpdates: checked}))}
+                        />
                       </div>
                     </div>
                   </div>
@@ -206,7 +275,11 @@ const CreatorProfile = () => {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full" variant={plan === 'pro' ? 'outline' : 'default'}>
+                <Button 
+                  className="w-full" 
+                  variant={plan === 'pro' ? 'outline' : 'default'}
+                  onClick={handleManageSubscription}
+                >
                   {plan === 'pro' ? 'Manage Subscription' : 'Upgrade Plan'}
                 </Button>
               </CardFooter>
@@ -230,7 +303,15 @@ const CreatorProfile = () => {
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {['Fashion', 'Beauty', 'Fitness', 'Technology', 'Food', 'Travel', 'Lifestyle', 'Gaming'].map(category => (
-                      <div key={category} className="border rounded-full px-3 py-1 text-sm cursor-pointer hover:bg-primary/10">
+                      <div 
+                        key={category} 
+                        className={`border rounded-full px-3 py-1 text-sm cursor-pointer transition-colors ${
+                          selectedCategories.includes(category) 
+                            ? 'bg-primary text-primary-foreground' 
+                            : 'hover:bg-primary/10'
+                        }`}
+                        onClick={() => handleCategoryClick(category)}
+                      >
                         {category}
                       </div>
                     ))}
@@ -248,9 +329,12 @@ const CreatorProfile = () => {
                     placeholder="I'm a creator who specializes in creating authentic content about..."
                     rows={4}
                     className="mb-1"
+                    value={brandPitch}
+                    onChange={(e) => setBrandPitch(e.target.value)}
+                    maxLength={250}
                   />
                   <p className="text-xs text-muted-foreground">
-                    0/250 characters
+                    {brandPitch.length}/250 characters
                   </p>
                 </div>
                 
@@ -260,23 +344,35 @@ const CreatorProfile = () => {
                   <h3 className="font-medium mb-3">Contact Preferences</h3>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <label htmlFor="contact-direct" className="text-sm">Direct messaging</label>
-                      <input type="checkbox" id="contact-direct" defaultChecked className="toggle" />
+                      <Label htmlFor="contact-direct">Direct messaging</Label>
+                      <Switch 
+                        id="contact-direct" 
+                        checked={contactPrefs.contactDirect}
+                        onCheckedChange={(checked) => setContactPrefs(prev => ({...prev, contactDirect: checked}))}
+                      />
                     </div>
                     <div className="flex items-center justify-between">
-                      <label htmlFor="contact-collab" className="text-sm">Collaboration requests</label>
-                      <input type="checkbox" id="contact-collab" defaultChecked className="toggle" />
+                      <Label htmlFor="contact-collab">Collaboration requests</Label>
+                      <Switch 
+                        id="contact-collab" 
+                        checked={contactPrefs.contactCollab}
+                        onCheckedChange={(checked) => setContactPrefs(prev => ({...prev, contactCollab: checked}))}
+                      />
                     </div>
                     <div className="flex items-center justify-between">
-                      <label htmlFor="contact-brand" className="text-sm">Brand deal inquiries</label>
-                      <input type="checkbox" id="contact-brand" defaultChecked className="toggle" />
+                      <Label htmlFor="contact-brand">Brand deal inquiries</Label>
+                      <Switch 
+                        id="contact-brand" 
+                        checked={contactPrefs.contactBrand}
+                        onCheckedChange={(checked) => setContactPrefs(prev => ({...prev, contactBrand: checked}))}
+                      />
                     </div>
                   </div>
                 </div>
               </div>
             </CardContent>
             <CardFooter className="justify-end">
-              <Button>Save Branding Settings</Button>
+              <Button onClick={handleSaveBranding}>Save Branding Settings</Button>
             </CardFooter>
           </Card>
         </TabsContent>
