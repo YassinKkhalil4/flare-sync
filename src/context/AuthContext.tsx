@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
   Session,
@@ -7,6 +8,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { ExtendedProfile, mapDatabaseProfileToExtended } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   user: ExtendedProfile | null;
@@ -33,13 +35,15 @@ export const useAuth = () => {
 
 interface Props {
   children: ReactNode;
+  externalLandingPageUrl?: string;
 }
 
-export const AuthProvider = ({ children }: Props) => {
+export const AuthProvider = ({ children, externalLandingPageUrl = "https://flaresync.org" }: Props) => {
   const [user, setUser] = useState<ExtendedProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadSession = async () => {
@@ -57,7 +61,7 @@ export const AuthProvider = ({ children }: Props) => {
 
     // Listen for changes on auth state (logout, sign in, register)
     const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange(
-      async (_event: AuthChangeEvent, session: Session | null) => {
+      async (event: AuthChangeEvent, session: Session | null) => {
         setSession(session);
         if (session) {
           await fetchUserProfile(session.user);
@@ -103,6 +107,9 @@ export const AuthProvider = ({ children }: Props) => {
   };
 
   const signUp = async (credentials: any) => {
+    // For the implementation with external landing page,
+    // registration should be typically done on the landing page
+    // This method remains for direct signups if needed
     setIsLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -188,6 +195,9 @@ export const AuthProvider = ({ children }: Props) => {
         title: "Success",
         description: "Signed out successfully.",
       });
+      
+      // Redirect to external landing page
+      window.location.href = externalLandingPageUrl;
     } catch (error: any) {
       console.error("Signout error:", error.message);
       toast({

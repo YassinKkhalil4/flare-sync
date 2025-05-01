@@ -7,6 +7,9 @@ import { useAuth } from '../context/AuthContext';
 import { PLAN_DETAILS } from '@/lib/supabase';
 import PlatformIcon from '@/components/social/PlatformIcon';
 
+// External landing page URL
+const LANDING_PAGE_URL = "https://flaresync.org";
+
 const Landing = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -27,6 +30,11 @@ const Landing = () => {
     }
   }, [user, navigate]);
 
+  const handleExternalLogin = () => {
+    // Redirect to the external landing page
+    window.location.href = LANDING_PAGE_URL;
+  };
+
   const popularFeatures = [
     "Schedule & automate posts",
     "Advanced analytics dashboard",
@@ -46,9 +54,8 @@ const Landing = () => {
             <Link to="#features" className="text-sm font-medium hover:text-primary">Features</Link>
             <Link to="#pricing" className="text-sm font-medium hover:text-primary">Pricing</Link>
             <Link to="#testimonials" className="text-sm font-medium hover:text-primary">Testimonials</Link>
-            <Link to="/login" className="text-sm font-medium hover:text-primary">Sign In</Link>
-            <Button asChild>
-              <Link to="/signup">Get Started</Link>
+            <Button onClick={handleExternalLogin} className="text-sm font-medium hover:text-primary">
+              Sign In
             </Button>
           </div>
           <Button variant="outline" size="sm" className="md:hidden">
@@ -67,14 +74,21 @@ const Landing = () => {
             FlareSync helps creators and brands connect, collaborate, and grow together through powerful analytics and seamless integration.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" asChild className="px-8">
-              <Link to="/signup">
-                Get Started <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
+            <Button size="lg" onClick={handleExternalLogin} className="px-8">
+              Get Started <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link to="/login">Sign In</Link>
+            <Button size="lg" variant="outline" onClick={handleExternalLogin}>
+              Sign In
             </Button>
+          </div>
+          
+          <div className="mt-8 text-center">
+            <p className="text-muted-foreground">
+              This is the app preview. For full access, please sign in through{" "}
+              <a href={LANDING_PAGE_URL} className="text-primary hover:underline font-medium">
+                flaresync.org
+              </a>
+            </p>
           </div>
           
           <div className="mt-20 flex justify-center gap-16">
@@ -265,17 +279,12 @@ const Landing = () => {
           </div>
           <div className="border-t border-border pt-8 flex flex-col sm:flex-row justify-between items-center">
             <p className="text-sm text-muted-foreground">© 2025 FlareSync. All rights reserved.</p>
-            <div className="flex gap-4 mt-4 sm:mt-0">
-              <a href="https://instagram.com/flaresync" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
-                <PlatformIcon platform="instagram" size={20} />
+            <p className="text-sm text-muted-foreground mt-2 sm:mt-0">
+              This is an app preview. For full access, visit{" "}
+              <a href={LANDING_PAGE_URL} className="text-primary hover:underline">
+                flaresync.org
               </a>
-              <a href="https://twitter.com/flaresync" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
-                <PlatformIcon platform="twitter" size={20} />
-              </a>
-              <a href="https://tiktok.com/@flaresync" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
-                <PlatformIcon platform="tiktok" size={20} />
-              </a>
-            </div>
+            </p>
           </div>
         </div>
       </footer>

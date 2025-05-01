@@ -4,6 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 
+// External landing page URL
+const LANDING_PAGE_URL = "https://flaresync.org";
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
@@ -33,9 +36,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  // If not logged in or timeout reached without user, redirect to login
+  // If not logged in or timeout reached without user, redirect to external landing page
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // Redirect to the external landing page instead of the local login
+    window.location.href = LANDING_PAGE_URL;
+    // Return loading state while redirecting
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Redirecting to login...</p>
+        </div>
+      </div>
+    );
   }
 
   // If we have a user or forced timeout, render the children
