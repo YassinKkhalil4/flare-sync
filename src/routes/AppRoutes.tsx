@@ -15,6 +15,7 @@ import { useAuth } from '@/context/AuthContext';
 import Login from '@/pages/Login';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Landing from '@/pages/Landing';
+import OnboardingWrapper from '@/components/layouts/OnboardingWrapper';
 
 const AppRoutes = () => {
   const { user } = useAuth();
@@ -29,7 +30,13 @@ const AppRoutes = () => {
       <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Landing />} />
       
       {/* Protected routes that require authentication */}
-      <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+      <Route element={
+        <ProtectedRoute>
+          <OnboardingWrapper>
+            <MainLayout />
+          </OnboardingWrapper>
+        </ProtectedRoute>
+      }>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/content" element={<Content />} />
         <Route path="/social-connect" element={<SocialConnect />} />

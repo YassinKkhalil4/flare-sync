@@ -1,382 +1,222 @@
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import {
-  Session,
-  User as SupabaseUser,
-  AuthChangeEvent,
-} from '@supabase/supabase-js';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ExtendedProfile, mapDatabaseProfileToExtended } from '@/lib/supabase';
-import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 
-interface AuthContextType {
-  user: ExtendedProfile | null;
-  session: Session | null;
-  isLoading: boolean;
-  signUp: (credentials: any) => Promise<any>;
-  signIn: (credentials: any) => Promise<any>;
-  signOut: () => Promise<void>;
-  uploadAvatar: (file: File) => Promise<string | null>;
-  updateProfile: (data: any) => Promise<void>;
-  sendPasswordResetEmail: (email: string) => Promise<void>;
-  refreshSession: () => Promise<void>;
+interface UserProfile {
+  avatar_url?: string;
+  full_name?: string;
+  username?: string;
+  [key: string]: any;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+interface AuthContextType {
+  user: any;
+  isLoading: boolean;
+  signIn: (credentials: { email: string; password: string }) => Promise<void>;
+  signUp: (details: { email: string; password: string; fullName: string; username: string; role: 'creator' | 'brand' }) => Promise<void>;
+  signOut: () => Promise<void>;
+  updateUserProfile: (profileData: UserProfile) => Promise<void>;
+}
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isLoading: true,
+  signIn: async () => {},
+  signUp: async () => {},
+  signOut: async () => {},
+  updateUserProfile: async () => {},
+});
 
-interface Props {
-  children: ReactNode;
+interface AuthProviderProps {
+  children: React.ReactNode;
   externalLandingPageUrl?: string;
 }
 
-export const AuthProvider = ({ children, externalLandingPageUrl = "https://flaresync.org" }: Props) => {
-  const [user, setUser] = useState<ExtendedProfile | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children, externalLandingPageUrl = 'https://flaresync.org' }) => {
+  const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Initialize auth state
   useEffect(() => {
-    const loadSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      setSession(session);
-
-      if (session) {
-        await fetchUserProfile(session.user);
+    const initializeAuth = async () => {
+      setIsLoading(true);
+      
+      // Get session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Error fetching session:', sessionError);
       }
-      setIsLoading(false);
-    };
-
-    loadSession();
-
-    // Listen for changes on auth state (logout, sign in, register)
-    const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange(
-      async (event: AuthChangeEvent, session: Session | null) => {
-        setSession(session);
-        if (session) {
-          await fetchUserProfile(session.user);
-        } else {
-          setUser(null);
+      
+      if (session?.user) {
+        setUser(session.user);
+      }
+      
+      // Listen for auth changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (event === 'SIGNED_IN' && session?.user) {
+            setUser(session.user);
+          } else if (event === 'SIGNED_OUT') {
+            setUser(null);
+            window.location.href = externalLandingPageUrl;
+          } else if (event === 'USER_UPDATED' && session?.user) {
+            setUser(session.user);
+          }
         }
-        setIsLoading(false);
-      }
-    );
-
-    return () => {
-      authListener?.unsubscribe();
+      );
+      
+      setIsLoading(false);
+      
+      // Cleanup subscription
+      return () => {
+        subscription.unsubscribe();
+      };
     };
-  }, []);
 
-  const fetchUserProfile = async (supabaseUser: SupabaseUser) => {
-    setIsLoading(true);
+    initializeAuth();
+  }, [externalLandingPageUrl, navigate]);
+
+  // Sign in method
+  const signIn = async ({ email, password }: { email: string; password: string }) => {
     try {
-      let { data: profile, error } = await supabase
-        .from('profiles')
-        .select(`id, full_name, username, avatar_url, role, plan`)
-        .eq('id', supabaseUser.id)
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      if (profile) {
-        const extendedProfile = mapDatabaseProfileToExtended(profile, supabaseUser.email || '');
-        setUser(extendedProfile);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) throw error;
+      
+      if (data.user) {
+        setUser(data.user);
+        toast({
+          title: "Signed in successfully",
+          description: "Welcome back to FlareSync!",
+        });
+        navigate('/dashboard');
       }
     } catch (error: any) {
-      console.error("Error fetching user profile:", error.message);
       toast({
-        title: "Error",
-        description: "Failed to fetch user profile.",
         variant: "destructive",
+        title: "Sign in failed",
+        description: error.message || "Failed to sign in. Please try again.",
       });
-    } finally {
-      setIsLoading(false);
+      throw error;
     }
   };
 
-  const signUp = async (credentials: any) => {
-    // For the implementation with external landing page,
-    // registration should be typically done on the landing page
-    // This method remains for direct signups if needed
-    setIsLoading(true);
+  // Sign up method
+  const signUp = async ({ 
+    email, 
+    password, 
+    fullName, 
+    username, 
+    role 
+  }: { 
+    email: string; 
+    password: string;
+    fullName: string;
+    username: string; 
+    role: 'creator' | 'brand';
+  }) => {
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: credentials.email,
-        password: credentials.password,
+        email,
+        password,
         options: {
           data: {
-            full_name: credentials.fullName,
-            username: credentials.username,
-            role: credentials.role
+            full_name: fullName,
+            username,
+            role
           }
         }
       });
-
-      if (error) {
-        throw error;
+      
+      if (error) throw error;
+      
+      if (data.user) {
+        setUser(data.user);
+        toast({
+          title: "Account created successfully",
+          description: "Welcome to FlareSync! Let's set up your profile.",
+        });
+        navigate('/dashboard');
       }
-
-      setSession(data.session);
-      await fetchUserProfile(data.user);
-
-      toast({
-        title: "Success",
-        description: "Account created successfully.",
-      });
-
-      return data;
     } catch (error: any) {
-      console.error("Signup error:", error.message);
       toast({
-        title: "Error",
-        description: error.message,
         variant: "destructive",
+        title: "Sign up failed",
+        description: error.message || "Failed to create an account. Please try again.",
       });
-    } finally {
-      setIsLoading(false);
+      throw error;
     }
   };
 
-  const signIn = async (credentials: any) => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: credentials.email,
-        password: credentials.password,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      setSession(data.session);
-      await fetchUserProfile(data.user);
-
-      toast({
-        title: "Success",
-        description: "Signed in successfully.",
-      });
-
-      return data;
-    } catch (error: any) {
-      console.error("Signin error:", error.message);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Sign out method
   const signOut = async () => {
-    setIsLoading(true);
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-
+      
       setUser(null);
-      setSession(null);
-
       toast({
-        title: "Success",
-        description: "Signed out successfully.",
+        title: "Signed out successfully",
+        description: "You have been signed out of your account.",
       });
       
-      // Redirect to external landing page
+      // Redirect to landing page
       window.location.href = externalLandingPageUrl;
     } catch (error: any) {
-      console.error("Signout error:", error.message);
       toast({
-        title: "Error",
-        description: error.message,
         variant: "destructive",
+        title: "Sign out failed",
+        description: error.message || "Failed to sign out. Please try again.",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const uploadAvatar = async (file: File): Promise<string | null> => {
+  // Update user profile
+  const updateUserProfile = async (profileData: UserProfile) => {
     try {
-      if (!user?.id) return null;
-      
-      // Ensure the file is an image
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: 'Invalid file type',
-          description: 'Please upload an image file.',
-          variant: 'destructive'
-        });
-        return null;
+      if (!user) {
+        throw new Error("User not authenticated");
       }
       
-      // Check file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: 'File too large',
-          description: 'Image must be less than 5MB.',
-          variant: 'destructive'
-        });
-        return null;
-      }
-      
-      const filePath = `${user.id}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
-      
-      if (uploadError) {
-        console.error('Error uploading avatar:', uploadError);
-        toast({
-          title: 'Upload failed',
-          description: 'Could not upload avatar. Please try again.',
-          variant: 'destructive'
-        });
-        return null;
-      }
-      
-      const { data: publicUrl } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-      
-      // Update user profile with new avatar
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl.publicUrl })
-        .eq('id', user.id);
-      
-      if (updateError) {
-        console.error('Error updating profile:', updateError);
-        toast({
-          title: 'Update failed',
-          description: 'Could not update profile. Please try again.',
-          variant: 'destructive'
-        });
-        return null;
-      }
-      
-      // Update local state
-      setUser(prev => prev ? { ...prev, avatar: publicUrl.publicUrl } : null);
-      
-      toast({
-        title: 'Avatar updated',
-        description: 'Your profile picture has been updated.',
-      });
-      
-      return publicUrl.publicUrl;
-    } catch (error) {
-      console.error('Avatar upload error:', error);
-      toast({
-        title: 'Upload error',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive'
-      });
-      return null;
-    }
-  };
-
-  const updateProfile = async (data: any) => {
-    setIsLoading(true);
-    try {
       const { error } = await supabase
         .from('profiles')
-        .update({
-          full_name: data.name,
-          username: data.username,
-        })
-        .eq('id', user?.id);
-
-      if (error) {
-        throw error;
-      }
-
-      setUser((prev) =>
-        prev ? { ...prev, name: data.name, username: data.username } : null
-      );
-
-      toast({
-        title: "Success",
-        description: "Profile updated successfully.",
-      });
-    } catch (error: any) {
-      console.error("Update profile error:", error.message);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const sendPasswordResetEmail = async (email: string) => {
-    setIsLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/update-password`,
-      });
+        .update(profileData)
+        .eq('id', user.id);
+        
       if (error) throw error;
-
+      
       toast({
-        title: "Success",
-        description: "Password reset email sent.",
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
       });
     } catch (error: any) {
-      console.error("Password reset error:", error.message);
       toast({
-        title: "Error",
-        description: error.message,
         variant: "destructive",
+        title: "Profile update failed",
+        description: error.message || "Failed to update profile. Please try again.",
       });
-    } finally {
-      setIsLoading(false);
+      throw error;
     }
   };
 
-  const refreshSession = async () => {
-    const { data, error } = await supabase.auth.refreshSession()
+  // Context value
+  const value = {
+    user,
+    isLoading,
+    signIn,
+    signUp,
+    signOut,
+    updateUserProfile,
+  };
 
-    if (error) {
-      console.log('Error refreshing session:', error)
-    } else {
-      setSession(data.session)
-    }
-  }
-
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        isLoading,
-        signUp,
-        signIn,
-        signOut,
-        uploadAvatar,
-        updateProfile,
-        sendPasswordResetEmail,
-        refreshSession,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+export const useAuth = () => useContext(AuthContext);
