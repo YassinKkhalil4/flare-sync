@@ -19,7 +19,7 @@ const Login = () => {
   const [role, setRole] = useState<'creator' | 'brand'>('creator');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { login, signup, user } = useAuth();
+  const { signIn, signUp, user } = useAuth(); // Using the correct function names
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,14 +46,14 @@ const Login = () => {
     try {
       if (isLogin) {
         console.log('Attempting to log in with:', email);
-        await login(email, password);
+        await signIn({ email, password }); // Using signIn instead of login
         // No need to navigate here as the login function already does it on success
       } else {
         if (!name || !username || !role) {
           throw new Error('Please fill in all required fields');
         }
         console.log('Attempting to sign up with:', email, 'as', role);
-        await signup(email, password, name, username, role);
+        await signUp({ email, password, fullName: name, username, role }); // Using signUp instead of signup
         // No need to navigate here as the signup function already does it on success
       }
     } catch (error) {

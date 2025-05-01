@@ -10,6 +10,7 @@ import AppRoutes from "./routes/AppRoutes";
 import { useEffect } from "react";
 import { encryptionService } from "./services/encryptionService";
 import { databaseEncryptionService } from "./services/databaseEncryptionService";
+import { supabase } from "./integrations/supabase/client";
 
 // Create a new QueryClient instance
 const queryClient = new QueryClient({
