@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -46,14 +45,14 @@ const Login = () => {
     try {
       if (isLogin) {
         console.log('Attempting to log in with:', email);
-        await signIn({ email, password }); // Using signIn instead of login
+        await signIn({ email, password });
         // No need to navigate here as the login function already does it on success
       } else {
         if (!name || !username || !role) {
           throw new Error('Please fill in all required fields');
         }
         console.log('Attempting to sign up with:', email, 'as', role);
-        await signUp({ email, password, fullName: name, username, role }); // Using signUp instead of signup
+        await signUp({ email, password, fullName: name, username, role });
         // No need to navigate here as the signup function already does it on success
       }
     } catch (error) {

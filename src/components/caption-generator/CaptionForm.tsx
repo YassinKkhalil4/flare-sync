@@ -1,37 +1,44 @@
 
-import { useState } from 'react';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
+import React from 'react';
+import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, Sparkles } from 'lucide-react';
 import { CaptionGenerationRequest } from '@/types/caption';
-import { Loader2 } from 'lucide-react';
 
-const formSchema = z.object({
-  platform: z.enum(['instagram', 'tiktok', 'youtube']),
-  niche: z.string().min(1, { message: 'Niche is required' }),
-  tone: z.string().min(1, { message: 'Tone is required' }),
-  postType: z.enum(['video', 'photo', 'carousel']),
-  objective: z.enum(['engagement', 'saves', 'brand_interest']),
-  description: z.string().min(10, { message: 'Description must be at least 10 characters' }),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
-interface CaptionFormProps {
-  onGenerateCaptions: (data: CaptionGenerationRequest) => void;
-  isGenerating: boolean;
+export interface CaptionFormProps {
+  isSubmitting: boolean;
+  onGenerateCaptions: (values: CaptionGenerationRequest) => void;
 }
 
-export function CaptionForm({ onGenerateCaptions, isGenerating }: CaptionFormProps) {
-  const [activeTab, setActiveTab] = useState<string>('instagram');
+const formSchema = z.object({
+  platform: z.enum(['instagram', 'tiktok', 'youtube'], {
+    required_error: 'Please select a platform',
+  }),
+  niche: z.string().min(2, {
+    message: 'Niche must be at least 2 characters',
+  }),
+  tone: z.string().min(2, {
+    message: 'Tone must be at least 2 characters',
+  }),
+  postType: z.enum(['video', 'photo', 'carousel'], {
+    required_error: 'Please select a post type',
+  }),
+  objective: z.enum(['engagement', 'saves', 'brand_interest'], {
+    required_error: 'Please select an objective',
+  }),
+  description: z.string().min(10, {
+    message: 'Description must be at least 10 characters',
+  }),
+});
 
-  const form = useForm<FormValues>({
+export const CaptionForm: React.FC<CaptionFormProps> = ({ isSubmitting, onGenerateCaptions }) => {
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       platform: 'instagram',
@@ -43,89 +50,52 @@ export function CaptionForm({ onGenerateCaptions, isGenerating }: CaptionFormPro
     },
   });
 
-  function onSubmit(values: FormValues) {
-    const captionRequest: CaptionGenerationRequest = {
-      platform: values.platform,
-      niche: values.niche,
-      tone: values.tone,
-      postType: values.postType,
-      objective: values.objective,
-      description: values.description,
-    };
-    
-    onGenerateCaptions(captionRequest);
-  }
+  const handleSubmit = (values: z.infer<typeof formSchema>) => {
+    onGenerateCaptions(values as CaptionGenerationRequest);
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Tabs value={activeTab} onValueChange={(value) => {
-          setActiveTab(value);
-          form.setValue('platform', value as 'instagram' | 'tiktok' | 'youtube');
-        }}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="instagram">Instagram</TabsTrigger>
-            <TabsTrigger value="tiktok">TikTok</TabsTrigger>
-            <TabsTrigger value="youtube">YouTube</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="instagram" className="mt-4">
-            <FormDescription>
-              Optimize your captions for Instagram's audience and algorithm.
-            </FormDescription>
-          </TabsContent>
-          
-          <TabsContent value="tiktok" className="mt-4">
-            <FormDescription>
-              Create engaging TikTok captions that drive views and follows.
-            </FormDescription>
-          </TabsContent>
-          
-          <TabsContent value="youtube" className="mt-4">
-            <FormDescription>
-              Generate YouTube captions optimized for search and engagement.
-            </FormDescription>
-          </TabsContent>
-        </Tabs>
-
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="niche"
+            name="platform"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Content Niche</FormLabel>
-                <FormControl>
-                  <Input placeholder="fitness, fashion, tech, etc." {...field} />
-                </FormControl>
+                <FormLabel>Platform</FormLabel>
+                <Select
+                  disabled={isSubmitting}
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select platform" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="instagram">Instagram</SelectItem>
+                    <SelectItem value="tiktok">TikTok</SelectItem>
+                    <SelectItem value="youtube">YouTube</SelectItem>
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
           />
-
-          <FormField
-            control={form.control}
-            name="tone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Caption Tone</FormLabel>
-                <FormControl>
-                  <Input placeholder="funny, confident, inspirational, etc." {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
           <FormField
             control={form.control}
             name="postType"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Post Type</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  disabled={isSubmitting}
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select post type" />
@@ -141,14 +111,54 @@ export function CaptionForm({ onGenerateCaptions, isGenerating }: CaptionFormPro
               </FormItem>
             )}
           />
-
+          
+          <FormField
+            control={form.control}
+            name="niche"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Content Niche</FormLabel>
+                <FormControl>
+                  <Input
+                    disabled={isSubmitting}
+                    placeholder="e.g. Fitness, Travel, Fashion"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="tone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Caption Tone</FormLabel>
+                <FormControl>
+                  <Input
+                    disabled={isSubmitting}
+                    placeholder="e.g. Professional, Casual, Humorous"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
           <FormField
             control={form.control}
             name="objective"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="col-span-full md:col-span-1">
                 <FormLabel>Objective</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  disabled={isSubmitting}
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select objective" />
@@ -165,7 +175,7 @@ export function CaptionForm({ onGenerateCaptions, isGenerating }: CaptionFormPro
             )}
           />
         </div>
-
+        
         <FormField
           control={form.control}
           name="description"
@@ -173,28 +183,36 @@ export function CaptionForm({ onGenerateCaptions, isGenerating }: CaptionFormPro
             <FormItem>
               <FormLabel>Content Description</FormLabel>
               <FormControl>
-                <Textarea 
-                  placeholder="Describe what your post is about..." 
-                  {...field} 
-                  className="min-h-[100px]"
+                <Textarea
+                  disabled={isSubmitting}
+                  placeholder="Describe your content in detail to get the best captions..."
+                  className="resize-none min-h-[120px]"
+                  {...field}
                 />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-
-        <Button type="submit" className="w-full" disabled={isGenerating}>
-          {isGenerating ? (
+        
+        <Button 
+          type="submit" 
+          disabled={isSubmitting}
+          className="w-full"
+        >
+          {isSubmitting ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating Captions...
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating Captions...
             </>
           ) : (
-            'Generate Captions'
+            <>
+              <Sparkles className="mr-2 h-4 w-4" /> Generate AI Captions
+            </>
           )}
         </Button>
       </form>
     </Form>
   );
-}
+};
+
+export default CaptionForm;

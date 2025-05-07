@@ -1,20 +1,25 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { persistSession, getPersistedSession } from '@/lib/supabase';
 
 type AuthContextType = {
-  user: User | null;
+  user: User & {
+    name?: string;
+    username?: string;
+    avatar?: string;
+  } | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, metadata?: { [key: string]: any }) => Promise<{
+  isLoading: boolean;
+  signUp: (data: { email: string, password: string, fullName?: string, username?: string, role?: string }) => Promise<{
     error: any;
     data: any;
   }>;
-  signIn: (email: string, password: string) => Promise<{
+  signIn: (data: { email: string, password: string }) => Promise<{
     error: any;
     data: any;
   }>;
@@ -23,23 +28,31 @@ type AuthContextType = {
     error: any;
     data: any;
   }>;
+  uploadAvatar: (file: File) => Promise<string | null>;
 };
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   loading: true,
+  isLoading: true,
   signUp: async () => ({ data: null, error: null }),
   signIn: async () => ({ data: null, error: null }),
   logout: async () => {},
   updateProfile: async () => ({ data: null, error: null }),
+  uploadAvatar: async () => null,
 });
 
 export const useAuth = () => useContext(AuthContext);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+interface AuthProviderProps {
+  children: ReactNode;
+  externalLandingPageUrl?: string;
+}
+
+export const AuthProvider = ({ children, externalLandingPageUrl = "https://flaresync.org" }: AuthProviderProps) => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthContextType['user']>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -53,7 +66,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (persistedSession) {
           setSession(persistedSession);
-          setUser(persistedSession.user ?? null);
+          setUser({
+            ...persistedSession.user,
+            name: persistedSession.user?.user_metadata?.full_name,
+            username: persistedSession.user?.user_metadata?.username,
+            avatar: persistedSession.user?.user_metadata?.avatar_url,
+          });
         }
         
         // Then check with Supabase
@@ -65,7 +83,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         if (supabaseSession) {
           setSession(supabaseSession);
-          setUser(supabaseSession.user ?? null);
+          setUser({
+            ...supabaseSession.user,
+            name: supabaseSession.user?.user_metadata?.full_name,
+            username: supabaseSession.user?.user_metadata?.username,
+            avatar: supabaseSession.user?.user_metadata?.avatar_url,
+          });
           persistSession(supabaseSession);
         }
       } catch (error) {
@@ -88,7 +111,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (newSession) {
         setSession(newSession);
-        setUser(newSession.user ?? null);
+        setUser({
+          ...newSession.user,
+          name: newSession.user?.user_metadata?.full_name,
+          username: newSession.user?.user_metadata?.username,
+          avatar: newSession.user?.user_metadata?.avatar_url,
+        });
         persistSession(newSession);
       } else {
         setSession(null);
@@ -104,24 +132,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const signUp = async (email: string, password: string, metadata?: { [key: string]: any }) => {
+  const signUp = async (data: { email: string, password: string, fullName?: string, username?: string, role?: string }) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { email, password, fullName, username, role } = data;
+      
+      const { data: authData, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: metadata,
+          data: {
+            full_name: fullName,
+            username,
+            role
+          },
         },
       });
       
-      if (!error && data?.user) {
+      if (!error && authData?.user) {
         toast({
           title: 'Account created!',
           description: 'Please check your email to confirm your account.',
         });
       }
       
-      return { data, error };
+      return { data: authData, error };
     } catch (error) {
       console.error('Error signing up:', error);
       return {
@@ -131,21 +165,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (data: { email: string, password: string }) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { email, password } = data;
+      
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
-      if (!error && data?.user) {
+      if (!error && authData?.user) {
         toast({
           title: 'Welcome back!',
           description: 'You have successfully signed in.',
         });
       }
       
-      return { data, error };
+      return { data: authData, error };
     } catch (error) {
       console.error('Error signing in:', error);
       return {
@@ -182,6 +218,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .select()
         .single();
         
+      if (!error && updatedData) {
+        // Update local user state with new profile data
+        setUser(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            name: updatedData.full_name,
+            username: updatedData.username,
+            avatar: updatedData.avatar_url,
+          };
+        });
+        
+        // Update user metadata in auth
+        await supabase.auth.updateUser({
+          data: {
+            full_name: updatedData.full_name,
+            username: updatedData.username,
+            avatar_url: updatedData.avatar_url
+          }
+        });
+      }
+      
       return { data: updatedData, error };
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -192,14 +250,78 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const uploadAvatar = async (file: File): Promise<string | null> => {
+    try {
+      if (!user?.id) throw new Error('User not authenticated');
+      
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/avatar.${fileExt}`;
+      
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      // Get public URL
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+      
+      const avatarUrl = data.publicUrl;
+      
+      // Update profile with new avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', user.id);
+      
+      if (updateError) throw updateError;
+      
+      // Update local state
+      setUser(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          avatar: avatarUrl
+        };
+      });
+      
+      // Update user metadata in auth
+      await supabase.auth.updateUser({
+        data: {
+          avatar_url: avatarUrl
+        }
+      });
+      
+      toast({
+        title: 'Avatar updated',
+        description: 'Your profile picture has been updated successfully.',
+      });
+      
+      return avatarUrl;
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast({
+        title: 'Upload failed',
+        description: error instanceof Error ? error.message : 'Failed to upload avatar',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  };
+
   const value = {
     user,
     session,
     loading,
+    isLoading: loading,
     signUp,
     signIn,
     logout,
     updateProfile,
+    uploadAvatar,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
