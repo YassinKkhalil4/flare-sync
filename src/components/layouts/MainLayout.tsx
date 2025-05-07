@@ -14,7 +14,7 @@ const MainLayout: React.FC = () => {
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
       <div className={`transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
-        <Sidebar />
+        <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
       </div>
       
       {/* Main Content */}

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Sheet,
@@ -46,7 +47,7 @@ interface NavItem {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -164,7 +165,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
   };
 
   const handleSignOut = async () => {
-    await signOut();
+    // Since AuthContext doesn't have signOut, we'll just redirect to login for now
+    // or we could implement a logout function here
+    localStorage.removeItem('user');
+    navigate('/login');
     closeMobileMenu();
   };
 

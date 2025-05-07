@@ -16,7 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { Calendar, Clock, Edit, Save } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ContentPlanPost } from '@/types/contentPlan';
+import { ContentPlanPost, ContentPlanRequest } from '@/types/contentPlan';
 
 const formSchema = z.object({
   timeCommitment: z.number().min(1).max(50),
@@ -66,7 +66,16 @@ const ContentPlanGeneratorPage: React.FC = () => {
   });
   
   const onSubmit = (values: FormValues) => {
-    generateContentPlan(values);
+    // Convert FormValues to ContentPlanRequest
+    const contentPlanRequest: ContentPlanRequest = {
+      timeCommitment: values.timeCommitment,
+      platforms: values.platforms,
+      goal: values.goal,
+      niche: values.niche,
+      additionalInfo: values.additionalInfo
+    };
+    
+    generateContentPlan(contentPlanRequest);
   };
   
   const handleSavePlan = () => {
