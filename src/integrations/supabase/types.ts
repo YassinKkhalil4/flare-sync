@@ -297,6 +297,54 @@ export type Database = {
         }
         Relationships: []
       }
+      engagement_predictions: {
+        Row: {
+          caption: string
+          created_at: string
+          id: string
+          insights: string[]
+          media_metadata: Json | null
+          metrics: Json
+          overall_score: number
+          platform: string
+          post_type: string
+          recommended_times: string[] | null
+          scheduled_time: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          caption: string
+          created_at?: string
+          id?: string
+          insights: string[]
+          media_metadata?: Json | null
+          metrics: Json
+          overall_score: number
+          platform: string
+          post_type: string
+          recommended_times?: string[] | null
+          scheduled_time: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          caption?: string
+          created_at?: string
+          id?: string
+          insights?: string[]
+          media_metadata?: Json | null
+          metrics?: Json
+          overall_score?: number
+          platform?: string
+          post_type?: string
+          recommended_times?: string[] | null
+          scheduled_time?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           amount: number

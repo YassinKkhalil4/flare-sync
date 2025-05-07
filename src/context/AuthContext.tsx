@@ -1,310 +1,208 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Session, User } from '@supabase/supabase-js';
 import { toast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
+import { persistSession, getPersistedSession } from '@/lib/supabase';
 
-interface UserProfile {
-  avatar_url?: string;
-  full_name?: string;
-  username?: string;
-  onboarded?: boolean;
-  [key: string]: any;
-}
-
-interface AuthContextType {
-  user: any;
-  isLoading: boolean;
-  signIn: (credentials: { email: string; password: string }) => Promise<void>;
-  signUp: (details: { email: string; password: string; fullName: string; username: string; role: 'creator' | 'brand' }) => Promise<void>;
-  signOut: () => Promise<void>;
-  updateUserProfile: (profileData: UserProfile) => Promise<void>;
-  updateProfile: (profileData: { name?: string; username?: string }) => Promise<void>;
-  uploadAvatar: (file: File) => Promise<string | null>;
-}
+type AuthContextType = {
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  signUp: (email: string, password: string, metadata?: { [key: string]: any }) => Promise<{
+    error: any;
+    data: any;
+  }>;
+  signIn: (email: string, password: string) => Promise<{
+    error: any;
+    data: any;
+  }>;
+  logout: () => Promise<void>;
+  updateProfile: (data: any) => Promise<{
+    error: any;
+    data: any;
+  }>;
+};
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  isLoading: true,
-  signIn: async () => {},
-  signUp: async () => {},
-  signOut: async () => {},
-  updateUserProfile: async () => {},
-  updateProfile: async () => {},
-  uploadAvatar: async () => null,
+  session: null,
+  loading: true,
+  signUp: async () => ({ data: null, error: null }),
+  signIn: async () => ({ data: null, error: null }),
+  logout: async () => {},
+  updateProfile: async () => ({ data: null, error: null }),
 });
 
-interface AuthProviderProps {
-  children: React.ReactNode;
-  externalLandingPageUrl?: string;
-}
+export const useAuth = () => useContext(AuthContext);
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children, externalLandingPageUrl = 'https://flaresync.org' }) => {
-  const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Initialize auth state
+  // Check for session on component mount
   useEffect(() => {
-    const initializeAuth = async () => {
-      setIsLoading(true);
-      
-      // Get session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Error fetching session:', sessionError);
-      }
-      
-      if (session?.user) {
-        setUser(session.user);
-      }
-      
-      // Listen for auth changes
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          if (event === 'SIGNED_IN' && session?.user) {
-            setUser(session.user);
-          } else if (event === 'SIGNED_OUT') {
-            setUser(null);
-            window.location.href = externalLandingPageUrl;
-          } else if (event === 'USER_UPDATED' && session?.user) {
-            setUser(session.user);
-          }
+    async function loadSession() {
+      setLoading(true);
+      try {
+        // First check for persisted session
+        const persistedSession = getPersistedSession();
+        
+        if (persistedSession) {
+          setSession(persistedSession);
+          setUser(persistedSession.user ?? null);
         }
-      );
-      
-      setIsLoading(false);
-      
-      // Cleanup subscription
-      return () => {
-        subscription.unsubscribe();
-      };
-    };
-
-    initializeAuth();
-  }, [externalLandingPageUrl, navigate]);
-
-  // Sign in method
-  const signIn = async ({ email, password }: { email: string; password: string }) => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (error) throw error;
-      
-      if (data.user) {
-        setUser(data.user);
+        
+        // Then check with Supabase
+        const { data: { session: supabaseSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (supabaseSession) {
+          setSession(supabaseSession);
+          setUser(supabaseSession.user ?? null);
+          persistSession(supabaseSession);
+        }
+      } catch (error) {
+        console.error('Error loading session:', error);
         toast({
-          title: "Signed in successfully",
-          description: "Welcome back to FlareSync!",
+          title: 'Session Error',
+          description: 'There was a problem loading your session. Please try logging in again.',
+          variant: 'destructive'
         });
-        navigate('/dashboard');
+      } finally {
+        setLoading(false);
       }
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Sign in failed",
-        description: error.message || "Failed to sign in. Please try again.",
-      });
-      throw error;
     }
-  };
+    
+    loadSession();
+    
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      console.log('Auth state changed:', event);
+      
+      if (newSession) {
+        setSession(newSession);
+        setUser(newSession.user ?? null);
+        persistSession(newSession);
+      } else {
+        setSession(null);
+        setUser(null);
+        persistSession(null);
+      }
+      
+      setLoading(false);
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
-  // Sign up method
-  const signUp = async ({ 
-    email, 
-    password, 
-    fullName, 
-    username, 
-    role 
-  }: { 
-    email: string; 
-    password: string;
-    fullName: string;
-    username: string; 
-    role: 'creator' | 'brand';
-  }) => {
+  const signUp = async (email: string, password: string, metadata?: { [key: string]: any }) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: {
-            full_name: fullName,
-            username,
-            role
-          }
-        }
+          data: metadata,
+        },
       });
       
-      if (error) throw error;
-      
-      if (data.user) {
-        setUser(data.user);
+      if (!error && data?.user) {
         toast({
-          title: "Account created successfully",
-          description: "Welcome to FlareSync! Let's set up your profile.",
+          title: 'Account created!',
+          description: 'Please check your email to confirm your account.',
         });
-        navigate('/dashboard');
       }
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Sign up failed",
-        description: error.message || "Failed to create an account. Please try again.",
-      });
-      throw error;
+      
+      return { data, error };
+    } catch (error) {
+      console.error('Error signing up:', error);
+      return {
+        data: null,
+        error,
+      };
     }
   };
 
-  // Sign out method
-  const signOut = async () => {
+  const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      setUser(null);
-      toast({
-        title: "Signed out successfully",
-        description: "You have been signed out of your account.",
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
       
-      // Redirect to landing page
-      window.location.href = externalLandingPageUrl;
-    } catch (error: any) {
+      if (!error && data?.user) {
+        toast({
+          title: 'Welcome back!',
+          description: 'You have successfully signed in.',
+        });
+      }
+      
+      return { data, error };
+    } catch (error) {
+      console.error('Error signing in:', error);
+      return {
+        data: null,
+        error,
+      };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
       toast({
-        variant: "destructive",
-        title: "Sign out failed",
-        description: error.message || "Failed to sign out. Please try again.",
+        title: 'Signed out',
+        description: 'You have been signed out successfully.',
+      });
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: 'Error',
+        description: 'There was a problem signing out.',
+        variant: 'destructive',
       });
     }
   };
 
-  // Update user profile
-  const updateUserProfile = async (profileData: UserProfile) => {
+  const updateProfile = async (data: any) => {
     try {
-      if (!user) {
-        throw new Error("User not authenticated");
-      }
-      
-      const { error } = await supabase
+      const { data: updatedData, error } = await supabase
         .from('profiles')
-        .update(profileData)
-        .eq('id', user.id);
+        .update(data)
+        .eq('id', user?.id)
+        .select()
+        .single();
         
-      if (error) throw error;
-      
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Profile update failed",
-        description: error.message || "Failed to update profile. Please try again.",
-      });
-      throw error;
+      return { data: updatedData, error };
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      return {
+        data: null,
+        error,
+      };
     }
   };
 
-  // Update profile (simplified helper for common profile updates)
-  const updateProfile = async (profileData: { name?: string; username?: string }) => {
-    try {
-      if (!user) {
-        throw new Error("User not authenticated");
-      }
-      
-      const updateData: UserProfile = {};
-      
-      if (profileData.name) {
-        updateData.full_name = profileData.name;
-      }
-      
-      if (profileData.username) {
-        updateData.username = profileData.username;
-      }
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('id', user.id);
-        
-      if (error) throw error;
-      
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Profile update failed",
-        description: error.message || "Failed to update profile. Please try again.",
-      });
-      throw error;
-    }
-  };
-  
-  // Upload avatar
-  const uploadAvatar = async (file: File): Promise<string | null> => {
-    try {
-      if (!user) {
-        throw new Error("User not authenticated");
-      }
-      
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
-      
-      // Upload file to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file);
-      
-      if (uploadError) throw uploadError;
-      
-      // Get the public URL
-      const { data: publicURL } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-      
-      if (!publicURL?.publicUrl) {
-        throw new Error("Failed to get the image URL");
-      }
-      
-      // Update user profile with new avatar URL
-      await updateUserProfile({ 
-        avatar_url: publicURL.publicUrl
-      });
-      
-      return publicURL.publicUrl;
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Avatar upload failed",
-        description: error.message || "Failed to upload avatar. Please try again.",
-      });
-      console.error('Error uploading avatar:', error);
-      return null;
-    }
-  };
-
-  // Context value
   const value = {
     user,
-    isLoading,
-    signIn,
+    session,
+    loading,
     signUp,
-    signOut,
-    updateUserProfile,
+    signIn,
+    logout,
     updateProfile,
-    uploadAvatar,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => useContext(AuthContext);
+export default AuthContext;

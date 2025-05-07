@@ -3,15 +3,11 @@ import { useAuth } from '@/context/AuthContext';
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
-import { 
-  EngagementPredictionRequest, 
-  EngagementPredictionResult,
-  EngagementPrediction
-} from '@/types/engagement';
+import { toast } from '@/hooks/use-toast';
+import { EngagementPredictionRequest, EngagementPredictionResult, EngagementPrediction } from '@/types/engagement';
 
 export const useEngagementPredictor = () => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [isPredicting, setIsPredicting] = useState(false);
 
   // Function to predict engagement
@@ -19,16 +15,14 @@ export const useEngagementPredictor = () => {
     try {
       setIsPredicting(true);
       
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !sessionData.session) {
+      if (!session?.access_token) {
         throw new Error('You must be logged in to predict engagement');
       }
 
       const response = await supabase.functions.invoke('predict-engagement', {
         body: params,
         headers: {
-          Authorization: `Bearer ${sessionData.session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
       });
 
@@ -36,7 +30,7 @@ export const useEngagementPredictor = () => {
         throw new Error(response.error.message || 'Failed to predict engagement');
       }
 
-      return response.data.prediction as EngagementPredictionResult;
+      return response.data as EngagementPredictionResult;
     } catch (error) {
       console.error('Error predicting engagement:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to predict engagement';
@@ -59,13 +53,13 @@ export const useEngagementPredictor = () => {
     onSuccess: (data) => {
       toast({
         title: 'Engagement Prediction Complete',
-        description: `Overall score: ${data.overallScore}/100`,
+        description: `Overall engagement score: ${data.overallScore}/100`,
       });
     },
     onError: (error) => {
       toast({
         variant: 'destructive',
-        title: 'Engagement Prediction Failed',
+        title: 'Prediction Failed',
         description: error instanceof Error ? error.message : 'An unexpected error occurred',
       });
     },
@@ -73,7 +67,7 @@ export const useEngagementPredictor = () => {
 
   // Query to fetch saved predictions
   const { data: savedPredictions, isLoading: isLoadingSavedPredictions, refetch: refetchSavedPredictions } = useQuery({
-    queryKey: ['engagementPredictions', user?.id],
+    queryKey: ['savedPredictions', user?.id],
     queryFn: async () => {
       if (!user) return [];
       
