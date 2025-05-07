@@ -1,9 +1,8 @@
-
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { ContentPlan, ContentPlanRequest } from '@/types/contentPlan';
+import { ContentPlan, ContentPlanRequest, ContentPlanPost } from '@/types/contentPlan';
 import { useAuth } from '@/context/AuthContext';
 import { aiServices } from '@/services/api';
 
@@ -135,4 +134,3 @@ export const useContentPlanGenerator = () => {
     error: null,
   };
 };
-
