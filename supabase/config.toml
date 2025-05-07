@@ -10,28 +10,29 @@ schemas = ["public", "storage", "graphql_public"]
 port = 54322
 
 [studio]
+enabled = true
 port = 54323
+api_url = "http://localhost"
 
 [inbucket]
-port = 54324
-smtp_port = 54325
-pop3_port = 54326
-
-[storage]
 enabled = true
+port = 54324
 
 [auth]
+enabled = true
+port = 54325
+
+[storage]
 enabled = true
 
 [realtime]
 enabled = true
 
 [analytics]
-enabled = true
+enabled = false
 
 [vector]
-enabled = true
+enabled = false
 
-# Configure the auth-exchange function to be public (doesn't require authentication)
-[functions.auth-exchange]
-verify_jwt = false
+[functions.generate-captions]
+verify_jwt = true

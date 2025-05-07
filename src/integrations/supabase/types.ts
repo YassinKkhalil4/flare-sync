@@ -36,6 +36,51 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_captions: {
+        Row: {
+          captions: Json
+          created_at: string
+          description: string
+          id: string
+          niche: string
+          objective: string
+          platform: string
+          post_type: string
+          selected_caption: string | null
+          tone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          captions: Json
+          created_at?: string
+          description: string
+          id?: string
+          niche: string
+          objective: string
+          platform: string
+          post_type: string
+          selected_caption?: string | null
+          tone: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          captions?: Json
+          created_at?: string
+          description?: string
+          id?: string
+          niche?: string
+          objective?: string
+          platform?: string
+          post_type?: string
+          selected_caption?: string | null
+          tone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       content_approval_flows: {
         Row: {
           created_at: string | null

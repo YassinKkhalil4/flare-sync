@@ -1,56 +1,95 @@
 
-import { Routes, Route, Navigate } from 'react-router-dom';
-import Dashboard from '@/pages/Dashboard';
-import Content from '@/pages/Content/ContentListPage';
-import SocialConnect from '@/pages/SocialConnect';
-import Messages from '@/pages/Messaging';
-import Profile from '@/pages/CreatorProfile';
-import BrandDeals from '@/pages/BrandDeals';
-import NotificationsPage from '@/pages/NotificationsPage';
-import Settings from '@/pages/Settings';
-import TermsOfUse from '@/pages/TermsOfUse';
-import TermsAndConditions from '@/pages/TermsAndConditions';
-import MainLayout from '@/components/layouts/MainLayout';
-import { useAuth } from '@/context/AuthContext';
-import Login from '@/pages/Login';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import Landing from '@/pages/Landing';
-import OnboardingWrapper from '@/components/layouts/OnboardingWrapper';
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import Dashboard from "@/pages/Dashboard";
+import SocialConnect from "@/pages/SocialConnect";
+import ContentListPage from "@/pages/Content/ContentListPage";
+import ContentDetailPage from "@/pages/Content/ContentDetailPage";
+import ContentCreatePage from "@/pages/Content/ContentCreatePage";
+import ContentEditPage from "@/pages/Content/ContentEditPage";
+import ContentApprovalPage from "@/pages/Content/ContentApprovalPage";
+import CaptionGeneratorPage from "@/pages/Content/CaptionGeneratorPage";
+import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
+import NotFound from "@/pages/NotFound";
+import PaymentHistory from "@/pages/PaymentHistory";
+import Plans from "@/pages/Plans";
+import Settings from "@/pages/Settings";
+import TermsOfUse from "@/pages/TermsOfUse";
+import MainLayout from "@/components/layouts/MainLayout";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import OnboardingWrapper from "@/components/layouts/OnboardingWrapper";
+import Landing from "@/pages/Landing";
+import CreatorProfile from "@/pages/CreatorProfile";
+import BrandDeals from "@/pages/BrandDeals";
+import Messaging from "@/pages/Messaging";
+import NotificationsPage from "@/pages/NotificationsPage";
+import AdminDashboard from "@/pages/AdminDashboard";
+import { useAuth } from "@/context/AuthContext";
+import { useEffect, useState } from "react";
+import { useOnboarding } from "@/hooks/useOnboarding";
+
+// Import index page as default fallback
+import Index from "@/pages/Index";
 
 const AppRoutes = () => {
-  const { user } = useAuth();
+  const { user, isAuthReady } = useAuth();
+  const { showOnboarding, isChecking } = useOnboarding();
+  const [isReady, setIsReady] = useState(false);
+  
+  useEffect(() => {
+    if (isAuthReady && !isChecking) {
+      setIsReady(true);
+    }
+  }, [isAuthReady, isChecking]);
+  
+  if (!isReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Routes>
-      {/* Public routes */}
-      <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/terms" element={<TermsOfUse />} />
+      <Route path="/landing" element={<Landing />} />
       
-      {/* Landing page - this will be used for local development only 
-           The actual landing is on flaresync.org */}
-      <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Landing />} />
-      
-      {/* Protected routes that require authentication */}
-      <Route element={
+      {/* Protected routes wrapped in MainLayout */}
+      <Route path="/" element={
         <ProtectedRoute>
-          <OnboardingWrapper>
+          <OnboardingWrapper showOnboarding={showOnboarding}>
             <MainLayout />
           </OnboardingWrapper>
         </ProtectedRoute>
       }>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/content" element={<Content />} />
-        <Route path="/social-connect" element={<SocialConnect />} />
-        <Route path="/messages" element={<Messages />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/deals" element={<BrandDeals />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/terms-of-use" element={<TermsOfUse />} />
-        <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="social-connect" element={<SocialConnect />} />
+        <Route path="content" element={<ContentListPage />} />
+        <Route path="content/create" element={<ContentCreatePage />} />
+        <Route path="content/edit/:id" element={<ContentEditPage />} />
+        <Route path="content/detail/:id" element={<ContentDetailPage />} />
+        <Route path="content/approval" element={<ContentApprovalPage />} />
+        <Route path="content/captions" element={<CaptionGeneratorPage />} />
+        <Route path="profile" element={<CreatorProfile />} />
+        <Route path="deals" element={<BrandDeals />} />
+        <Route path="messaging" element={<Messaging />} />
+        <Route path="messaging/:id" element={<Messaging />} />
+        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="payment-history" element={<PaymentHistory />} />
+        <Route path="plans" element={<Plans />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="admin" element={<AdminDashboard />} />
       </Route>
       
-      {/* Fallback for unknown routes */}
-      <Route path="*" element={<Navigate to={user ? "/dashboard" : "/"} replace />} />
+      {/* Fallback route */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
