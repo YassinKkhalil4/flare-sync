@@ -11,10 +11,12 @@ import { useState } from "react";
 interface SavedCaptionsProps {
   captions: SavedCaption[] | undefined;
   isLoading: boolean;
+  onSelectCaption?: (captionId: string, selectedCaption: string) => Promise<boolean | void>;
 }
 
-export function SavedCaptions({ captions, isLoading }: SavedCaptionsProps) {
+export function SavedCaptions({ captions, isLoading, onSelectCaption }: SavedCaptionsProps) {
   const [copiedCaptionId, setCopiedCaptionId] = useState<string | null>(null);
+  const [savingCaptionId, setSavingCaptionId] = useState<string | null>(null);
   
   const handleCopy = (caption: string | null, id: string) => {
     if (!caption) return;
@@ -22,6 +24,17 @@ export function SavedCaptions({ captions, isLoading }: SavedCaptionsProps) {
     navigator.clipboard.writeText(caption);
     setCopiedCaptionId(id);
     setTimeout(() => setCopiedCaptionId(null), 2000);
+  };
+  
+  const handleSelectCaption = async (captionId: string, caption: string) => {
+    if (!onSelectCaption) return;
+    
+    setSavingCaptionId(captionId);
+    try {
+      await onSelectCaption(captionId, caption);
+    } finally {
+      setSavingCaptionId(null);
+    }
   };
   
   if (isLoading) {
@@ -100,6 +113,18 @@ export function SavedCaptions({ captions, isLoading }: SavedCaptionsProps) {
                     </>
                   )}
                 </Button>
+                
+                {onSelectCaption && caption.captions && caption.captions.length > 0 && !caption.selected_caption && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleSelectCaption(caption.id, caption.captions[0])}
+                    disabled={savingCaptionId === caption.id}
+                    className="text-xs"
+                  >
+                    {savingCaptionId === caption.id ? 'Saving...' : 'Select Caption'}
+                  </Button>
+                )}
                 
                 <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 text-xs transition-opacity">
                   View Details

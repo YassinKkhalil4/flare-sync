@@ -9,6 +9,7 @@ import ContentEditPage from "@/pages/Content/ContentEditPage";
 import ContentApprovalPage from "@/pages/Content/ContentApprovalPage";
 import CaptionGeneratorPage from "@/pages/Content/CaptionGeneratorPage";
 import EngagementPredictorPage from "@/pages/Content/EngagementPredictorPage";
+import BrandMatchmakerPage from "@/pages/Content/BrandMatchmakerPage";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import NotFound from "@/pages/NotFound";
@@ -79,6 +80,7 @@ const AppRoutes = () => {
         <Route path="content/approval" element={<ContentApprovalPage />} />
         <Route path="content/captions" element={<CaptionGeneratorPage />} />
         <Route path="content/engagement" element={<EngagementPredictorPage />} />
+        <Route path="content/brand-matchmaker" element={<BrandMatchmakerPage />} />
         <Route path="profile" element={<CreatorProfile />} />
         <Route path="deals" element={<BrandDeals />} />
         <Route path="messaging" element={<Messaging />} />

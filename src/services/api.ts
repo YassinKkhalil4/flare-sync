@@ -32,6 +32,28 @@ export const aiServices = {
         },
       });
     }
+  },
+  brandMatchmaker: {
+    findBrandMatches: async (params: any) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      return supabase.functions.invoke('brand-matchmaker', {
+        body: params,
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`,
+        },
+      });
+    }
+  },
+  contentPlanGenerator: {
+    generateContentPlan: async (params: any) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      return supabase.functions.invoke('generate-content-plan', {
+        body: params,
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`,
+        },
+      });
+    }
   }
 };
 

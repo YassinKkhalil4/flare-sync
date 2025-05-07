@@ -34,8 +34,14 @@ const CaptionGeneratorPage: React.FC = () => {
     }
   };
 
-  const handleSavedCaptionSelect = async (captionId: string, selectedCaption: string) => {
-    await saveSelectedCaption(captionId, selectedCaption);
+  const handleSaveCaption = async (captionId: string, selectedCaption: string) => {
+    try {
+      await saveSelectedCaption(captionId, selectedCaption);
+      return true;
+    } catch (error) {
+      console.error('Error saving selected caption:', error);
+      return false;
+    }
   };
 
   return (
@@ -77,8 +83,9 @@ const CaptionGeneratorPage: React.FC = () => {
         <TabsContent value="results">
           {generationResult && (
             <CaptionResults 
-              result={generationResult} 
-              onSaveCaption={() => setActiveTab('saved')} 
+              captions={generationResult.captions} 
+              captionId={generationResult.captionId}
+              onSaveCaption={handleSaveCaption}
             />
           )}
         </TabsContent>
@@ -87,7 +94,7 @@ const CaptionGeneratorPage: React.FC = () => {
           <SavedCaptions 
             captions={savedCaptions || []} 
             isLoading={isLoadingSavedCaptions}
-            onSelectCaption={handleSavedCaptionSelect}
+            onSelectCaption={handleSaveCaption}
           />
         </TabsContent>
       </Tabs>

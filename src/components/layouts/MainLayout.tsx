@@ -6,10 +6,6 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-interface SidebarProps {
-  collapsed?: boolean;
-}
-
 const MainLayout: React.FC = () => {
   const isMobile = useIsMobile();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(isMobile);
@@ -18,7 +14,7 @@ const MainLayout: React.FC = () => {
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
       <div className={`transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
-        <Sidebar collapsed={sidebarCollapsed} />
+        <Sidebar />
       </div>
       
       {/* Main Content */}
