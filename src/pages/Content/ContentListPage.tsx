@@ -8,7 +8,7 @@ import { ScheduledPosts } from '@/components/content/ScheduledPosts';
 import { ContentAPI } from '@/services/contentService';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, BarChart } from 'lucide-react';
+import { BarChart, Calendar, Sparkles, MessageCircle, Brain } from 'lucide-react';
 
 export const ContentListPage = () => {
   const navigate = useNavigate();
@@ -58,6 +58,54 @@ export const ContentListPage = () => {
                   </CardTitle>
                   <CardDescription>
                     Predict how well your content will perform
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+              
+              <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 hover:shadow-md transition-all cursor-pointer" onClick={() => navigate('/content/brand-matchmaker')}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <Brain className="h-4 w-4 mr-2 text-primary" />
+                    Brand Matchmaker
+                  </CardTitle>
+                  <CardDescription>
+                    Find brands that match your creator profile
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+              
+              <Card className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 hover:shadow-md transition-all cursor-pointer" onClick={() => navigate('/content/plan-generator')}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <Calendar className="h-4 w-4 mr-2 text-primary" />
+                    Content Plan Generator
+                  </CardTitle>
+                  <CardDescription>
+                    Generate complete content plans for your channels
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+              
+              <Card className="bg-gradient-to-br from-sky-50 to-indigo-50 dark:from-sky-950/30 dark:to-indigo-950/30 hover:shadow-md transition-all cursor-pointer" onClick={() => navigate('/content/smart-assistant')}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <MessageCircle className="h-4 w-4 mr-2 text-primary" />
+                    Smart Assistant
+                  </CardTitle>
+                  <CardDescription>
+                    Get AI-powered answers to your content questions
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+              
+              <Card className="bg-gradient-to-br from-rose-50 to-red-50 dark:from-rose-950/30 dark:to-red-950/30 hover:shadow-md transition-all cursor-pointer" onClick={() => navigate('/content/smart-scheduler')}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <Calendar className="h-4 w-4 mr-2 text-primary" />
+                    Smart Post Scheduler
+                  </CardTitle>
+                  <CardDescription>
+                    Optimize posting times for maximum engagement
                   </CardDescription>
                 </CardHeader>
               </Card>

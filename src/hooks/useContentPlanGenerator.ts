@@ -5,9 +5,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { ContentPlan, ContentPlanRequest } from '@/types/contentPlan';
 import { useAuth } from '@/context/AuthContext';
+import { aiServices } from '@/services/api';
 
 export const useContentPlanGenerator = () => {
-  const { user, session } = useAuth();
+  const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Generate content plan
@@ -15,21 +16,12 @@ export const useContentPlanGenerator = () => {
     try {
       setIsGenerating(true);
       
-      if (!session?.access_token) {
-        throw new Error('You must be logged in to generate a content plan');
-      }
-
-      const response = await supabase.functions.invoke('generate-content-plan', {
-        body: params,
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
+      const response = await aiServices.contentPlanGenerator.generateContentPlan(params);
+      
       if (response.error) {
         throw new Error(response.error.message || 'Failed to generate content plan');
       }
-
+      
       return response.data as ContentPlan;
     } catch (error) {
       console.error('Error generating content plan:', error);
@@ -50,11 +42,20 @@ export const useContentPlanGenerator = () => {
   // Save content plan
   const saveContentPlan = async (plan: ContentPlan): Promise<boolean> => {
     try {
+      if (!user) {
+        toast({
+          variant: 'destructive',
+          title: 'Authentication Required',
+          description: 'You must be logged in to save content plans',
+        });
+        return false;
+      }
+      
       const { error } = await supabase
         .from('content_plans')
         .insert({
           id: plan.id,
-          user_id: user?.id,
+          user_id: user.id,
           name: plan.name,
           start_date: plan.startDate,
           end_date: plan.endDate,

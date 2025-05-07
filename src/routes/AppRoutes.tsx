@@ -10,6 +10,9 @@ import ContentApprovalPage from "@/pages/Content/ContentApprovalPage";
 import CaptionGeneratorPage from "@/pages/Content/CaptionGeneratorPage";
 import EngagementPredictorPage from "@/pages/Content/EngagementPredictorPage";
 import BrandMatchmakerPage from "@/pages/Content/BrandMatchmakerPage";
+import ContentPlanGeneratorPage from "@/pages/Content/ContentPlanGeneratorPage";
+import SmartAssistantPage from "@/pages/Content/SmartAssistantPage";
+import SmartPostSchedulerPage from "@/pages/Content/SmartPostSchedulerPage";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import NotFound from "@/pages/NotFound";
@@ -81,6 +84,9 @@ const AppRoutes = () => {
         <Route path="content/captions" element={<CaptionGeneratorPage />} />
         <Route path="content/engagement" element={<EngagementPredictorPage />} />
         <Route path="content/brand-matchmaker" element={<BrandMatchmakerPage />} />
+        <Route path="content/plan-generator" element={<ContentPlanGeneratorPage />} />
+        <Route path="content/smart-assistant" element={<SmartAssistantPage />} />
+        <Route path="content/smart-scheduler" element={<SmartPostSchedulerPage />} />
         <Route path="profile" element={<CreatorProfile />} />
         <Route path="deals" element={<BrandDeals />} />
         <Route path="messaging" element={<Messaging />} />

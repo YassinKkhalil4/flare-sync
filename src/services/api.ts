@@ -47,8 +47,39 @@ export const aiServices = {
   contentPlanGenerator: {
     generateContentPlan: async (params: any) => {
       const { data: sessionData } = await supabase.auth.getSession();
-      return supabase.functions.invoke('generate-content-plan', {
-        body: params,
+      return supabase.functions.invoke('ai-helper', {
+        body: {
+          feature: 'generate-content-plan',
+          params
+        },
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`,
+        },
+      });
+    }
+  },
+  smartAssistant: {
+    chatWithAssistant: async (params: any) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      return supabase.functions.invoke('ai-helper', {
+        body: {
+          feature: 'chat-assistant',
+          params
+        },
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`,
+        },
+      });
+    }
+  },
+  smartScheduler: {
+    analyzeSchedule: async (params: any) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      return supabase.functions.invoke('ai-helper', {
+        body: {
+          feature: 'analyze-schedule',
+          params
+        },
         headers: {
           Authorization: `Bearer ${sessionData.session?.access_token}`,
         },

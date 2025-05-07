@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -17,8 +18,13 @@ import {
   CreditCard,
   Tag,
   BookOpen,
-  SparkleIcon
+  SparkleIcon,
+  MessageCircle,
+  Brain,
+  Clock
 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 interface SidebarProps {
   className?: string;
@@ -28,6 +34,7 @@ interface SidebarItem {
   href: string;
   icon: any;
   label: string;
+  subItems?: SidebarItem[];
 }
 
 const Sidebar = ({ className }: SidebarProps) => {
@@ -35,6 +42,7 @@ const Sidebar = ({ className }: SidebarProps) => {
   const isMobile = useIsMobile();
   const { logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
 
   useEffect(() => {
     // Close the sidebar when the route changes
@@ -45,12 +53,40 @@ const Sidebar = ({ className }: SidebarProps) => {
     setIsMenuOpen(!isMenuOpen);
   };
 
+  const toggleSubmenu = (href: string) => {
+    if (openSubmenu === href) {
+      setOpenSubmenu(null);
+    } else {
+      setOpenSubmenu(href);
+    }
+  };
+
+  // Check if a route is active including nested routes
+  const isRouteActive = (href: string) => {
+    return location.pathname === href || 
+           (href !== "/" && location.pathname.startsWith(href));
+  };
+
   const sidebarItems: SidebarItem[] = [
     { href: "/dashboard", icon: BarChart, label: "Dashboard" },
     { href: "/social-connect", icon: Users, label: "Social Connect" },
-    { href: "/content", icon: Image, label: "Content" },
+    { 
+      href: "/content", 
+      icon: Image, 
+      label: "Content",
+      subItems: [
+        { href: "/content", icon: Image, label: "Content List" },
+        { href: "/content/create", icon: SparkleIcon, label: "Create Content" },
+        { href: "/content/captions", icon: MessageSquare, label: "Caption Generator" },
+        { href: "/content/engagement", icon: BarChart, label: "Engagement Predictor" },
+        { href: "/content/brand-matchmaker", icon: Brain, label: "Brand Matchmaker" },
+        { href: "/content/plan-generator", icon: Calendar, label: "Content Planner" },
+        { href: "/content/smart-assistant", icon: MessageCircle, label: "Smart Assistant" },
+        { href: "/content/smart-scheduler", icon: Clock, label: "Post Scheduler" }
+      ]
+    },
     { href: "/deals", icon: Tag, label: "Brand Deals" },
-		{ href: "/messaging", icon: MessageSquare, label: "Messaging" },
+    { href: "/messaging", icon: MessageSquare, label: "Messaging" },
     { href: "/notifications", icon: Bell, label: "Notifications" },
     { href: "/payment-history", icon: CreditCard, label: "Payment History" },
     { href: "/plans", icon: BookOpen, label: "Plans" },
@@ -82,9 +118,54 @@ const Sidebar = ({ className }: SidebarProps) => {
           </Button>
         </div>
         <Separator className="border-primary/40" />
-        <div className="flex flex-col space-y-1 px-2 mt-4">
+        <div className="flex flex-col space-y-1 px-2 mt-4 overflow-y-auto max-h-[calc(100vh-200px)]">
           {sidebarItems.map((item) => (
-            <SidebarItemLink key={item.href} href={item.href} icon={item.icon} label={item.label} onClick={() => setIsMenuOpen(false)} />
+            item.subItems ? (
+              <Collapsible 
+                key={item.href}
+                open={isRouteActive(item.href)}
+                onOpenChange={() => toggleSubmenu(item.href)}
+              >
+                <CollapsibleTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    className={cn(
+                      "w-full justify-between font-normal",
+                      isRouteActive(item.href) ? "bg-secondary/10" : "hover:bg-secondary/10"
+                    )}
+                  >
+                    <span className="flex items-center">
+                      <item.icon className="h-4 w-4 mr-2" />
+                      <span>{item.label}</span>
+                    </span>
+                    {openSubmenu === item.href ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-6 space-y-1">
+                  {item.subItems.map((subItem) => (
+                    <SidebarItemLink 
+                      key={subItem.href} 
+                      href={subItem.href} 
+                      icon={subItem.icon} 
+                      label={subItem.label} 
+                      onClick={() => setIsMenuOpen(false)} 
+                    />
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+            ) : (
+              <SidebarItemLink 
+                key={item.href} 
+                href={item.href} 
+                icon={item.icon} 
+                label={item.label} 
+                onClick={() => setIsMenuOpen(false)} 
+              />
+            )
           ))}
         </div>
         <Separator className="border-primary/40" />
@@ -107,13 +188,51 @@ const Sidebar = ({ className }: SidebarProps) => {
         </Link>
       </div>
       <Separator className="border-primary/40" />
-      <div className="flex flex-col space-y-1 px-2 mt-4">
+      <div className="flex flex-col space-y-1 px-2 mt-4 overflow-y-auto">
         {sidebarItems.map((item) => (
-          <SidebarItemLink key={item.href} href={item.href} icon={item.icon} label={item.label} />
+          item.subItems ? (
+            <Collapsible 
+              key={item.href}
+              open={isRouteActive(item.href)}
+              onOpenChange={() => toggleSubmenu(item.href)}
+            >
+              <CollapsibleTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className={cn(
+                    "w-full justify-between font-normal",
+                    isRouteActive(item.href) ? "bg-secondary/10" : "hover:bg-secondary/10"
+                  )}
+                >
+                  <span className="flex items-center">
+                    <item.icon className="h-4 w-4 mr-2" />
+                    <span>{item.label}</span>
+                  </span>
+                  {openSubmenu === item.href ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-6 space-y-1">
+                {item.subItems.map((subItem) => (
+                  <SidebarItemLink 
+                    key={subItem.href} 
+                    href={subItem.href} 
+                    icon={subItem.icon} 
+                    label={subItem.label} 
+                  />
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          ) : (
+            <SidebarItemLink key={item.href} href={item.href} icon={item.icon} label={item.label} />
+          )
         ))}
       </div>
-      <Separator className="border-primary/40" />
-      <div className="mt-auto px-6">
+      <Separator className="border-primary/40 mt-auto" />
+      <div className="mt-4 px-6">
         <Button variant="ghost" className="w-full py-2" onClick={logout}>
           Logout
         </Button>
@@ -131,7 +250,8 @@ interface SidebarItemLinkProps {
 
 const SidebarItemLink = ({ href, icon: Icon, label, onClick }: SidebarItemLinkProps) => {
   const location = useLocation();
-  const isActive = location.pathname === href;
+  const isActive = location.pathname === href || 
+                  (href !== "/" && location.pathname.startsWith(href + "/"));
 
   return (
     <Link to={href} onClick={onClick}>
