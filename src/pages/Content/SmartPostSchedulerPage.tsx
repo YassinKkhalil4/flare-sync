@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useScheduler } from '@/hooks/useScheduler';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +27,10 @@ const SmartPostSchedulerPage: React.FC = () => {
   
   const handleAnalyze = () => {
     analyzeSchedule({ platform: selectedPlatform });
+  };
+
+  const handleRefresh = () => {
+    refreshScheduledPosts();
   };
   
   const renderHeatmap = () => {
@@ -259,7 +262,7 @@ const SmartPostSchedulerPage: React.FC = () => {
                   Manage and track your scheduled content
                 </CardDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={refreshScheduledPosts}>
+              <Button variant="outline" size="sm" onClick={handleRefresh}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
               </Button>
@@ -294,9 +297,9 @@ const SmartPostSchedulerPage: React.FC = () => {
                               {post.scheduled_for ? new Date(post.scheduled_for).toLocaleTimeString() : ''}
                             </div>
                             <Badge className="mt-2" variant={
-                              post.status === 'published' ? 'success' :
+                              post.status === 'published' ? 'default' :
                               post.status === 'scheduled' ? 'default' :
-                              'secondary'
+                              'outline'
                             }>
                               {post.status}
                             </Badge>

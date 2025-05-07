@@ -1,265 +1,318 @@
-
-import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import React, { useState } from 'react';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+import { Menu } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import Logo from "@/components/Logo";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useAuth } from "@/context/AuthContext";
-import { 
-  BarChart, 
-  Calendar, 
-  Image, 
-  MessageSquare, 
-  Settings, 
-  Users,
-  Bell,
+import {
+  Home,
+  LayoutDashboard,
+  FileText,
+  Settings,
   CreditCard,
-  Tag,
-  BookOpen,
-  SparkleIcon,
-  MessageCircle,
+  Users,
+  Plus,
+  LogOut,
+  ChevronsLeft,
+  ChevronsRight,
+  File,
   Brain,
-  Clock
+  TrendingUp,
+  Link2,
+  Calendar,
+  MessageSquare,
 } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { useAuth } from '@/context/AuthContext';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 interface SidebarProps {
-  className?: string;
+  collapsed: boolean;
+  setCollapsed: (collapsed: boolean) => void;
 }
 
-interface SidebarItem {
-  href: string;
-  icon: any;
-  label: string;
-  subItems?: SidebarItem[];
+interface NavItem {
+  title: string;
+  path?: string;
+  icon?: any;
+  items?: NavItem[];
 }
 
-const Sidebar = ({ className }: SidebarProps) => {
+const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
+  const { user, signOut } = useAuth();
   const location = useLocation();
-  const isMobile = useIsMobile();
-  const { logout } = useAuth();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  useEffect(() => {
-    // Close the sidebar when the route changes
-    setIsMenuOpen(false);
-  }, [location.pathname]);
-
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  const toggleSubmenu = (href: string) => {
-    if (openSubmenu === href) {
-      setOpenSubmenu(null);
-    } else {
-      setOpenSubmenu(href);
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
+  const renderIcon = (icon: any) => {
+    return <>{icon && React.createElement(icon, { className: "h-4 w-4" })}</>;
+  };
+
+  const renderItems = () => {
+    const items: NavItem[] = [
+      {
+        title: 'Getting Started',
+        icon: Home,
+        path: '/getting-started',
+      },
+    ];
+
+    // Add sidebar items based on role
+    if (user) {
+      if (user.role === 'creator') {
+        items.push(
+          {
+            title: 'Dashboard',
+            icon: LayoutDashboard,
+            path: '/dashboard',
+          },
+          {
+            title: 'Content Manager',
+            icon: FileText,
+            items: [
+              { title: 'All Content', path: '/content' },
+              { title: 'Create New', path: '/content/create' },
+              { title: 'Caption Generator', path: '/content/caption-generator' },
+              { title: 'Engagement Predictor', path: '/content/engagement-predictor' },
+              { title: 'Brand Matchmaker', path: '/content/brand-matchmaker' },
+              { title: 'Content Plan Generator', path: '/content/content-plan' },
+              { title: 'Smart Assistant', path: '/content/smart-assistant' },
+              { title: 'Smart Scheduler', path: '/content/smart-scheduler' },
+            ],
+          },
+          {
+            title: 'Social Profiles',
+            icon: TrendingUp,
+            path: '/social-profiles',
+          },
+          {
+            title: 'Messaging',
+            icon: MessageSquare,
+            path: '/messaging',
+          },
+          {
+            title: 'Deals & Collabs',
+            icon: Link2,
+            path: '/deals',
+          },
+          {
+            title: 'Scheduler',
+            icon: Calendar,
+            path: '/scheduler',
+          },
+        );
+      } else if (user.role === 'brand') {
+        items.push(
+          {
+            title: 'Dashboard',
+            icon: LayoutDashboard,
+            path: '/dashboard',
+          },
+          {
+            title: 'Find Creators',
+            icon: Users,
+            path: '/creators',
+          },
+          {
+            title: 'Manage Campaigns',
+            icon: CreditCard,
+            path: '/campaigns',
+          },
+        );
+      } else if (user.role === 'admin') {
+        items.push(
+          {
+            title: 'Admin Dashboard',
+            icon: LayoutDashboard,
+            path: '/admin/dashboard',
+          },
+          {
+            title: 'User Management',
+            icon: Users,
+            path: '/admin/users',
+          },
+          {
+            title: 'Content Management',
+            icon: FileText,
+            path: '/admin/content',
+          },
+        );
+      }
     }
+
+    return items;
   };
 
-  // Check if a route is active including nested routes
-  const isRouteActive = (href: string) => {
-    return location.pathname === href || 
-           (href !== "/" && location.pathname.startsWith(href));
+  const navigateTo = (path: string) => {
+    navigate(path);
+    closeMobileMenu();
   };
 
-  const sidebarItems: SidebarItem[] = [
-    { href: "/dashboard", icon: BarChart, label: "Dashboard" },
-    { href: "/social-connect", icon: Users, label: "Social Connect" },
-    { 
-      href: "/content", 
-      icon: Image, 
-      label: "Content",
-      subItems: [
-        { href: "/content", icon: Image, label: "Content List" },
-        { href: "/content/create", icon: SparkleIcon, label: "Create Content" },
-        { href: "/content/captions", icon: MessageSquare, label: "Caption Generator" },
-        { href: "/content/engagement", icon: BarChart, label: "Engagement Predictor" },
-        { href: "/content/brand-matchmaker", icon: Brain, label: "Brand Matchmaker" },
-        { href: "/content/plan-generator", icon: Calendar, label: "Content Planner" },
-        { href: "/content/smart-assistant", icon: MessageCircle, label: "Smart Assistant" },
-        { href: "/content/smart-scheduler", icon: Clock, label: "Post Scheduler" }
-      ]
-    },
-    { href: "/deals", icon: Tag, label: "Brand Deals" },
-    { href: "/messaging", icon: MessageSquare, label: "Messaging" },
-    { href: "/notifications", icon: Bell, label: "Notifications" },
-    { href: "/payment-history", icon: CreditCard, label: "Payment History" },
-    { href: "/plans", icon: BookOpen, label: "Plans" },
-    { href: "/settings", icon: Settings, label: "Settings" },
-  ];
+  const handleSignOut = async () => {
+    await signOut();
+    closeMobileMenu();
+  };
 
-  if (isMobile) {
-    return (
-      <div className={cn("fixed inset-y-0 left-0 z-50 w-64 bg-secondary border-r border-r-muted flex-col py-4", className, isMenuOpen ? "block" : "hidden")}>
-        <div className="px-6">
-          <Link to="/dashboard" onClick={() => setIsMenuOpen(false)}>
-            <div className="mb-4 flex items-center">
-              <Logo />
-            </div>
-          </Link>
-          <Button variant="outline" size="icon" className="ml-auto lg:hidden" onClick={toggleMenu}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-6 w-6"
-            >
-              <path d="M3 12h18M3 6h18M3 18h18" />
-            </svg>
+  const items = renderItems();
+
+  return (
+    <>
+      {/* Mobile Menu */}
+      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={toggleMobileMenu}
+          >
+            <Menu className="h-5 w-5" />
           </Button>
-        </div>
-        <Separator className="border-primary/40" />
-        <div className="flex flex-col space-y-1 px-2 mt-4 overflow-y-auto max-h-[calc(100vh-200px)]">
-          {sidebarItems.map((item) => (
-            item.subItems ? (
-              <Collapsible 
-                key={item.href}
-                open={isRouteActive(item.href)}
-                onOpenChange={() => toggleSubmenu(item.href)}
-              >
-                <CollapsibleTrigger asChild>
-                  <Button 
-                    variant="ghost" 
+        </SheetTrigger>
+        <SheetContent side="left" className="w-full sm:w-64">
+          <SheetHeader className="text-left">
+            <SheetTitle>Menu</SheetTitle>
+            <SheetDescription>
+              Navigate through the application.
+            </SheetDescription>
+          </SheetHeader>
+          <ScrollArea className="my-4">
+            <div className="py-4">
+              {items.map((item, index) =>
+                item.items ? (
+                  <div key={index} className="space-y-2">
+                    <div className="text-sm font-medium px-2">{item.title}</div>
+                    {item.items.map((subItem, subIndex) => (
+                      <Button
+                        key={subIndex}
+                        variant="ghost"
+                        className={cn(
+                          "w-full justify-start pl-9",
+                          location.pathname === subItem.path ? "font-semibold" : "font-normal"
+                        )}
+                        onClick={() => navigateTo(subItem.path || '')}
+                      >
+                        {subItem.title}
+                      </Button>
+                    ))}
+                  </div>
+                ) : (
+                  <Button
+                    key={index}
+                    variant="ghost"
                     className={cn(
-                      "w-full justify-between font-normal",
-                      isRouteActive(item.href) ? "bg-secondary/10" : "hover:bg-secondary/10"
+                      "w-full justify-start",
+                      location.pathname === item.path ? "font-semibold" : "font-normal"
                     )}
+                    onClick={() => navigateTo(item.path || '')}
                   >
-                    <span className="flex items-center">
-                      <item.icon className="h-4 w-4 mr-2" />
-                      <span>{item.label}</span>
-                    </span>
-                    {openSubmenu === item.href ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
+                    {renderIcon(item.icon)}
+                    <span className="ml-2">{item.title}</span>
                   </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="pl-6 space-y-1">
-                  {item.subItems.map((subItem) => (
-                    <SidebarItemLink 
-                      key={subItem.href} 
-                      href={subItem.href} 
-                      icon={subItem.icon} 
-                      label={subItem.label} 
-                      onClick={() => setIsMenuOpen(false)} 
-                    />
-                  ))}
-                </CollapsibleContent>
-              </Collapsible>
-            ) : (
-              <SidebarItemLink 
-                key={item.href} 
-                href={item.href} 
-                icon={item.icon} 
-                label={item.label} 
-                onClick={() => setIsMenuOpen(false)} 
-              />
-            )
-          ))}
-        </div>
-        <Separator className="border-primary/40" />
-        <div className="mt-auto px-6">
-          <Button variant="ghost" className="w-full py-2" onClick={logout}>
-            Logout
+                )
+              )}
+            </div>
+          </ScrollArea>
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
+            onClick={handleSignOut}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
           </Button>
+        </SheetContent>
+      </Sheet>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex md:flex-col md:fixed md:inset-y-0">
+        <div
+          className={cn(
+            "flex flex-col h-full bg-secondary border-r border-secondary-foreground/10 text-secondary-foreground",
+            collapsed ? "w-16" : "w-60",
+            "transition-all duration-300 ease-in-out"
+          )}
+        >
+          <div className="flex items-center justify-between px-2 py-3">
+            <Link to="/" className="flex items-center">
+              {!collapsed && <span className="text-2xl font-bold">FlareSync</span>}
+              {collapsed && <span className="text-2xl font-bold">FS</span>}
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full"
+              onClick={() => setCollapsed(!collapsed)}
+            >
+              {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
+              <span className="sr-only">Collapse</span>
+            </Button>
+          </div>
+          <ScrollArea className="flex-1">
+            <div className="py-4">
+              {items.map((item, index) =>
+                item.items ? (
+                  <div key={index} className="space-y-2">
+                    <div className="text-sm font-medium px-2">{item.title}</div>
+                    {item.items.map((subItem, subIndex) => (
+                      <Button
+                        key={subIndex}
+                        variant="ghost"
+                        className={cn(
+                          "w-full justify-start pl-9",
+                          location.pathname === subItem.path ? "font-semibold" : "font-normal"
+                        )}
+                        onClick={() => navigateTo(subItem.path || '')}
+                      >
+                        {subItem.title}
+                      </Button>
+                    ))}
+                  </div>
+                ) : (
+                  <Button
+                    key={index}
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start",
+                      location.pathname === item.path ? "font-semibold" : "font-normal"
+                    )}
+                    onClick={() => navigateTo(item.path || '')}
+                  >
+                    {renderIcon(item.icon)}
+                    {!collapsed && <span className="ml-2">{item.title}</span>}
+                  </Button>
+                )
+              )}
+            </div>
+          </ScrollArea>
+          <div className="p-4">
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={handleSignOut}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              {!collapsed && <span>Sign Out</span>}
+            </Button>
+          </div>
         </div>
       </div>
-    );
-  }
-
-  return (
-    <div className={cn("hidden lg:flex fixed inset-y-0 left-0 z-50 w-64 bg-secondary border-r border-r-muted flex-col py-4", className)}>
-      <div className="px-6">
-        <Link to="/dashboard">
-          <div className="mb-4 flex items-center">
-            <Logo />
-          </div>
-        </Link>
-      </div>
-      <Separator className="border-primary/40" />
-      <div className="flex flex-col space-y-1 px-2 mt-4 overflow-y-auto">
-        {sidebarItems.map((item) => (
-          item.subItems ? (
-            <Collapsible 
-              key={item.href}
-              open={isRouteActive(item.href)}
-              onOpenChange={() => toggleSubmenu(item.href)}
-            >
-              <CollapsibleTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  className={cn(
-                    "w-full justify-between font-normal",
-                    isRouteActive(item.href) ? "bg-secondary/10" : "hover:bg-secondary/10"
-                  )}
-                >
-                  <span className="flex items-center">
-                    <item.icon className="h-4 w-4 mr-2" />
-                    <span>{item.label}</span>
-                  </span>
-                  {openSubmenu === item.href ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pl-6 space-y-1">
-                {item.subItems.map((subItem) => (
-                  <SidebarItemLink 
-                    key={subItem.href} 
-                    href={subItem.href} 
-                    icon={subItem.icon} 
-                    label={subItem.label} 
-                  />
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          ) : (
-            <SidebarItemLink key={item.href} href={item.href} icon={item.icon} label={item.label} />
-          )
-        ))}
-      </div>
-      <Separator className="border-primary/40 mt-auto" />
-      <div className="mt-4 px-6">
-        <Button variant="ghost" className="w-full py-2" onClick={logout}>
-          Logout
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-interface SidebarItemLinkProps {
-  href: string;
-  icon: any;
-  label: string;
-  onClick?: () => void;
-}
-
-const SidebarItemLink = ({ href, icon: Icon, label, onClick }: SidebarItemLinkProps) => {
-  const location = useLocation();
-  const isActive = location.pathname === href || 
-                  (href !== "/" && location.pathname.startsWith(href + "/"));
-
-  return (
-    <Link to={href} onClick={onClick}>
-      <Button variant="ghost" className={cn("w-full justify-start font-normal", isActive ? "bg-secondary/10" : "hover:bg-secondary/10")}>
-        <Icon className="h-4 w-4 mr-2" />
-        <span>{label}</span>
-      </Button>
-    </Link>
+    </>
   );
 };
 

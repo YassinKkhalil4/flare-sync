@@ -1,12 +1,4 @@
 
-export interface ContentPlanRequest {
-  timeCommitment: number; // hours per week
-  platforms: string[];
-  goal: 'growth' | 'engagement' | 'sales';
-  niche: string;
-  additionalInfo?: string;
-}
-
 export interface ContentPlanPost {
   id: string;
   day: string;
@@ -17,18 +9,25 @@ export interface ContentPlanPost {
   description: string;
   suggestedCaption?: string;
   hashtags?: string[];
-  status: 'draft' | 'ready' | 'published';
+  status: 'draft' | 'scheduled' | 'published';
 }
 
 export interface ContentPlan {
   id: string;
-  user_id: string;
   name: string;
   startDate: string;
   endDate: string;
   goal: string;
   platforms: string[];
-  createdAt: string;
-  updatedAt: string;
   posts: ContentPlanPost[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ContentPlanRequest {
+  timeCommitment: number;
+  platforms: string[];
+  goal: 'growth' | 'engagement' | 'sales';
+  niche: string;
+  additionalInfo?: string;
 }
