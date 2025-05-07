@@ -9,6 +9,32 @@ import { ContentAPI } from './contentService';
 import { SocialAPI } from './socialService';
 import { dealsService } from './dealsService';
 
+// AI Services
+export const aiServices = {
+  captionGenerator: {
+    generateCaptions: async (params: any) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      return supabase.functions.invoke('generate-captions', {
+        body: params,
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`,
+        },
+      });
+    }
+  },
+  engagementPredictor: {
+    predictEngagement: async (params: any) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      return supabase.functions.invoke('predict-engagement', {
+        body: params,
+        headers: {
+          Authorization: `Bearer ${sessionData.session?.access_token}`,
+        },
+      });
+    }
+  }
+};
+
 // Export all services
 export { 
   MessagingAPI as MessagingService,

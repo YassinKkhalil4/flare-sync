@@ -1,215 +1,146 @@
-import { useLocation, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import Logo from "@/components/Logo";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/AuthContext";
-
-import {
-  Calendar,
-  LucideIcon,
-  Settings,
-  Home,
-  Instagram,
-  FileText,
-  MessageSquare,
-  CreditCard,
-  User,
-  HandshakeIcon,
-  Bell,
+import { 
+  BarChart, 
+  Calendar, 
+  Image, 
+  MessageSquare, 
+  Settings, 
   Users,
-  PenSquare,
-  BarChart2
+  Bell,
+  CreditCard,
+  Tag,
+  BookOpen,
+  SparkleIcon
 } from "lucide-react";
 
-interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
+interface SidebarProps {
+  className?: string;
+}
 
-interface NavItem {
-  title: string;
+interface SidebarItem {
   href: string;
-  icon: LucideIcon;
+  icon: any;
+  label: string;
 }
 
-interface NavSectionProps {
-  items: NavItem[];
-  title?: string;
-}
+const Sidebar = ({ className }: SidebarProps) => {
+  const location = useLocation();
+  const isMobile = useIsMobile();
+  const { logout } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-interface NavLinkProps extends React.HTMLAttributes<HTMLAnchorElement> {
-  to: string;
-  children: React.ReactNode;
-  icon: LucideIcon;
-}
+  useEffect(() => {
+    // Close the sidebar when the route changes
+    setIsMenuOpen(false);
+  }, [location.pathname]);
 
-function NavLink({ to, children, icon, ...props }: NavLinkProps) {
-  const { pathname } = useLocation();
-  return (
-    <Link to={to} className={cn(
-      "group flex w-full items-center rounded-md border border-transparent px-3 py-2 text-sm font-medium hover:bg-secondary hover:text-accent-foreground [&.active]:bg-secondary [&.active]:text-accent-foreground",
-      pathname === to ? "active" : "",
-    )} {...props}>
-      <icon className="mr-2 h-4 w-4" />
-      <span>{children}</span>
-    </Link>
-  );
-}
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
 
-function NavSection({ items, title }: NavSectionProps) {
-  return (
-    <div>
-      {title && (
-        <h4 className="mb-2 px-4 text-sm font-semibold tracking-tight">
-          {title}
-        </h4>
-      )}
-      {items.map((item) => (
-        <NavLink key={item.href} to={item.href} icon={item.icon}>
-          {item.title}
-        </NavLink>
-      ))}
-    </div>
-  );
-}
-
-export function Sidebar({ className }: SidebarProps) {
-  const { user } = useAuth();
-  const isAdmin = user?.user_metadata?.role === "admin";
-  const isMobile = useMobile();
-  
-  const dashboardLinks: NavItem[] = [
-    {
-      title: "Dashboard",
-      href: "/dashboard",
-      icon: Home,
-    },
-    {
-      title: "Creator Profile",
-      href: "/profile",
-      icon: User,
-    },
-    {
-      title: "Social Connect",
-      href: "/social-connect",
-      icon: Instagram,
-    },
-  ];
-
-  const contentLinks: NavItem[] = [
-    {
-      title: "Content",
-      href: "/content",
-      icon: FileText,
-    },
-    {
-      title: "Caption Generator",
-      href: "/content/captions",
-      icon: PenSquare,
-    },
-    {
-      title: "Analytics",
-      href: "/analytics",
-      icon: BarChart2,
-    },
-    {
-      title: "Calendar",
-      href: "/calendar",
-      icon: Calendar,
-    },
-    {
-      title: "Approvals",
-      href: "/content/approval",
-      icon: FileText,
-    },
-  ];
-
-  const communicationLinks: NavItem[] = [
-    {
-      title: "Messaging",
-      href: "/messaging",
-      icon: MessageSquare,
-    },
-    {
-      title: "Brand Deals",
-      href: "/deals",
-      icon: HandshakeIcon,
-    },
-    {
-      title: "Notifications",
-      href: "/notifications",
-      icon: Bell,
-    },
-  ];
-
-  const billingLinks: NavItem[] = [
-    {
-      title: "Plans & Pricing",
-      href: "/plans",
-      icon: CreditCard,
-    },
-    {
-      title: "Payment History",
-      href: "/payment-history",
-      icon: CreditCard,
-    },
-  ];
-
-  const settingsLinks: NavItem[] = [
-    {
-      title: "Settings",
-      href: "/settings",
-      icon: Settings,
-    },
-  ];
-
-  const adminLinks: NavItem[] = [
-    {
-      title: "Admin Dashboard",
-      href: "/admin",
-      icon: Users,
-    },
+  const sidebarItems: SidebarItem[] = [
+    { href: "/dashboard", icon: BarChart, label: "Dashboard" },
+    { href: "/social-connect", icon: Users, label: "Social Connect" },
+    { href: "/content", icon: Image, label: "Content" },
+    { href: "/deals", icon: Tag, label: "Brand Deals" },
+		{ href: "/messaging", icon: MessageSquare, label: "Messaging" },
+    { href: "/notifications", icon: Bell, label: "Notifications" },
+    { href: "/payment-history", icon: CreditCard, label: "Payment History" },
+    { href: "/plans", icon: BookOpen, label: "Plans" },
+    { href: "/settings", icon: Settings, label: "Settings" },
   ];
 
   if (isMobile) {
-    // Return the mobile sidebar
     return (
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t">
-        <div className="flex items-center justify-between p-4">
-          {dashboardLinks.map((item) => (
-            <NavLink key={item.href} to={item.href} icon={item.icon}>
-              {item.title}
-            </NavLink>
+      <div className={cn("fixed inset-y-0 left-0 z-50 w-64 bg-secondary border-r border-r-muted flex-col py-4", className, isMenuOpen ? "block" : "hidden")}>
+        <div className="px-6">
+          <Link to="/dashboard" onClick={() => setIsMenuOpen(false)}>
+            <div className="mb-4 flex items-center">
+              <Logo />
+            </div>
+          </Link>
+          <Button variant="outline" size="icon" className="ml-auto lg:hidden" onClick={toggleMenu}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-6 w-6"
+            >
+              <path d="M3 12h18M3 6h18M3 18h18" />
+            </svg>
+          </Button>
+        </div>
+        <Separator className="border-primary/40" />
+        <div className="flex flex-col space-y-1 px-2 mt-4">
+          {sidebarItems.map((item) => (
+            <SidebarItemLink key={item.href} href={item.href} icon={item.icon} label={item.label} onClick={() => setIsMenuOpen(false)} />
           ))}
+        </div>
+        <Separator className="border-primary/40" />
+        <div className="mt-auto px-6">
+          <Button variant="ghost" className="w-full py-2" onClick={logout}>
+            Logout
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={cn("flex flex-col h-screen pb-12", className)}>
-      <div className="flex h-16 items-center border-b px-6">
-        <Logo withText />
+    <div className={cn("hidden lg:flex fixed inset-y-0 left-0 z-50 w-64 bg-secondary border-r border-r-muted flex-col py-4", className)}>
+      <div className="px-6">
+        <Link to="/dashboard">
+          <div className="mb-4 flex items-center">
+            <Logo />
+          </div>
+        </Link>
       </div>
-      <ScrollArea className="flex-1 py-4">
-        <div className="px-4 py-2">
-          <NavSection items={dashboardLinks} />
-          <Separator className="my-4" />
-          <NavSection title="Content" items={contentLinks} />
-          <Separator className="my-4" />
-          <NavSection title="Communication" items={communicationLinks} />
-          <Separator className="my-4" />
-          <NavSection title="Billing" items={billingLinks} />
-          <Separator className="my-4" />
-          <NavSection items={settingsLinks} />
-          {isAdmin && (
-            <>
-              <Separator className="my-4" />
-              <NavSection title="Admin" items={adminLinks} />
-            </>
-          )}
-        </div>
-      </ScrollArea>
+      <Separator className="border-primary/40" />
+      <div className="flex flex-col space-y-1 px-2 mt-4">
+        {sidebarItems.map((item) => (
+          <SidebarItemLink key={item.href} href={item.href} icon={item.icon} label={item.label} />
+        ))}
+      </div>
+      <Separator className="border-primary/40" />
+      <div className="mt-auto px-6">
+        <Button variant="ghost" className="w-full py-2" onClick={logout}>
+          Logout
+        </Button>
+      </div>
     </div>
   );
+};
+
+interface SidebarItemLinkProps {
+  href: string;
+  icon: any;
+  label: string;
+  onClick?: () => void;
 }
+
+const SidebarItemLink = ({ href, icon: Icon, label, onClick }: SidebarItemLinkProps) => {
+  const location = useLocation();
+  const isActive = location.pathname === href;
+
+  return (
+    <Link to={href} onClick={onClick}>
+      <Button variant="ghost" className={cn("w-full justify-start font-normal", isActive ? "bg-secondary/10" : "hover:bg-secondary/10")}>
+        <Icon className="h-4 w-4 mr-2" />
+        <span>{label}</span>
+      </Button>
+    </Link>
+  );
+};
+
+export default Sidebar;

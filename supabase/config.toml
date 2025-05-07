@@ -36,3 +36,6 @@ enabled = false
 
 [functions.generate-captions]
 verify_jwt = true
+
+[functions.predict-engagement]
+verify_jwt = true

@@ -1,25 +1,27 @@
 
-import React from 'react';
-import { useOnboarding } from '@/hooks/useOnboarding';
+import { useState, useEffect, ReactNode } from 'react';
 import OnboardingModal from '@/components/onboarding/OnboardingModal';
 
-interface OnboardingWrapperProps {
-  children: React.ReactNode;
+export interface OnboardingWrapperProps {
+  children: ReactNode;
+  showOnboarding?: boolean;
 }
 
-const OnboardingWrapper: React.FC<OnboardingWrapperProps> = ({ children }) => {
-  const { showOnboarding, isChecking, completeOnboarding } = useOnboarding();
+const OnboardingWrapper = ({ 
+  children, 
+  showOnboarding = false 
+}: OnboardingWrapperProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    // Only open the onboarding modal if showOnboarding is true
+    setIsOpen(showOnboarding);
+  }, [showOnboarding]);
 
   return (
     <>
       {children}
-      
-      {!isChecking && (
-        <OnboardingModal 
-          isOpen={showOnboarding} 
-          onClose={completeOnboarding} 
-        />
-      )}
+      <OnboardingModal open={isOpen} onOpenChange={setIsOpen} />
     </>
   );
 };

@@ -8,6 +8,7 @@ import ContentCreatePage from "@/pages/Content/ContentCreatePage";
 import ContentEditPage from "@/pages/Content/ContentEditPage";
 import ContentApprovalPage from "@/pages/Content/ContentApprovalPage";
 import CaptionGeneratorPage from "@/pages/Content/CaptionGeneratorPage";
+import EngagementPredictorPage from "@/pages/Content/EngagementPredictorPage";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import NotFound from "@/pages/NotFound";
@@ -32,15 +33,15 @@ import { useOnboarding } from "@/hooks/useOnboarding";
 import Index from "@/pages/Index";
 
 const AppRoutes = () => {
-  const { user, isAuthReady } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const { showOnboarding, isChecking } = useOnboarding();
   const [isReady, setIsReady] = useState(false);
   
   useEffect(() => {
-    if (isAuthReady && !isChecking) {
+    if (!isAuthLoading && !isChecking) {
       setIsReady(true);
     }
-  }, [isAuthReady, isChecking]);
+  }, [isAuthLoading, isChecking]);
   
   if (!isReady) {
     return (
@@ -63,7 +64,7 @@ const AppRoutes = () => {
       {/* Protected routes wrapped in MainLayout */}
       <Route path="/" element={
         <ProtectedRoute>
-          <OnboardingWrapper showOnboarding={showOnboarding}>
+          <OnboardingWrapper>
             <MainLayout />
           </OnboardingWrapper>
         </ProtectedRoute>
@@ -77,6 +78,7 @@ const AppRoutes = () => {
         <Route path="content/detail/:id" element={<ContentDetailPage />} />
         <Route path="content/approval" element={<ContentApprovalPage />} />
         <Route path="content/captions" element={<CaptionGeneratorPage />} />
+        <Route path="content/engagement" element={<EngagementPredictorPage />} />
         <Route path="profile" element={<CreatorProfile />} />
         <Route path="deals" element={<BrandDeals />} />
         <Route path="messaging" element={<Messaging />} />
