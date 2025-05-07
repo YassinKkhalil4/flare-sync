@@ -30,7 +30,7 @@ const AppRoutes = () => {
       <Route path="/signup" element={<Signup />} />
 
       {/* Protected routes */}
-      <Route element={<ProtectedRoute />}>
+      <Route element={<ProtectedRoute children={undefined} />}>
         <Route element={<MainLayout />}>
           {/* Dashboard and account related routes */}
           <Route path="/" element={<Dashboard />} />

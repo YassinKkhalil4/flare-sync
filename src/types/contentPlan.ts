@@ -1,4 +1,12 @@
 
+export interface ContentPlanRequest {
+  timeCommitment: number;
+  platforms: string[];
+  goal: 'growth' | 'engagement' | 'sales';
+  niche: string;
+  additionalInfo?: string;
+}
+
 export interface ContentPlanPost {
   id: string;
   day: string;
@@ -7,8 +15,8 @@ export interface ContentPlanPost {
   contentType: string;
   title: string;
   description: string;
-  suggestedCaption?: string;
-  hashtags?: string[];
+  suggestedCaption: string;
+  hashtags: string[];
   status: 'draft' | 'scheduled' | 'published';
 }
 
@@ -20,14 +28,6 @@ export interface ContentPlan {
   goal: string;
   platforms: string[];
   posts: ContentPlanPost[];
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface ContentPlanRequest {
-  timeCommitment: number;
-  platforms: string[];
-  goal: 'growth' | 'engagement' | 'sales';
-  niche: string;
-  additionalInfo?: string;
+  createdAt: string;
+  updatedAt: string;
 }
