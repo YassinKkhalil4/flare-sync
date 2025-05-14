@@ -6,6 +6,8 @@ import AdminLogin from '../pages/AdminLogin';
 import AdminDashboard from '../pages/AdminDashboard';
 import CreateAdminUser from '../pages/CreateAdminUser';
 import Index from '../pages/Index';
+import Legal from '../pages/Legal';
+import Privacy from '../pages/Privacy';
 import ProtectedRoute from '../components/ProtectedRoute';
 import Dashboard from '../pages/Dashboard';
 import SocialConnect from '../pages/SocialConnect';
@@ -16,6 +18,8 @@ import Plans from '../pages/Plans';
 import PaymentHistory from '../pages/PaymentHistory';
 import Settings from '../pages/Settings';
 import NotificationsPage from '../pages/NotificationsPage';
+import TermsOfUse from '../pages/TermsOfUse';
+import TermsAndConditions from '../pages/TermsAndConditions';
 
 // Placeholder for pages that don't exist yet
 const PlaceholderPage = () => (
@@ -77,12 +81,15 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
       
+      {/* Public pages */}
+      <Route path="/legal" element={<Legal />} />
+      <Route path="/terms" element={<TermsOfUse />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms-conditions" element={<TermsAndConditions />} />
+      
       {/* Placeholder pages that will be implemented later */}
       <Route path="/profile/:username" element={<PlaceholderPage />} />
       <Route path="/social-profile/:id" element={<PlaceholderPage />} />
-      <Route path="/legal" element={<PlaceholderPage />} />
-      <Route path="/terms" element={<PlaceholderPage />} />
-      <Route path="/privacy" element={<PlaceholderPage />} />
       <Route path="/contact" element={<PlaceholderPage />} />
       <Route path="/pricing" element={<PlaceholderPage />} />
       <Route path="/blog" element={<PlaceholderPage />} />
