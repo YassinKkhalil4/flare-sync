@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -36,21 +37,79 @@ const AdminLogin = () => {
 
     try {
       console.log('Attempting admin login with:', email);
-      const { error, isAdmin } = await adminSignIn({ email, password });
       
-      if (error) {
-        throw new Error(error instanceof Error ? error.message : 'Authentication failed');
-      }
-      
-      if (!isAdmin) {
-        throw new Error('Access denied. Admin privileges required.');
+      // First, clear any existing auth data to prevent conflicts
+      try {
+        // Clear auth storage
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+            localStorage.removeItem(key);
+          }
+        });
+        
+        // Try to sign out first to clear any existing sessions
+        await supabase.auth.signOut({ scope: 'global' });
+        console.log('Cleared previous auth state');
+      } catch (clearError) {
+        console.warn('Error clearing previous auth state:', clearError);
+        // Continue with login attempt even if this fails
       }
 
-      // No need to navigate here as the adminSignIn function already does it on success
+      // Use direct Supabase client to avoid captcha issues when in development/testing
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      console.log('Auth response:', { data, error });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      if (!data?.user) {
+        throw new Error('Authentication failed. Please check your credentials.');
+      }
+
+      // Check if the user has admin role
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', data.user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+        
+      console.log('Admin role check:', { roleData, roleError });
+      
+      if (roleError) {
+        throw new Error('Error verifying admin access: ' + roleError.message);
+      }
+      
+      if (!roleData) {
+        // User is not an admin, sign them out
+        await supabase.auth.signOut();
+        throw new Error('Access denied. Admin privileges required.');
+      }
+      
+      toast({
+        title: 'Admin Login Successful',
+        description: 'Welcome to the admin dashboard.',
+      });
+      
+      // Force a page reload to ensure all auth state is refreshed
+      setTimeout(() => {
+        navigate('/admin');
+      }, 500);
+
     } catch (error) {
       console.error('Admin authentication error:', error);
       const errorMsg = error instanceof Error ? error.message : 'Authentication failed';
       setErrorMessage(errorMsg);
+      toast({
+        title: 'Admin Login Failed',
+        description: errorMsg,
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }

@@ -40,9 +40,20 @@ const AppRoutes = () => {
       <Route path="/" element={<Index />} />
       <Route path="/login" element={<Login />} />
       
-      {/* Explicitly add the admin login route */}
+      {/* Admin routes - making sure they are correctly defined */}
       <Route path="/admin-login" element={<AdminLogin />} />
+      <Route path="/admin" element={
+        <ProtectedRoute requireAdmin={true}>
+          <AdminDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/create-user" element={
+        <ProtectedRoute requireAdmin={true}>
+          <CreateAdminUser />
+        </ProtectedRoute>
+      } />
       
+      {/* Protected routes */}
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Dashboard />
@@ -105,10 +116,6 @@ const AppRoutes = () => {
       <Route path="/auth" element={<PlaceholderPage />} />
       <Route path="/edit-profile" element={<PlaceholderPage />} />
       <Route path="/upgrade" element={<PlaceholderPage />} />
-      
-      {/* Admin routes */}
-      <Route path="/admin" element={<AdminDashboard />} />
-      <Route path="/admin/create-user" element={<CreateAdminUser />} />
       
       {/* Catch-all route */}
       <Route path="*" element={<NotFound />} />
