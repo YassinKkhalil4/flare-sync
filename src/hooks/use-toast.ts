@@ -1,5 +1,5 @@
 
-import { toast as sonnerToast, type Toast } from "sonner";
+import { toast as sonnerToast, type ToastOptions } from "sonner";
 import { ReactNode } from "react";
 
 /**
