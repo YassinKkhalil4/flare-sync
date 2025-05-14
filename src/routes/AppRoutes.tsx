@@ -6,6 +6,7 @@ import MainLayout from '@/components/layouts/MainLayout';
 import Dashboard from '@/pages/Dashboard';
 import Settings from '@/pages/Settings';
 import Login from '@/pages/Login';
+import AdminLogin from '@/pages/AdminLogin';
 import Signup from '@/pages/Signup';
 import NotFoundPage from '@/pages/NotFound';
 import ContentListPage from '@/pages/Content/ContentListPage';
@@ -27,6 +28,7 @@ const AppRoutes = () => {
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={<Login />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/signup" element={<Signup />} />
 
       {/* Protected routes */}
@@ -53,11 +55,7 @@ const AppRoutes = () => {
           <Route path="/content/smart-scheduler" element={<SmartPostSchedulerPage />} />
 
           {/* Admin routes */}
-          {user?.role === 'admin' && (
-            <>
-              <Route path="/admin" element={<AdminDashboard />} />
-            </>
-          )}
+          <Route path="/admin" element={<AdminDashboard />} />
         </Route>
       </Route>
 

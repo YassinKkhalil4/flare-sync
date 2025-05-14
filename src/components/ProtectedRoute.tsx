@@ -1,5 +1,5 @@
 
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
@@ -9,9 +9,10 @@ const LANDING_PAGE_URL = "https://flaresync.org";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  requireAdmin?: boolean;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin = false }) => {
   const { user, isLoading } = useAuth();
   const [forceTimeout, setForceTimeout] = useState(false);
 
@@ -51,8 +52,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  // If we have a user or forced timeout, render the children
-  return <>{children}</>;
+  // If admin access is required but user is not admin
+  if (requireAdmin && !user.isAdmin) {
+    return <Navigate to="/" />;
+  }
+
+  // If we have a user or forced timeout, render the children or outlet
+  return <>{children || <Outlet />}</>;
 };
 
 export default ProtectedRoute;

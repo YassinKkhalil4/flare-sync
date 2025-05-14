@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -190,7 +191,7 @@ const Login = () => {
                 'Create Account'
               )}
             </Button>
-            <div className="mt-4 text-center">
+            <div className="mt-4 text-center space-y-2">
               <button
                 type="button"
                 onClick={toggleAuthMode}
@@ -199,6 +200,17 @@ const Login = () => {
               >
                 {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
               </button>
+              
+              {isLogin && (
+                <div className="pt-2">
+                  <Link 
+                    to="/admin/login" 
+                    className="text-sm text-gray-600 hover:text-gray-800 underline block"
+                  >
+                    Login as Admin
+                  </Link>
+                </div>
+              )}
             </div>
           </CardFooter>
         </form>

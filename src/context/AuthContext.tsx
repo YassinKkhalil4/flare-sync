@@ -11,6 +11,8 @@ type AuthContextType = {
     name?: string;
     username?: string;
     avatar?: string;
+    role?: string;
+    isAdmin?: boolean;
   } | null;
   session: Session | null;
   loading: boolean;
@@ -23,12 +25,18 @@ type AuthContextType = {
     error: any;
     data: any;
   }>;
+  adminSignIn: (data: { email: string, password: string }) => Promise<{
+    error: any;
+    data: any;
+    isAdmin: boolean;
+  }>;
   logout: () => Promise<void>;
   updateProfile: (data: any) => Promise<{
     error: any;
     data: any;
   }>;
   uploadAvatar: (file: File) => Promise<string | null>;
+  checkAdminStatus: (userId: string) => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -38,9 +46,11 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   signUp: async () => ({ data: null, error: null }),
   signIn: async () => ({ data: null, error: null }),
+  adminSignIn: async () => ({ data: null, error: null, isAdmin: false }),
   logout: async () => {},
   updateProfile: async () => ({ data: null, error: null }),
   uploadAvatar: async () => null,
+  checkAdminStatus: async () => false,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -56,6 +66,41 @@ export const AuthProvider = ({ children, externalLandingPageUrl = "https://flare
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Check if user has admin role
+  const checkAdminStatus = async (userId: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle();
+      
+      if (error) throw error;
+      
+      return !!data;
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
+  };
+
+  // Update user with admin status
+  const updateUserWithRole = async (currentUser: User) => {
+    if (!currentUser) return null;
+    
+    const isAdmin = await checkAdminStatus(currentUser.id);
+    
+    return {
+      ...currentUser,
+      name: currentUser?.user_metadata?.full_name,
+      username: currentUser?.user_metadata?.username,
+      avatar: currentUser?.user_metadata?.avatar_url,
+      isAdmin,
+      role: isAdmin ? 'admin' : currentUser?.user_metadata?.role || 'creator',
+    };
+  };
+
   // Check for session on component mount
   useEffect(() => {
     async function loadSession() {
@@ -66,12 +111,8 @@ export const AuthProvider = ({ children, externalLandingPageUrl = "https://flare
         
         if (persistedSession) {
           setSession(persistedSession);
-          setUser({
-            ...persistedSession.user,
-            name: persistedSession.user?.user_metadata?.full_name,
-            username: persistedSession.user?.user_metadata?.username,
-            avatar: persistedSession.user?.user_metadata?.avatar_url,
-          });
+          const userWithAdminRole = await updateUserWithRole(persistedSession.user);
+          setUser(userWithAdminRole);
         }
         
         // Then check with Supabase
@@ -83,12 +124,8 @@ export const AuthProvider = ({ children, externalLandingPageUrl = "https://flare
         
         if (supabaseSession) {
           setSession(supabaseSession);
-          setUser({
-            ...supabaseSession.user,
-            name: supabaseSession.user?.user_metadata?.full_name,
-            username: supabaseSession.user?.user_metadata?.username,
-            avatar: supabaseSession.user?.user_metadata?.avatar_url,
-          });
+          const userWithAdminRole = await updateUserWithRole(supabaseSession.user);
+          setUser(userWithAdminRole);
           persistSession(supabaseSession);
         }
       } catch (error) {
@@ -111,12 +148,8 @@ export const AuthProvider = ({ children, externalLandingPageUrl = "https://flare
       
       if (newSession) {
         setSession(newSession);
-        setUser({
-          ...newSession.user,
-          name: newSession.user?.user_metadata?.full_name,
-          username: newSession.user?.user_metadata?.username,
-          avatar: newSession.user?.user_metadata?.avatar_url,
-        });
+        const userWithAdminRole = await updateUserWithRole(newSession.user);
+        setUser(userWithAdminRole);
         persistSession(newSession);
       } else {
         setSession(null);
@@ -175,10 +208,17 @@ export const AuthProvider = ({ children, externalLandingPageUrl = "https://flare
       });
       
       if (!error && authData?.user) {
+        const userWithAdminRole = await updateUserWithRole(authData.user);
+        
         toast({
           title: 'Welcome back!',
           description: 'You have successfully signed in.',
         });
+        
+        // Redirect admin users to the admin dashboard
+        if (userWithAdminRole?.isAdmin) {
+          navigate('/admin');
+        }
       }
       
       return { data: authData, error };
@@ -187,6 +227,58 @@ export const AuthProvider = ({ children, externalLandingPageUrl = "https://flare
       return {
         data: null,
         error,
+      };
+    }
+  };
+
+  const adminSignIn = async (data: { email: string, password: string }) => {
+    try {
+      const { email, password } = data;
+      
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
+      if (!authData?.user) {
+        throw new Error('Authentication failed. Please check your credentials.');
+      }
+      
+      // Check if user has admin role
+      const isAdmin = await checkAdminStatus(authData.user.id);
+      
+      if (!isAdmin) {
+        // Sign out the user if they're not an admin
+        await supabase.auth.signOut();
+        throw new Error('Access denied. Admin privileges required.');
+      }
+      
+      // Update user object with admin status
+      const userWithAdminRole = await updateUserWithRole(authData.user);
+      
+      toast({
+        title: 'Admin Login Successful',
+        description: 'Welcome to the admin dashboard.',
+      });
+      
+      // Redirect to admin dashboard
+      navigate('/admin');
+      
+      return { data: authData, error: null, isAdmin: true };
+    } catch (error) {
+      console.error('Admin login error:', error);
+      toast({
+        title: 'Admin Login Failed',
+        description: error instanceof Error ? error.message : 'Authentication failed',
+        variant: 'destructive',
+      });
+      
+      return {
+        data: null,
+        error,
+        isAdmin: false,
       };
     }
   };
@@ -319,9 +411,11 @@ export const AuthProvider = ({ children, externalLandingPageUrl = "https://flare
     isLoading: loading,
     signUp,
     signIn,
+    adminSignIn,
     logout,
     updateProfile,
     uploadAvatar,
+    checkAdminStatus,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
