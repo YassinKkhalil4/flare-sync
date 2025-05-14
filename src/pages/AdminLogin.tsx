@@ -19,8 +19,11 @@ const AdminLogin = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  console.log('AdminLogin component rendered');
+
   // Redirect if user is already logged in as admin
   useEffect(() => {
+    console.log('AdminLogin useEffect - user status:', user);
     if (user?.isAdmin) {
       navigate('/admin');
     }
@@ -32,6 +35,7 @@ const AdminLogin = () => {
     setErrorMessage(null);
 
     try {
+      console.log('Attempting admin login with:', email);
       const { error, isAdmin } = await adminSignIn({ email, password });
       
       if (error) {

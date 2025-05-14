@@ -33,10 +33,16 @@ const PlaceholderPage = () => (
 );
 
 const AppRoutes = () => {
+  console.log('AppRoutes component rendering');
+  
   return (
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/login" element={<Login />} />
+      
+      {/* Explicitly add the admin login route */}
+      <Route path="/admin-login" element={<AdminLogin />} />
+      
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Dashboard />
@@ -101,7 +107,6 @@ const AppRoutes = () => {
       <Route path="/upgrade" element={<PlaceholderPage />} />
       
       {/* Admin routes */}
-      <Route path="/admin-login" element={<AdminLogin />} />
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/admin/create-user" element={<CreateAdminUser />} />
       
