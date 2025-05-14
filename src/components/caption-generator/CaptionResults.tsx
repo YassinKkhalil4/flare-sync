@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Copy, Check, Sparkles } from "lucide-react";
 import { useState } from "react";
 
@@ -23,7 +23,7 @@ export function CaptionResults({ captions, isLoading = false, captionId, onSaveC
     setCopiedIndex(index);
     toast({
       title: "Caption copied",
-      description: "Caption has been copied to clipboard",
+      description: "Caption has been copied to clipboard"
     });
     setTimeout(() => setCopiedIndex(null), 2000);
   };

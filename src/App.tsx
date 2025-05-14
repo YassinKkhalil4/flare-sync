@@ -12,7 +12,7 @@ import { encryptionService } from "./services/encryptionService";
 import { databaseEncryptionService } from "./services/databaseEncryptionService";
 import { supabase } from "./integrations/supabase/client";
 import LandingPage from "./pages/Landing";
-import { toast } from "./components/ui/use-toast";
+import { toast } from "./hooks/use-toast";
 import { initializeAppEnvironment } from "./utils/appSetup";
 
 // Create a new QueryClient instance
@@ -85,7 +85,7 @@ const App = () => {
           
           toast({
             title: "Signed in successfully",
-            description: "Welcome back to FlareSync!",
+            description: "Welcome back to FlareSync!"
           });
         } catch (error) {
           console.error("External auth error:", error);

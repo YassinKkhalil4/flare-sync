@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { BrandMatchRequest, BrandMatchResult, CreatorProfile, BrandProfile } from '@/types/brandMatchmaking';
 import { useAuth } from '@/context/AuthContext';
 
@@ -59,7 +59,7 @@ export const useBrandMatchmaker = () => {
       toast({
         variant: 'destructive',
         title: 'Brand Matchmaking Failed',
-        description: errorMessage,
+        description: errorMessage
       });
       
       throw error;
@@ -90,14 +90,14 @@ export const useBrandMatchmaker = () => {
     onSuccess: () => {
       toast({
         title: 'Brand Matches Found',
-        description: 'We found potential brand partners for you!',
+        description: 'We found potential brand partners for you!'
       });
     },
     onError: (error) => {
       toast({
         variant: 'destructive',
         title: 'Matchmaking Failed',
-        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred'
       });
     },
   });

@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { CaptionGenerationRequest, CaptionGenerationResponse, SavedCaption } from '@/types/caption';
 
 export const useCaptionGenerator = () => {
@@ -38,7 +38,7 @@ export const useCaptionGenerator = () => {
       toast({
         variant: 'destructive',
         title: 'Caption Generation Failed',
-        description: errorMessage,
+        description: errorMessage
       });
       
       throw error;
@@ -54,7 +54,7 @@ export const useCaptionGenerator = () => {
       if (data.success) {
         toast({
           title: 'Captions Generated Successfully',
-          description: `${data.captions.length} captions have been created.`,
+          description: `${data.captions.length} captions have been created.`
         });
       }
     },
@@ -62,7 +62,7 @@ export const useCaptionGenerator = () => {
       toast({
         variant: 'destructive',
         title: 'Caption Generation Failed',
-        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        description: error instanceof Error ? error.message : 'An unexpected error occurred'
       });
     },
   });
@@ -101,7 +101,7 @@ export const useCaptionGenerator = () => {
       
       toast({
         title: 'Caption Saved',
-        description: 'Your selected caption has been saved.',
+        description: 'Your selected caption has been saved.'
       });
       
       // Refresh the saved captions
@@ -114,7 +114,7 @@ export const useCaptionGenerator = () => {
       toast({
         variant: 'destructive',
         title: 'Failed to Save Caption',
-        description: 'There was an error saving your selected caption.',
+        description: 'There was an error saving your selected caption.'
       });
       
       return false;
