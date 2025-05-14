@@ -1,33 +1,38 @@
 
-import * as React from "react"
-import { toast as sonnerToast } from "sonner"
+import { toast as sonnerToast, type Toast } from "sonner";
+import { ReactNode } from "react";
+
+/**
+ * Custom toast hook for consistent toast notifications throughout the app
+ */
 
 export type ToastProps = {
-  title?: string
-  description?: React.ReactNode
-  action?: React.ReactNode
-  variant?: "default" | "destructive"
-}
+  title?: string;
+  description?: ReactNode;
+  variant?: "default" | "destructive" | "success";
+};
 
-// Standalone toast function for use outside of React components
-export const toast = ({ title, description, variant, action }: ToastProps) => {
-  console.log("Toast triggered:", { title, description, variant })
+export function toast(props: ToastProps) {
+  const { variant = "default" } = props;
   
-  if (variant === 'destructive') {
-    console.error("Toast error:", description || title)
-    sonnerToast.error(title, {
-      description: description as string,
-      action
-    })
-  } else {
-    sonnerToast(title, {
-      description: description as string,
-      action
-    })
+  switch (variant) {
+    case "destructive":
+      return sonnerToast.error(props.title, {
+        description: props.description,
+      });
+    case "success":
+      return sonnerToast.success(props.title, {
+        description: props.description,
+      });
+    default:
+      return sonnerToast(props.title, {
+        description: props.description,
+      });
   }
 }
 
-// Hook for component use
 export const useToast = () => {
-  return { toast }
-}
+  return {
+    toast,
+  };
+};

@@ -7,6 +7,7 @@ import { useAdmin, AdminPermission } from '@/services/adminService';
 import { toast } from '@/components/ui/use-toast';
 import { Loader2, Shield } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const CreateAdminUser = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ const CreateAdminUser = () => {
   const { isAdmin, createAdminUser } = useAdmin();
   const [isLoading, setIsLoading] = useState(false);
   const [isCreated, setIsCreated] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   // Admin user details
   const adminDetails = {
@@ -34,33 +36,44 @@ const CreateAdminUser = () => {
 
   useEffect(() => {
     const checkAdminStatus = async () => {
-      const adminStatus = await isAdmin();
-      if (!adminStatus) {
-        toast({
-          title: 'Access Denied',
-          description: 'You must be an admin to access this page',
-          variant: 'destructive',
-        });
-        navigate('/admin-login');
+      try {
+        console.log("Checking admin status");
+        const adminStatus = await isAdmin();
+        console.log("Admin status:", adminStatus);
+        if (!adminStatus && user) {
+          toast({
+            title: 'Access Denied',
+            description: 'You must be an admin to access this page',
+            variant: 'destructive',
+          });
+          navigate('/admin-login');
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        setError("Failed to verify admin status");
       }
     };
 
-    checkAdminStatus();
-  }, [isAdmin, navigate]);
+    if (user) {
+      checkAdminStatus();
+    }
+  }, [isAdmin, navigate, user]);
 
   useEffect(() => {
     // Create admin user automatically when the component mounts
-    if (!isCreated && !isLoading) {
+    if (!isCreated && !isLoading && user) {
       handleCreate();
     }
-  }, [isCreated]);
+  }, [isCreated, user]);
 
   const handleCreate = async () => {
     if (isCreated) return;
     
     setIsLoading(true);
+    setError(null);
     
     try {
+      console.log("Creating admin user");
       const success = await createAdminUser(
         adminDetails.email,
         adminDetails.password,
@@ -69,10 +82,12 @@ const CreateAdminUser = () => {
       );
 
       if (success) {
+        console.log("Admin user created successfully");
         setIsCreated(true);
         toast({
           title: 'Admin Created',
           description: `Successfully created admin user: ${adminDetails.fullName} (${adminDetails.email})`,
+          variant: 'success',
         });
         
         // Give some time for the toast to show before redirecting
@@ -84,6 +99,7 @@ const CreateAdminUser = () => {
       }
     } catch (error) {
       console.error('Error creating admin:', error);
+      setError(error instanceof Error ? error.message : 'Failed to create admin user');
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to create admin user',
@@ -94,6 +110,7 @@ const CreateAdminUser = () => {
     }
   };
 
+  // Special case: If no user at all, show login prompt
   if (!user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -125,7 +142,13 @@ const CreateAdminUser = () => {
             <p><strong>Email:</strong> {adminDetails.email}</p>
             <p><strong>Full Name:</strong> {adminDetails.fullName}</p>
             <p><strong>Role:</strong> {adminDetails.role}</p>
-            <p><strong>Status:</strong> {isCreated ? 'Created successfully' : 'Creating...'}</p>
+            <p><strong>Status:</strong> {isCreated ? 'Created successfully' : isLoading ? 'Creating...' : 'Waiting to create'}</p>
+            {error && (
+              <div className="text-red-500 text-sm mt-2">
+                <p className="font-medium">Error:</p>
+                <p>{error}</p>
+              </div>
+            )}
           </div>
         </CardContent>
         <CardFooter>
@@ -138,7 +161,13 @@ const CreateAdminUser = () => {
             ) : isCreated ? (
               <p className="text-green-600 font-medium">Admin user created successfully!</p>
             ) : (
-              <p className="text-amber-600">Initializing...</p>
+              <Button 
+                className="w-full" 
+                onClick={handleCreate} 
+                disabled={isLoading}
+              >
+                Create Admin User
+              </Button>
             )}
           </div>
         </CardFooter>

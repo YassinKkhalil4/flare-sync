@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from '@/components/ui/use-toast';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -17,161 +18,161 @@ const AdminLogin = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const { user } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
 
-  console.log('AdminLogin component rendered');
-
-  // Redirect if user is already logged in as admin
   useEffect(() => {
-    console.log('AdminLogin useEffect - user status:', user);
+    console.log("AdminLogin component rendered");
+    console.log("AdminLogin useEffect - user status:", user);
     if (user?.isAdmin) {
       navigate('/admin');
     }
   }, [user, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const validateEmail = (email: string) => {
+    return email.includes('@') && email.includes('.');
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setErrorMessage(null);
-
+    
+    if (!validateEmail(email)) {
+      setErrorMessage('Please enter a valid email address');
+      return;
+    }
+    
+    if (!password || password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters');
+      return;
+    }
+    
+    setIsLoading(true);
+    
     try {
-      console.log('Attempting admin login with:', email);
+      console.log("Attempting admin login with:", email);
       
-      // First, clear any existing auth data to prevent conflicts
-      try {
-        // Clear auth storage
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-            localStorage.removeItem(key);
-          }
-        });
-        
-        // Try to sign out first to clear any existing sessions
-        await supabase.auth.signOut({ scope: 'global' });
-        console.log('Cleared previous auth state');
-      } catch (clearError) {
-        console.warn('Error clearing previous auth state:', clearError);
-        // Continue with login attempt even if this fails
-      }
-
-      // Use direct Supabase client to avoid captcha issues when in development/testing
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // First sign in with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
-      console.log('Auth response:', { data, error });
-      
-      if (error) {
-        throw new Error(error.message);
+      if (authError) {
+        console.error("Auth error:", authError);
+        throw new Error(authError.message || 'Authentication failed');
       }
       
-      if (!data?.user) {
-        throw new Error('Authentication failed. Please check your credentials.');
+      if (!authData?.user) {
+        throw new Error('No user data returned');
       }
-
-      // Check if the user has admin role
+      
+      // Then check if user has admin role
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', data.user.id)
+        .eq('user_id', authData.user.id)
         .eq('role', 'admin')
         .maybeSingle();
-        
-      console.log('Admin role check:', { roleData, roleError });
       
       if (roleError) {
-        throw new Error('Error verifying admin access: ' + roleError.message);
+        console.error("Role check error:", roleError);
+        throw new Error('Error verifying admin status');
       }
       
       if (!roleData) {
-        // User is not an admin, sign them out
+        // Sign out if not admin
         await supabase.auth.signOut();
         throw new Error('Access denied. Admin privileges required.');
       }
       
+      console.log("Admin login successful");
+      
       toast({
-        title: 'Admin Login Successful',
-        description: 'Welcome to the admin dashboard.',
+        title: 'Login Successful',
+        description: 'Welcome to the admin dashboard',
+        variant: 'success',
       });
       
       // Force a page reload to ensure all auth state is refreshed
       setTimeout(() => {
-        window.location.href = '/admin';
+        navigate('/admin');
       }, 500);
 
     } catch (error) {
-      console.error('Admin authentication error:', error);
-      const errorMsg = error instanceof Error ? error.message : 'Authentication failed';
-      setErrorMessage(errorMsg);
-      toast({
-        title: 'Admin Login Failed',
-        description: errorMsg,
-        variant: 'destructive',
-      });
+      console.error('Login error:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Login failed');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const isSignInDisabled = !email || !password || isLoading;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
+    <div className="flex items-center justify-center min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl">Admin Portal</CardTitle>
-          <CardDescription>
-            Access the FlareSync admin dashboard
+          <CardTitle className="text-2xl font-bold text-center">Admin Login</CardTitle>
+          <CardDescription className="text-center">
+            Enter your credentials to access the admin dashboard
           </CardDescription>
         </CardHeader>
-        
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            {errorMessage && (
-              <div className="bg-destructive/15 text-destructive p-3 rounded-md flex items-start">
-                <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-                <span className="text-sm">{errorMessage}</span>
-              </div>
-            )}
-
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
-                type="email"
+                placeholder="admin@example.com"
+                type="email" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@example.com"
-                required
                 disabled={isLoading}
+                required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+              </div>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
                 disabled={isLoading}
+                required
               />
             </div>
-          </CardContent>
-          <CardFooter>
-            <Button disabled={isLoading} type="submit" className="w-full">
+            
+            {errorMessage && (
+              <div className="bg-destructive/15 p-3 rounded-md flex gap-2">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+                <p className="text-sm text-destructive">{errorMessage}</p>
+              </div>
+            )}
+            
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isSignInDisabled}
+            >
               {isLoading ? (
-                <div className="flex items-center">
-                  <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                  Authenticating...
-                </div>
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing In...
+                </>
               ) : (
-                'Login as Admin'
+                "Sign In"
               )}
             </Button>
-          </CardFooter>
-        </form>
+          </form>
+        </CardContent>
+        <CardFooter className="flex justify-center">
+          <p className="text-sm text-muted-foreground">
+            Admin access only. Unauthorized access is prohibited.
+          </p>
+        </CardFooter>
       </Card>
     </div>
   );
