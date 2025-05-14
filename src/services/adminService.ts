@@ -3,8 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { encryptionService } from './encryptionService';
 import { useAuth } from '@/context/AuthContext';
 
+// Admin permission type
+export type AdminPermission = 'users_manage' | 'content_manage' | 'social_manage' | 'conversations_manage' | 'analytics_view' | 'admins_manage';
+
 /**
- * Admin service for accessing encrypted data
+ * Admin service for accessing encrypted data and managing admin operations
  */
 class AdminService {
   /**
@@ -22,6 +25,55 @@ class AdminService {
       return !error && roleData !== null;
     } catch (error) {
       console.error('Error checking admin status:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get admin permissions for a user
+   */
+  async getAdminPermissions(adminId: string): Promise<AdminPermission[]> {
+    try {
+      const { data, error } = await supabase
+        .from('admin_permissions')
+        .select('permission')
+        .eq('admin_id', adminId);
+        
+      if (error) throw error;
+      
+      return data?.map(p => p.permission as AdminPermission) || [];
+    } catch (error) {
+      console.error('Error getting admin permissions:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Set admin permissions for a user
+   */
+  async setAdminPermissions(adminId: string, permissions: AdminPermission[]): Promise<boolean> {
+    try {
+      // First delete existing permissions
+      await supabase
+        .from('admin_permissions')
+        .delete()
+        .eq('admin_id', adminId);
+        
+      // Then insert new permissions
+      if (permissions.length > 0) {
+        const { error } = await supabase
+          .from('admin_permissions')
+          .insert(permissions.map(permission => ({
+            admin_id: adminId,
+            permission
+          })));
+          
+        if (error) throw error;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error setting admin permissions:', error);
       return false;
     }
   }
@@ -100,7 +152,7 @@ class AdminService {
           resource_type,
           resource_id,
           access_time,
-          profiles:admin_id (
+          profiles!admin_id(
             full_name,
             username
           )
@@ -114,6 +166,90 @@ class AdminService {
       return null;
     }
   }
+
+  /**
+   * Get all admin users with their permissions
+   */
+  async getAllAdmins(): Promise<any[] | null> {
+    if (!(await this.isAdmin())) {
+      console.error('Admin access required');
+      return null;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select(`
+          user_id,
+          profiles!user_id(
+            full_name,
+            email
+          )
+        `)
+        .eq('role', 'admin');
+
+      if (error) throw error;
+      
+      // Get permissions for each admin
+      const adminsWithPermissions = await Promise.all((data || []).map(async (admin) => {
+        const permissions = await this.getAdminPermissions(admin.user_id);
+        
+        return {
+          id: admin.user_id,
+          email: admin.profiles?.email,
+          full_name: admin.profiles?.full_name,
+          permissions
+        };
+      }));
+      
+      return adminsWithPermissions;
+    } catch (error) {
+      console.error('Failed to get all admins:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Create a new admin user
+   */
+  async createAdminUser(email: string, password: string, fullName: string, permissions: AdminPermission[]): Promise<boolean> {
+    if (!(await this.isAdmin())) {
+      console.error('Admin access required');
+      return false;
+    }
+
+    try {
+      // Create user
+      const { data, error } = await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: fullName
+        }
+      });
+
+      if (error || !data.user) throw error;
+
+      // Add admin role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: data.user.id,
+          role: 'admin'
+        });
+
+      if (roleError) throw roleError;
+
+      // Set permissions
+      await this.setAdminPermissions(data.user.id, permissions);
+
+      return true;
+    } catch (error) {
+      console.error('Failed to create admin user:', error);
+      return false;
+    }
+  }
 }
 
 export const adminService = new AdminService();
@@ -123,7 +259,7 @@ export const useAdmin = () => {
   const { user } = useAuth();
 
   return {
-    isAdmin: async () => {
+    isAdmin: async (): Promise<boolean> => {
       if (!user) return false;
       return adminService.isAdmin();
     },
@@ -134,6 +270,29 @@ export const useAdmin = () => {
     getAdminAccessLogs: async () => {
       if (!user) return null;
       return adminService.getAdminAccessLogs();
+    },
+    getAdminPermissions: async (adminId: string = user?.id || '') => {
+      if (!user) return [];
+      return adminService.getAdminPermissions(adminId);
+    },
+    setAdminPermissions: async (adminId: string, permissions: AdminPermission[]) => {
+      if (!user) return false;
+      return adminService.setAdminPermissions(adminId, permissions);
+    },
+    getAllAdmins: async () => {
+      if (!user) return null;
+      return adminService.getAllAdmins();
+    },
+    createAdminUser: async (email: string, password: string, fullName: string, permissions: AdminPermission[]) => {
+      if (!user) return false;
+      return adminService.createAdminUser(email, password, fullName, permissions);
+    },
+    hasPermission: async (permission: AdminPermission): Promise<boolean> => {
+      if (!user) return false;
+      if (!(await adminService.isAdmin())) return false;
+      
+      const permissions = await adminService.getAdminPermissions(user.id);
+      return permissions.includes(permission);
     }
   };
 };

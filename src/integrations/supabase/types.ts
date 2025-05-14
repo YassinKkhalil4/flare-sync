@@ -36,6 +36,27 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_permissions: {
+        Row: {
+          admin_id: string
+          created_at: string | null
+          id: string
+          permission: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string | null
+          id?: string
+          permission: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string | null
+          id?: string
+          permission?: string
+        }
+        Relationships: []
+      }
       ai_captions: {
         Row: {
           captions: Json
