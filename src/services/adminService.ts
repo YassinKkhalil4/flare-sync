@@ -1,6 +1,8 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { encryptionService } from './encryptionService';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from '@/components/ui/use-toast';
 
 // Admin permission type
 export type AdminPermission = 'users_manage' | 'content_manage' | 'social_manage' | 'conversations_manage' | 'analytics_view' | 'admins_manage';
