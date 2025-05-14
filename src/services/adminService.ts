@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { encryptionService } from './encryptionService';
 import { useAuth } from '@/context/AuthContext';
@@ -9,12 +8,13 @@ export type AdminPermission = 'users_manage' | 'content_manage' | 'social_manage
 // Interface for the data structure returned from Supabase for admin users
 interface AdminData {
   user_id: string;
+  profiles?: {
+    full_name?: string;
+    email?: string;
+  }[];
   users?: {
     email?: string;
     created_at?: string;
-  };
-  profiles?: {
-    full_name?: string;
   };
 }
 
@@ -203,13 +203,13 @@ class AdminService {
       if (error) throw error;
       
       // Get permissions for each admin
-      const adminsWithPermissions = await Promise.all((data || []).map(async (admin) => {
+      const adminsWithPermissions = await Promise.all((data || []).map(async (admin: AdminData) => {
         const permissions = await this.getAdminPermissions(admin.user_id);
         
         return {
           id: admin.user_id,
-          email: admin.profiles?.email || '',
-          full_name: admin.profiles?.full_name || '',
+          email: admin.profiles && admin.profiles[0] ? admin.profiles[0].email : '',
+          full_name: admin.profiles && admin.profiles[0] ? admin.profiles[0].full_name || '' : '',
           permissions
         };
       }));
