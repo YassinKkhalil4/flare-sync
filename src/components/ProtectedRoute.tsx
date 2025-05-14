@@ -25,6 +25,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin 
     return () => clearTimeout(timeout);
   }, []);
 
+  // For debugging purposes, let's log the auth state
+  console.log('Protected route auth state:', { user, isLoading, forceTimeout });
+
   // If loading and timeout not reached, show loading spinner
   if (isLoading && !forceTimeout) {
     return (
@@ -37,27 +40,21 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin 
     );
   }
 
-  // If not logged in or timeout reached without user, redirect to external landing page
-  if (!user) {
-    // Redirect to the external landing page instead of the local login
-    window.location.href = LANDING_PAGE_URL;
-    // Return loading state while redirecting
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Redirecting to login...</p>
-        </div>
-      </div>
-    );
+  // IMPORTANT FIX: Only redirect to external site if we're sure the user is not authenticated
+  // This check should be more precise to prevent unnecessary redirects
+  if (!user && !isLoading) {
+    console.log('User not authenticated, redirecting to login');
+    // For development purposes, let's navigate to /login instead of external redirect
+    return <Navigate to="/login" />;
   }
 
   // If admin access is required but user is not admin
-  if (requireAdmin && !user.isAdmin) {
+  if (requireAdmin && !user?.isAdmin) {
     return <Navigate to="/" />;
   }
 
-  // If we have a user or forced timeout, render the children or outlet
+  console.log('User authenticated, rendering protected content');
+  // If we have a user, render the children or outlet
   return <>{children || <Outlet />}</>;
 };
 

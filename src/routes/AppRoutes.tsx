@@ -20,6 +20,7 @@ import Settings from '../pages/Settings';
 import NotificationsPage from '../pages/NotificationsPage';
 import TermsOfUse from '../pages/TermsOfUse';
 import TermsAndConditions from '../pages/TermsAndConditions';
+import Login from '../pages/Login';
 
 // Placeholder for pages that don't exist yet
 const PlaceholderPage = () => (
@@ -35,6 +36,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
+      <Route path="/login" element={<Login />} />
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Dashboard />
