@@ -203,7 +203,7 @@ class AdminService {
       if (error) throw error;
       
       // Get permissions for each admin
-      const adminsWithPermissions = await Promise.all((data || []).map(async (admin: AdminData) => {
+      const adminsWithPermissions = await Promise.all((data || []).map(async (admin) => {
         const permissions = await this.getAdminPermissions(admin.user_id);
         
         return {
@@ -218,6 +218,51 @@ class AdminService {
     } catch (error) {
       console.error('Failed to get all admins:', error);
       return null;
+    }
+  }
+  
+  /**
+   * Create a new admin user
+   */
+  async createAdminUser(email: string, password: string, fullName: string, permissions: AdminPermission[]): Promise<boolean> {
+    if (!(await this.isAdmin())) {
+      console.error('Admin access required');
+      return false;
+    }
+
+    try {
+      // Create user account
+      const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: fullName,
+          role: 'admin'
+        }
+      });
+      
+      if (userError || !userData?.user) {
+        throw userError || new Error('Failed to create user');
+      }
+
+      // Add admin role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: userData.user.id,
+          role: 'admin'
+        });
+        
+      if (roleError) throw roleError;
+
+      // Set permissions
+      await this.setAdminPermissions(userData.user.id, permissions);
+
+      return true;
+    } catch (error) {
+      console.error('Failed to create admin user:', error);
+      return false;
     }
   }
 }
@@ -252,6 +297,10 @@ export const useAdmin = () => {
     getAllAdmins: async () => {
       if (!user) return null;
       return adminService.getAllAdmins();
+    },
+    createAdminUser: async (email: string, password: string, fullName: string, permissions: AdminPermission[]) => {
+      if (!user) return false;
+      return adminService.createAdminUser(email, password, fullName, permissions);
     },
     hasPermission: async (permission: AdminPermission): Promise<boolean> => {
       if (!user) return false;

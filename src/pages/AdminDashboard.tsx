@@ -202,7 +202,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // Handle create new admin
   const handleCreateAdmin = async () => {
     setIsLoading(true);
     try {
