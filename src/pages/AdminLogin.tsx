@@ -25,9 +25,27 @@ const AdminLogin = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [creationMessage, setCreationMessage] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   
+  // Simple captcha states
+  const [captchaValue, setCaptchaValue] = useState('');
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
+  const [captchaQuestion, setCaptchaQuestion] = useState('');
+  
   const { adminSignIn, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Generate a simple math captcha
+  const generateCaptcha = () => {
+    const num1 = Math.floor(Math.random() * 10);
+    const num2 = Math.floor(Math.random() * 10);
+    setCaptchaQuestion(`${num1} + ${num2} = ?`);
+    setCaptchaAnswer((num1 + num2).toString());
+  };
+
+  // Generate captcha on component mount
+  useEffect(() => {
+    generateCaptcha();
+  }, []);
 
   // Redirect if user is already logged in as admin
   useEffect(() => {
@@ -68,6 +86,11 @@ const AdminLogin = () => {
     setCreationMessage(null);
     
     try {
+      // Validate captcha
+      if (captchaValue !== captchaAnswer) {
+        throw new Error('Incorrect captcha answer. Please try again.');
+      }
+      
       // Validate passwords match
       if (newPassword !== confirmPassword) {
         throw new Error('Passwords do not match');
@@ -81,7 +104,8 @@ const AdminLogin = () => {
           data: {
             full_name: newName,
             role: 'admin'
-          }
+          },
+          captchaToken: captchaValue // Add captcha token to the request
         }
       });
       
@@ -106,11 +130,13 @@ const AdminLogin = () => {
         type: 'success'
       });
       
-      // Clear form
+      // Clear form and generate new captcha
       setNewEmail('');
       setNewPassword('');
       setConfirmPassword('');
       setNewName('');
+      setCaptchaValue('');
+      generateCaptcha();
       
       toast({
         title: 'Admin Created',
@@ -124,6 +150,8 @@ const AdminLogin = () => {
         message: errorMsg,
         type: 'error'
       });
+      // Generate new captcha on error
+      generateCaptcha();
     } finally {
       setIsLoading(false);
     }
@@ -265,6 +293,31 @@ const AdminLogin = () => {
                     disabled={isLoading}
                     minLength={6}
                   />
+                </div>
+                
+                {/* Simple captcha field */}
+                <div className="space-y-2 pt-2 border-t">
+                  <Label htmlFor="captcha" className="flex items-center">
+                    <span>Captcha: {captchaQuestion}</span>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      className="h-8 px-2 ml-2"
+                      onClick={generateCaptcha}
+                    >
+                      ↻
+                    </Button>
+                  </Label>
+                  <Input
+                    id="captcha"
+                    type="text"
+                    value={captchaValue}
+                    onChange={(e) => setCaptchaValue(e.target.value)}
+                    placeholder="Enter your answer"
+                    required
+                    disabled={isLoading}
+                  />
+                  <p className="text-xs text-muted-foreground">Please solve this simple math problem to verify you're human.</p>
                 </div>
               </CardContent>
               
