@@ -1,37 +1,36 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAdmin, AdminPermission } from '@/services/adminService';
 import { toast } from '@/components/ui/use-toast';
 import { Loader2, Shield } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useEffect } from 'react';
 
 const CreateAdminUser = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin, createAdminUser } = useAdmin();
   const [isLoading, setIsLoading] = useState(false);
+  const [isCreated, setIsCreated] = useState(false);
   
-  const [formData, setFormData] = useState({
+  // Admin user details
+  const adminDetails = {
     email: 'yassinkhalil@flaresync.org',
-    password: 'Admin@123456',
+    password: 'Khalil_270110',
     fullName: 'Yassin Khalil',
-  });
+    role: 'founder'
+  };
 
-  const [permissions, setPermissions] = useState<Record<string, boolean>>({
-    users_manage: true,
-    content_manage: true,
-    social_manage: true,
-    conversations_manage: true,
-    analytics_view: true,
-    admins_manage: true
-  });
+  const permissions: AdminPermission[] = [
+    'users_manage',
+    'content_manage',
+    'social_manage',
+    'conversations_manage',
+    'analytics_view',
+    'admins_manage'
+  ];
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -49,28 +48,37 @@ const CreateAdminUser = () => {
     checkAdminStatus();
   }, [isAdmin, navigate]);
 
+  useEffect(() => {
+    // Create admin user automatically when the component mounts
+    if (!isCreated && !isLoading) {
+      handleCreate();
+    }
+  }, [isCreated]);
+
   const handleCreate = async () => {
+    if (isCreated) return;
+    
     setIsLoading(true);
     
     try {
-      // Get selected permissions
-      const selectedPermissions = Object.entries(permissions)
-        .filter(([_, isEnabled]) => isEnabled)
-        .map(([permission]) => permission as AdminPermission);
-
       const success = await createAdminUser(
-        formData.email,
-        formData.password,
-        formData.fullName,
-        selectedPermissions
+        adminDetails.email,
+        adminDetails.password,
+        adminDetails.fullName,
+        permissions
       );
 
       if (success) {
+        setIsCreated(true);
         toast({
           title: 'Admin Created',
-          description: `Successfully created admin user ${formData.email}`,
+          description: `Successfully created admin user: ${adminDetails.fullName} (${adminDetails.email})`,
         });
-        navigate('/admin');
+        
+        // Give some time for the toast to show before redirecting
+        setTimeout(() => {
+          navigate('/admin');
+        }, 2000);
       } else {
         throw new Error('Failed to create admin user');
       }
@@ -110,80 +118,29 @@ const CreateAdminUser = () => {
             <Shield className="h-6 w-6 text-primary" />
             <CardTitle>Create Admin User</CardTitle>
           </div>
-          <CardDescription>Create a new admin user with specific permissions</CardDescription>
+          <CardDescription>Creating admin user automatically...</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input 
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              disabled
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input 
-              id="password"
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
-              disabled
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="fullName">Full Name</Label>
-            <Input 
-              id="fullName"
-              value={formData.fullName}
-              onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-              disabled
-            />
-          </div>
-          
-          <div className="space-y-3 pt-2">
-            <Label>Permissions</Label>
-            
-            <div className="grid grid-cols-1 gap-2">
-              {Object.entries(permissions).map(([key, value]) => (
-                <div key={key} className="flex items-center space-x-2">
-                  <Checkbox 
-                    id={key}
-                    checked={value}
-                    onCheckedChange={(checked) => {
-                      setPermissions({...permissions, [key]: checked === true});
-                    }}
-                  />
-                  <label 
-                    htmlFor={key}
-                    className="text-sm font-medium leading-none"
-                  >
-                    {key.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                  </label>
-                </div>
-              ))}
-            </div>
+          <div className="flex flex-col space-y-2">
+            <p><strong>Email:</strong> {adminDetails.email}</p>
+            <p><strong>Full Name:</strong> {adminDetails.fullName}</p>
+            <p><strong>Role:</strong> {adminDetails.role}</p>
+            <p><strong>Status:</strong> {isCreated ? 'Created successfully' : 'Creating...'}</p>
           </div>
         </CardContent>
         <CardFooter>
-          <Button 
-            onClick={handleCreate} 
-            disabled={isLoading}
-            className="w-full"
-          >
+          <div className="w-full text-center">
             {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating Admin...
-              </>
+              <div className="flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                <span>Creating admin account...</span>
+              </div>
+            ) : isCreated ? (
+              <p className="text-green-600 font-medium">Admin user created successfully!</p>
             ) : (
-              'Create Admin User'
+              <p className="text-amber-600">Initializing...</p>
             )}
-          </Button>
+          </div>
         </CardFooter>
       </Card>
     </div>
