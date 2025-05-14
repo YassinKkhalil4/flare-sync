@@ -223,6 +223,26 @@ export interface Database {
           read?: boolean
         }
       }
+      user_roles: {
+        Row: {
+          id: string
+          user_id: string
+          role: 'user' | 'creator' | 'brand' | 'admin'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          role: 'user' | 'creator' | 'brand' | 'admin'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          role?: 'user' | 'creator' | 'brand' | 'admin'
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -231,7 +251,7 @@ export interface Database {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      app_role: 'user' | 'creator' | 'brand' | 'admin'
     }
   }
 }
