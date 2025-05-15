@@ -78,10 +78,20 @@ const CreateAdminUser = () => {
     
     try {
       console.log("Creating admin user");
-      // First, check if admin user already exists
-      const { data, error: checkError } = await supabase.auth.admin.getUserByEmail(adminDetails.email);
+      // Check if admin user already exists by using a query to the user_roles table
+      // instead of the unsupported getUserByEmail method
+      const { data: existingAdminData, error: existingAdminError } = await supabase
+        .from('user_roles')
+        .select('user_id, profiles:profiles!inner(email)')
+        .eq('role', 'admin')
+        .eq('profiles.email', adminDetails.email)
+        .maybeSingle();
+
+      if (existingAdminError) {
+        console.error("Error checking for existing admin:", existingAdminError);
+      }
       
-      if (data?.user) {
+      if (existingAdminData) {
         console.log("Admin user already exists");
         setIsCreated(true);
         toast({
