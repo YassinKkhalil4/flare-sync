@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAdmin, AdminPermission } from '@/services/adminService';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { Loader2, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
