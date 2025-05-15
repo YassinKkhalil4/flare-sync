@@ -51,6 +51,7 @@ const CreateAdminUser = () => {
       if (existingUserError && existingUserError.code !== 'PGRST116') {
         // PGRST116 is "Results contain 0 rows" which just means no admin exists yet
         console.error("Error checking for existing admin:", existingUserError);
+        throw existingUserError;
       }
       
       if (existingUserData) {
@@ -58,8 +59,7 @@ const CreateAdminUser = () => {
         setIsCreated(true);
         toast({
           title: 'Admin User Exists',
-          description: `Admin user already exists`,
-          variant: 'success'
+          description: 'Admin user already exists'
         });
         
         // Give some time for the toast to show before redirecting
@@ -69,6 +69,8 @@ const CreateAdminUser = () => {
         return;
       }
       
+      // If we get here, no admin exists, so try to create one
+      console.log("No admin user found, creating new admin");
       const success = await createAdminUser(
         adminDetails.email,
         adminDetails.password,
@@ -81,8 +83,7 @@ const CreateAdminUser = () => {
         setIsCreated(true);
         toast({
           title: 'Admin Created',
-          description: `Successfully created admin user: ${adminDetails.fullName} (${adminDetails.email})`,
-          variant: 'success'
+          description: `Successfully created admin user: ${adminDetails.fullName} (${adminDetails.email})`
         });
         
         // Give some time for the toast to show before redirecting

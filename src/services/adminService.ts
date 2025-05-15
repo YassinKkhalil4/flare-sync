@@ -2,7 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { encryptionService } from './encryptionService';
 import { useAuth } from '@/context/AuthContext';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 // Admin permission type
 export type AdminPermission = 'users_manage' | 'content_manage' | 'social_manage' | 'conversations_manage' | 'analytics_view' | 'admins_manage';
@@ -227,12 +227,9 @@ class AdminService {
    * Create a new admin user
    */
   async createAdminUser(email: string, password: string, fullName: string, permissions: AdminPermission[]): Promise<boolean> {
-    if (!(await this.isAdmin())) {
-      console.error('Admin access required');
-      return false;
-    }
-
     try {
+      console.log("Starting admin user creation process");
+      
       // Create user account
       const { data: userData, error: userError } = await supabase.auth.admin.createUser({
         email,
@@ -245,8 +242,11 @@ class AdminService {
       });
       
       if (userError || !userData?.user) {
+        console.error("Admin user creation error:", userError);
         throw userError || new Error('Failed to create user');
       }
+      
+      console.log("User created successfully, adding admin role");
 
       // Add admin role
       const { error: roleError } = await supabase
@@ -256,10 +256,17 @@ class AdminService {
           role: 'admin'
         });
         
-      if (roleError) throw roleError;
+      if (roleError) {
+        console.error("Error adding admin role:", roleError);
+        throw roleError;
+      }
+
+      console.log("Admin role added successfully, setting permissions");
 
       // Set permissions
       await this.setAdminPermissions(userData.user.id, permissions);
+      
+      console.log("Admin creation process completed successfully");
 
       return true;
     } catch (error) {
@@ -277,7 +284,6 @@ export const useAdmin = () => {
 
   return {
     isAdmin: async (): Promise<boolean> => {
-      if (!user) return false;
       return adminService.isAdmin();
     },
     getDecryptedSocialProfile: async (profileId: string) => {
@@ -301,7 +307,8 @@ export const useAdmin = () => {
       return adminService.getAllAdmins();
     },
     createAdminUser: async (email: string, password: string, fullName: string, permissions: AdminPermission[]) => {
-      if (!user) return false;
+      // For the initial admin user creation, we don't require user to be logged in
+      console.log("Attempting to create admin user:", email);
       return adminService.createAdminUser(email, password, fullName, permissions);
     },
     hasPermission: async (permission: AdminPermission): Promise<boolean> => {
