@@ -1,18 +1,16 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAdmin, AdminPermission } from '@/services/adminService';
 import { toast } from '@/components/ui/use-toast';
 import { Loader2, Shield } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 const CreateAdminUser = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { isAdmin, createAdminUser } = useAdmin();
+  const { createAdminUser } = useAdmin();
   const [isLoading, setIsLoading] = useState(false);
   const [isCreated, setIsCreated] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,42 +32,6 @@ const CreateAdminUser = () => {
     'admins_manage'
   ];
 
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      try {
-        console.log("Checking admin status");
-        const adminStatus = await isAdmin();
-        console.log("Admin status:", adminStatus);
-        if (!adminStatus && user) {
-          toast({
-            title: 'Access Denied',
-            description: 'You must be an admin to access this page',
-            variant: 'destructive',
-          });
-          navigate('/admin-login');
-        }
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-        setError("Failed to verify admin status");
-      }
-    };
-
-    if (user) {
-      checkAdminStatus();
-    }
-  }, [isAdmin, navigate, user]);
-
-  // Create admin user when the page loads if there's a user logged in
-  useEffect(() => {
-    const createInitialAdmin = async () => {
-      if (!isCreated && !isLoading && user) {
-        await handleCreate();
-      }
-    };
-    
-    createInitialAdmin();
-  }, [user]);
-
   const handleCreate = async () => {
     if (isCreated) return;
     
@@ -79,7 +41,6 @@ const CreateAdminUser = () => {
     try {
       console.log("Creating admin user");
       // Check if admin user already exists by using a query to the user_roles table
-      // instead of the unsupported getUserByEmail method
       const { data: existingAdminData, error: existingAdminError } = await supabase
         .from('user_roles')
         .select('user_id, profiles:profiles!inner(email)')
@@ -97,12 +58,12 @@ const CreateAdminUser = () => {
         toast({
           title: 'Admin User Exists',
           description: `Admin user ${adminDetails.email} already exists`,
-          variant: 'success',
+          variant: 'success'
         });
         
         // Give some time for the toast to show before redirecting
         setTimeout(() => {
-          navigate('/admin');
+          navigate('/admin-login');
         }, 2000);
         return;
       }
@@ -120,12 +81,12 @@ const CreateAdminUser = () => {
         toast({
           title: 'Admin Created',
           description: `Successfully created admin user: ${adminDetails.fullName} (${adminDetails.email})`,
-          variant: 'success',
+          variant: 'success'
         });
         
         // Give some time for the toast to show before redirecting
         setTimeout(() => {
-          navigate('/admin');
+          navigate('/admin-login');
         }, 2000);
       } else {
         throw new Error('Failed to create admin user');
@@ -136,29 +97,12 @@ const CreateAdminUser = () => {
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to create admin user',
-        variant: 'destructive',
+        variant: 'destructive'
       });
     } finally {
       setIsLoading(false);
     }
   };
-
-  // Special case: If no user at all, show login prompt
-  if (!user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Card>
-          <CardHeader>
-            <CardTitle>Authorization Required</CardTitle>
-            <CardDescription>Please log in to continue</CardDescription>
-          </CardHeader>
-          <CardFooter>
-            <Button onClick={() => navigate('/admin-login')}>Login</Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="container py-12 max-w-md mx-auto">
@@ -168,14 +112,14 @@ const CreateAdminUser = () => {
             <Shield className="h-6 w-6 text-primary" />
             <CardTitle>Create Admin User</CardTitle>
           </div>
-          <CardDescription>Creating admin user automatically...</CardDescription>
+          <CardDescription>Create the initial admin user for FlareSync</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col space-y-2">
             <p><strong>Email:</strong> {adminDetails.email}</p>
             <p><strong>Full Name:</strong> {adminDetails.fullName}</p>
             <p><strong>Role:</strong> {adminDetails.role}</p>
-            <p><strong>Status:</strong> {isCreated ? 'Created successfully' : isLoading ? 'Creating...' : 'Waiting to create'}</p>
+            <p><strong>Status:</strong> {isCreated ? 'Created successfully' : isLoading ? 'Creating...' : 'Ready to create'}</p>
             {error && (
               <div className="text-red-500 text-sm mt-2">
                 <p className="font-medium">Error:</p>

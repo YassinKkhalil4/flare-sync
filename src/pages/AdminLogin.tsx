@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,9 +19,8 @@ const AdminLogin = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
+  React.useEffect(() => {
     console.log("AdminLogin component rendered");
-    console.log("AdminLogin useEffect - user status:", user);
     if (user?.isAdmin) {
       navigate('/admin');
     }
@@ -89,13 +88,11 @@ const AdminLogin = () => {
       toast({
         title: 'Login Successful',
         description: 'Welcome to the admin dashboard',
-        variant: 'success',
+        variant: 'success'
       });
       
-      // Force a page reload to ensure all auth state is refreshed
-      setTimeout(() => {
-        navigate('/admin');
-      }, 500);
+      // Navigate to admin dashboard
+      navigate('/admin');
 
     } catch (error) {
       console.error('Login error:', error);
@@ -109,16 +106,8 @@ const AdminLogin = () => {
         toast({
           title: 'Admin User Not Found',
           description: 'You may need to create the admin user first',
-          variant: 'destructive',
+          variant: 'destructive'
         });
-        
-        // Add button to navigate to create admin page after a short delay
-        setTimeout(() => {
-          const shouldNavigate = window.confirm('Would you like to create the admin user now?');
-          if (shouldNavigate) {
-            navigate('/create-admin');
-          }
-        }, 1000);
       }
     } finally {
       setIsLoading(false);
