@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAdmin, AdminPermission } from '@/services/adminService';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { Loader2, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -40,24 +40,25 @@ const CreateAdminUser = () => {
     
     try {
       console.log("Creating admin user");
-      // Check if admin user already exists by using a query to the user_roles table
-      const { data: existingAdminData, error: existingAdminError } = await supabase
+      
+      // Check if admin user already exists by using a simpler query
+      const { data: existingUserData, error: existingUserError } = await supabase
         .from('user_roles')
-        .select('user_id, profiles:profiles!inner(email)')
+        .select('user_id, role')
         .eq('role', 'admin')
-        .eq('profiles.email', adminDetails.email)
-        .maybeSingle();
+        .single();
 
-      if (existingAdminError) {
-        console.error("Error checking for existing admin:", existingAdminError);
+      if (existingUserError && existingUserError.code !== 'PGRST116') {
+        // PGRST116 is "Results contain 0 rows" which just means no admin exists yet
+        console.error("Error checking for existing admin:", existingUserError);
       }
       
-      if (existingAdminData) {
+      if (existingUserData) {
         console.log("Admin user already exists");
         setIsCreated(true);
         toast({
           title: 'Admin User Exists',
-          description: `Admin user ${adminDetails.email} already exists`,
+          description: `Admin user already exists`,
           variant: 'success'
         });
         
