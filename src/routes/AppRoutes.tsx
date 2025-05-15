@@ -47,11 +47,7 @@ const AppRoutes = () => {
           <AdminDashboard />
         </ProtectedRoute>
       } />
-      <Route path="/admin/create-user" element={
-        <ProtectedRoute requireAdmin={true}>
-          <CreateAdminUser />
-        </ProtectedRoute>
-      } />
+      <Route path="/admin/create-user" element={<CreateAdminUser />} />
       
       {/* Protected routes */}
       <Route path="/dashboard" element={

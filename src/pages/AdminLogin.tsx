@@ -179,7 +179,7 @@ const AdminLogin = () => {
               <Button
                 variant="link"
                 type="button"
-                onClick={() => navigate('/create-admin')}
+                onClick={() => navigate('/admin/create-user')}
                 className="mt-2"
               >
                 Create Admin User
