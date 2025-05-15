@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
@@ -12,7 +11,7 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const AdminLogin = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState('yassinkhalil@flaresync.org');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -101,6 +100,26 @@ const AdminLogin = () => {
     } catch (error) {
       console.error('Login error:', error);
       setErrorMessage(error instanceof Error ? error.message : 'Login failed');
+      
+      // If login failed and the error might be due to admin user not created yet,
+      // suggest creating admin user first
+      if (error instanceof Error && 
+          (error.message.includes('Invalid login credentials') || 
+           error.message.includes('User not found'))) {
+        toast({
+          title: 'Admin User Not Found',
+          description: 'You may need to create the admin user first',
+          variant: 'destructive',
+        });
+        
+        // Add button to navigate to create admin page after a short delay
+        setTimeout(() => {
+          const shouldNavigate = window.confirm('Would you like to create the admin user now?');
+          if (shouldNavigate) {
+            navigate('/create-admin');
+          }
+        }, 1000);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -166,6 +185,17 @@ const AdminLogin = () => {
                 "Sign In"
               )}
             </Button>
+            
+            <div className="text-center">
+              <Button
+                variant="link"
+                type="button"
+                onClick={() => navigate('/create-admin')}
+                className="mt-2"
+              >
+                Create Admin User
+              </Button>
+            </div>
           </form>
         </CardContent>
         <CardFooter className="flex justify-center">

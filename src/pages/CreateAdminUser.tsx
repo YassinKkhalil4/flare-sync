@@ -59,12 +59,16 @@ const CreateAdminUser = () => {
     }
   }, [isAdmin, navigate, user]);
 
+  // Create admin user when the page loads if there's a user logged in
   useEffect(() => {
-    // Create admin user automatically when the component mounts
-    if (!isCreated && !isLoading && user) {
-      handleCreate();
-    }
-  }, [isCreated, user]);
+    const createInitialAdmin = async () => {
+      if (!isCreated && !isLoading && user) {
+        await handleCreate();
+      }
+    };
+    
+    createInitialAdmin();
+  }, [user]);
 
   const handleCreate = async () => {
     if (isCreated) return;
@@ -74,6 +78,25 @@ const CreateAdminUser = () => {
     
     try {
       console.log("Creating admin user");
+      // First, check if admin user already exists
+      const { data, error: checkError } = await supabase.auth.admin.getUserByEmail(adminDetails.email);
+      
+      if (data?.user) {
+        console.log("Admin user already exists");
+        setIsCreated(true);
+        toast({
+          title: 'Admin User Exists',
+          description: `Admin user ${adminDetails.email} already exists`,
+          variant: 'success',
+        });
+        
+        // Give some time for the toast to show before redirecting
+        setTimeout(() => {
+          navigate('/admin');
+        }, 2000);
+        return;
+      }
+      
       const success = await createAdminUser(
         adminDetails.email,
         adminDetails.password,
