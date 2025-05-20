@@ -21,6 +21,7 @@ import NotificationsPage from '../pages/NotificationsPage';
 import TermsOfUse from '../pages/TermsOfUse';
 import TermsAndConditions from '../pages/TermsAndConditions';
 import Login from '../pages/Login';
+import Signup from '../pages/Signup';
 import SocialConnectCallback from '../components/social/SocialConnectCallback';
 // Content pages
 import ContentCalendarPage from '../pages/Content/ContentCalendarPage';
@@ -47,6 +48,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
       
       {/* Admin routes - making sure they are correctly defined */}
       <Route path="/admin-login" element={<AdminLogin />} />

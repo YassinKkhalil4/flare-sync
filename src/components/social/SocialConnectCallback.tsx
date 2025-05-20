@@ -13,7 +13,7 @@ interface SocialConnectCallbackProps {
   platform?: string;
 }
 
-const SocialConnectCallback = ({ platform }: SocialConnectCallbackProps) => {
+const SocialConnectCallback: React.FC<SocialConnectCallbackProps> = ({ platform }: SocialConnectCallbackProps) => {
   const [searchParams] = useSearchParams();
   const code = searchParams.get('code');
   const error = searchParams.get('error');

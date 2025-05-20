@@ -16,7 +16,7 @@ import { useTiktokConnect } from '@/hooks/useTiktokConnect';
 import { useYoutubeConnect } from '@/hooks/useYoutubeConnect';
 import { useTwitchConnect } from '@/hooks/useTwitchConnect';
 
-const SocialConnect = () => {
+const SocialConnect: React.FC = () => {
   const [searchParams] = useSearchParams();
   const code = searchParams.get('code');
   const state = searchParams.get('state');
