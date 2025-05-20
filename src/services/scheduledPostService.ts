@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { ContentPost, ScheduledPost } from '@/types/database';
+import { assertType } from '@/utils/supabaseHelpers';
 
 export class ScheduledPostService {
   async schedulePost(post: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>) {
@@ -18,7 +19,7 @@ export class ScheduledPostService {
       .single();
 
     if (error) throw error;
-    return data as ScheduledPost;
+    return assertType<ScheduledPost>(data);
   }
 
   async getScheduledPosts(): Promise<ScheduledPost[]> {
@@ -28,7 +29,7 @@ export class ScheduledPostService {
       .order('scheduled_for', { ascending: true });
 
     if (error) throw error;
-    return data as ScheduledPost[];
+    return assertType<ScheduledPost[]>(data || []);
   }
 
   async deleteScheduledPost(id: string) {

@@ -31,11 +31,11 @@ export const ScheduledPosts = () => {
               </CardTitle>
               <div className="flex items-center text-sm text-muted-foreground">
                 <Calendar className="mr-1 h-4 w-4" />
-                {format(new Date(post.scheduled_for), 'PPp')}
+                {post.scheduled_for ? format(new Date(post.scheduled_for), 'PPp') : 'Not scheduled'}
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm">{post.content}</p>
+              <p className="text-sm">{post.content || 'No content'}</p>
             </CardContent>
           </Card>
         ))

@@ -2,7 +2,17 @@
 import { ContentPost as DatabaseContentPost, ScheduledPost as DatabaseScheduledPost } from './database';
 
 // Re-export types from database.ts with any additional properties needed
-export type ContentPost = DatabaseContentPost;
+export interface ContentPost extends DatabaseContentPost {
+  // Additional properties that might come from joins or front-end operations
+  reviewer_id?: string;
+  reviewer_notes?: string;
+  tags?: {
+    id: string;
+    name: string;
+    created_at?: string;
+  }[];
+}
+
 export type ContentStatus = 'draft' | 'pending' | 'pending_approval' | 'approved' | 'rejected' | 'scheduled' | 'published' | 'failed';
 export type SocialPlatform = 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'facebook' | 'twitch';
 

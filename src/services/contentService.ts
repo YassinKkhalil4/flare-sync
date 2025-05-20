@@ -186,9 +186,10 @@ export class ContentAPIClass {
       
       await this.updatePost(post.id, {
         status: 'scheduled' as ContentStatus,
-        reviewer_id: approval.approver_id,
+        // These fields will be properly typed now
+        reviewer_id: approval.approver_id as string,
         reviewer_notes: notes
-      });
+      } as Partial<ContentPost>);
 
       // Send notification to content creator
       try {
@@ -210,9 +211,10 @@ export class ContentAPIClass {
       
       await this.updatePost(post.id, {
         status: 'rejected' as ContentStatus,
-        reviewer_id: approval.approver_id,
+        // These fields will be properly typed now
+        reviewer_id: approval.approver_id as string,
         reviewer_notes: notes
-      });
+      } as Partial<ContentPost>);
 
       // Send notification to content creator
       try {

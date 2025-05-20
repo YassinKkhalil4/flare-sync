@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 
 import { scheduledPostService } from '@/services/scheduledPostService';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ContentPost } from '@/types/content';
+import { ContentPost, ScheduledPost } from '@/types/content';
 
 const SmartPostSchedulerPage: React.FC = () => {
   const [selectedPlatform, setSelectedPlatform] = useState<string>('instagram');
@@ -274,7 +274,7 @@ const SmartPostSchedulerPage: React.FC = () => {
                 </div>
               ) : scheduledPosts && scheduledPosts.length > 0 ? (
                 <div className="space-y-4">
-                  {scheduledPosts.map((post: ContentPost) => (
+                  {scheduledPosts.map((post) => (
                     <Card key={post.id}>
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start">
@@ -282,9 +282,9 @@ const SmartPostSchedulerPage: React.FC = () => {
                             <Badge className="mb-2" variant={post.platform === 'instagram' ? 'default' : post.platform === 'tiktok' ? 'destructive' : 'secondary'}>
                               {post.platform}
                             </Badge>
-                            <h3 className="font-medium">{post.title}</h3>
+                            <h3 className="font-medium">{post.content ? post.content.substring(0, 30) + (post.content.length > 30 ? '...' : '') : 'No title'}</h3>
                             <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                              {post.body || "No description"}
+                              {post.content || "No description"}
                             </p>
                           </div>
                           <div className="text-right">

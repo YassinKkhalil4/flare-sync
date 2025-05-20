@@ -39,8 +39,6 @@ const PostForm: React.FC<PostFormProps> = ({ onSubmit, onCancel, initialValues, 
       scheduled_for: '',
       platform: 'instagram',
       platform_post_id: '',
-      reviewer_id: '',
-      reviewer_notes: '',
     },
     mode: 'onSubmit'
   });
