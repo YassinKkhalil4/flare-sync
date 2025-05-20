@@ -8,20 +8,13 @@ interface MainLayoutProps {
   children: React.ReactNode;
 }
 
+// Note: This component is now deprecated since we're applying the sidebar at the App level
+// It remains here for backward compatibility with existing pages
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="flex h-screen w-full bg-background">
-        <AppSidebar />
-        
-        <main className="flex-1 overflow-auto">
-          {children}
-        </main>
-        
-        {/* Social Connect Modal for new users */}
-        <SocialConnectModal />
-      </div>
-    </SidebarProvider>
+    <div className="container mx-auto py-6 px-4">
+      {children}
+    </div>
   );
 };
 

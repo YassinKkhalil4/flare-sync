@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import NotFound from '../pages/NotFound';
 import Index from '../pages/Index';
 import Legal from '../pages/Legal';
@@ -20,37 +20,62 @@ import TermsAndConditions from '../pages/TermsAndConditions';
 import Login from '../pages/Login';
 import Signup from '../pages/Signup';
 import SocialConnectCallback from '../components/social/SocialConnectCallback';
-// Content pages
 import ContentCalendarPage from '../pages/Content/ContentCalendarPage';
 import ContentListPage from '../pages/Content/ContentListPage';
 import ContentCreatePage from '../pages/Content/ContentCreatePage';
 import ContentEditPage from '../pages/Content/ContentEditPage';
 import ContentDetailPage from '../pages/Content/ContentDetailPage';
 import ContentApprovalPage from '../pages/Content/ContentApprovalPage';
-// Admin pages
 import AdminLogin from '../pages/AdminLogin';
 import AdminDashboard from '../pages/AdminDashboard';
 import CreateAdminUser from '../pages/CreateAdminUser';
-// Brand pages
 import CreatorDiscovery from '../pages/Brand/CreatorDiscovery';
 import CampaignManagement from '../pages/Brand/CampaignManagement';
+import { useAuth } from '../context/AuthContext';
+import Landing from '../pages/Landing';
 
 // Placeholder for pages that don't exist yet but will be implemented later
 const PlaceholderPage = () => (
-  <div className="flex items-center justify-center min-h-screen">
+  <div className="container mx-auto py-6">
+    <h1 className="text-3xl font-bold mb-6">Coming Soon</h1>
     <div className="p-8 border rounded shadow-lg text-center">
-      <h1 className="text-2xl font-bold mb-4">Coming Soon</h1>
+      <h3 className="text-xl font-medium mb-2">Under Development</h3>
       <p>This feature is currently under development and will be available soon.</p>
     </div>
   </div>
 );
 
+// Route guard that redirects authenticated users away from auth pages
+const AuthRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
+  const location = useLocation();
+  
+  if (user) {
+    // If user is coming from a specific path and trying to access auth pages
+    const from = location.state?.from || '/dashboard';
+    return <Navigate to={from} replace />;
+  }
+  
+  return <>{children}</>;
+};
+
 const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
+      
+      {/* Auth routes - redirect to dashboard if already logged in */}
+      <Route path="/login" element={
+        <AuthRoute>
+          <Login />
+        </AuthRoute>
+      } />
+      
+      <Route path="/signup" element={
+        <AuthRoute>
+          <Signup />
+        </AuthRoute>
+      } />
       
       {/* Admin routes */}
       <Route path="/admin-login" element={<AdminLogin />} />
@@ -178,7 +203,7 @@ const AppRoutes = () => {
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms-conditions" element={<TermsAndConditions />} />
       
-      {/* Placeholder routes for features mentioned in plans but not implemented yet */}
+      {/* Placeholder routes for features mentioned but not implemented yet */}
       <Route path="/content/caption-generator" element={<PlaceholderPage />} />
       <Route path="/content/engagement-predictor" element={<PlaceholderPage />} />
       <Route path="/content/brand-matchmaker" element={<PlaceholderPage />} />

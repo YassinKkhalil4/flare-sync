@@ -9,6 +9,9 @@ import AppRoutes from './routes/AppRoutes';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { initializeAppEnvironment } from './utils/appSetup';
 import { Button } from '@/components/ui/button';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import AppSidebar from '@/components/AppSidebar';
+import SocialConnectModal from '@/components/social/SocialConnectModal';
 import './App.css';
 
 // Create a client for React Query
@@ -103,7 +106,18 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router>
-          <AppRoutes />
+          <SidebarProvider defaultOpen={true}>
+            <div className="flex h-screen w-full bg-background">
+              <AppSidebar />
+              
+              <main className="flex-1 overflow-auto">
+                <AppRoutes />
+              </main>
+              
+              {/* Social Connect Modal for new users */}
+              <SocialConnectModal />
+            </div>
+          </SidebarProvider>
           <Toaster />
           <CookieConsent />
         </Router>

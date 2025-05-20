@@ -1,56 +1,44 @@
 
-import React from 'react';
-import { useSearchParams } from 'react-router-dom';
-import MainLayout from '@/components/layouts/MainLayout';
-import { Card } from '@/components/ui/card';
-import { SocialPlatformTabs } from '@/components/social/SocialPlatformTabs';
-import SocialConnectCallback from '@/components/social/SocialConnectCallback';
+import React, { useEffect, useState } from 'react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import SocialPlatformTabs from '@/components/social/SocialPlatformTabs';
+import { LoadingSpinner } from '@/components/social/LoadingSpinner';
+import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
 
 const SocialConnect: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const code = searchParams.get('code');
-  const error = searchParams.get('error');
-  
-  // Handle OAuth callback if code is present in URL
-  if (code || error) {
-    const platform = localStorage.getItem('connecting_platform');
-    return <SocialConnectCallback platform={platform || undefined} />;
-  }
-  
+  const { hasSocialAccounts, isLoading } = useSocialPlatforms();
+  const [showLoading, setShowLoading] = useState(true);
+
+  useEffect(() => {
+    // Show loading for at least 1 second for UX
+    const timer = setTimeout(() => {
+      setShowLoading(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <MainLayout>
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6">Connect Your Social Accounts</h1>
-        
-        <Card className="p-6">
-          <SocialPlatformTabs />
-        </Card>
-        
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold mb-4">Connection Benefits</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-card p-6 rounded-lg border border-border">
-              <h3 className="text-xl font-bold mb-2">Post Scheduling</h3>
-              <p className="text-muted-foreground">
-                Schedule and automate your content across all your connected platforms.
-              </p>
-            </div>
-            <div className="bg-card p-6 rounded-lg border border-border">
-              <h3 className="text-xl font-bold mb-2">Unified Analytics</h3>
-              <p className="text-muted-foreground">
-                Track performance metrics across all your social accounts in one dashboard.
-              </p>
-            </div>
-            <div className="bg-card p-6 rounded-lg border border-border">
-              <h3 className="text-xl font-bold mb-2">AI-Powered Insights</h3>
-              <p className="text-muted-foreground">
-                Get content recommendations and engagement predictions based on your audience data.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </MainLayout>
+    <div className="container mx-auto py-6 px-4">
+      <h1 className="text-3xl font-bold mb-6">Social Media Accounts</h1>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Connect Your Social Media Accounts</CardTitle>
+          <CardDescription>
+            Link your social media profiles to enable scheduling, analytics, and more.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          {(isLoading || showLoading) ? (
+            <LoadingSpinner />
+          ) : (
+            <SocialPlatformTabs />
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

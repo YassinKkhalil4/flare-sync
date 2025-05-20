@@ -3,7 +3,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { supabase } from '@/integrations/supabase/client';
 import { Profile } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
-import { SignInCredentials, SignUpCredentials } from '@/utils/authHelpers';
+import { SignInCredentials, SignUpCredentials, cleanupAuthState } from '@/utils/authHelpers';
+import { setCookie, getCookie, getEncryptedCookie } from '@/utils/cookies';
 
 interface AuthContextType {
   session: any | null;
@@ -25,6 +26,10 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Cookie names
+const SESSION_COOKIE_NAME = 'supabase_session';
+const SESSION_EXPIRY_DAYS = 30;
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<any | null>(null);
   const [user, setUser] = useState<any | null>(null);
@@ -34,31 +39,120 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
 
+  const persistSession = (sessionData: any) => {
+    if (sessionData) {
+      // Store in local storage for redundancy
+      try {
+        localStorage.setItem(SESSION_COOKIE_NAME, JSON.stringify(sessionData));
+      } catch (err) {
+        console.error('Failed to store session in localStorage:', err);
+      }
+      
+      // Store in cookies for cross-tab persistence
+      setCookie(SESSION_COOKIE_NAME, JSON.stringify(sessionData), SESSION_EXPIRY_DAYS);
+    } else {
+      // Clear session
+      localStorage.removeItem(SESSION_COOKIE_NAME);
+      setCookie(SESSION_COOKIE_NAME, '', -1); // Expire the cookie
+    }
+  };
+
+  const retrieveSessionFromStorage = async () => {
+    // Try to get session from cookies first
+    const sessionCookie = await getEncryptedCookie(SESSION_COOKIE_NAME);
+    
+    if (sessionCookie) {
+      try {
+        return JSON.parse(sessionCookie);
+      } catch (err) {
+        console.error('Failed to parse session cookie:', err);
+      }
+    }
+    
+    // Fall back to localStorage
+    try {
+      const sessionData = localStorage.getItem(SESSION_COOKIE_NAME);
+      if (sessionData) {
+        return JSON.parse(sessionData);
+      }
+    } catch (err) {
+      console.error('Failed to retrieve session from localStorage:', err);
+    }
+    
+    return null;
+  };
+
   useEffect(() => {
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user || null);
-      if (session?.user) {
-        await getProfile(session.user.id);
-        await checkAdminRole(session.user.id);
+      try {
+        // First check for session in Supabase auth
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        // If no session from Supabase, try to get from our storage
+        if (!session) {
+          const storedSession = await retrieveSessionFromStorage();
+          if (storedSession) {
+            // If we have a stored session, try to refresh it
+            const { data } = await supabase.auth.setSession({
+              access_token: storedSession.access_token,
+              refresh_token: storedSession.refresh_token
+            });
+            
+            if (data.session) {
+              setSession(data.session);
+              setUser(data.session.user);
+              persistSession(data.session);
+              await getProfile(data.session.user.id);
+              await checkAdminRole(data.session.user.id);
+              setLoading(false);
+              return;
+            } else {
+              // If session refresh fails, clean up
+              cleanupAuthState();
+              persistSession(null);
+            }
+          }
+        } else {
+          // We have a valid session from Supabase
+          setSession(session);
+          setUser(session.user);
+          persistSession(session);
+          await getProfile(session.user.id);
+          await checkAdminRole(session.user.id);
+        }
+      } catch (error) {
+        console.error('Error retrieving session:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     getSession();
 
-    supabase.auth.onAuthStateChange(async (_event, session) => {
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event);
       setSession(session);
       setUser(session?.user || null);
+      
       if (session?.user) {
-        await getProfile(session.user.id);
-        await checkAdminRole(session.user.id);
+        persistSession(session);
+        // Use setTimeout to prevent potential deadlocks with Supabase client
+        setTimeout(async () => {
+          await getProfile(session.user.id);
+          await checkAdminRole(session.user.id);
+        }, 0);
       } else {
         setProfile(null);
         setIsAdmin(false);
+        persistSession(null);
       }
     });
+
+    // Clean up subscription
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const getProfile = async (userId: string) => {
@@ -103,6 +197,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signIn = async (credentials: SignInCredentials) => {
     try {
+      // Clean up any existing auth state first
+      cleanupAuthState();
+      
       const { email, password } = credentials;
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -111,7 +208,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (error) throw error;
       
-      if (data?.user) {
+      if (data?.session) {
+        persistSession(data.session);
         toast({
           title: "Signed in successfully",
           description: "Welcome back!",
@@ -133,6 +231,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signUp = async (credentials: SignUpCredentials) => {
     setIsLoading(true);
     try {
+      // Clean up any existing auth state first
+      cleanupAuthState();
+      
       const { email, password, options } = credentials;
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -142,9 +243,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (error) throw error;
       
+      if (data?.session) {
+        persistSession(data.session);
+      }
+      
       toast({
         title: "Sign up successful",
-        description: "Check your email for the verification link.",
+        description: "Your account has been created.",
       });
       
       setIsLoading(false);
@@ -163,11 +268,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      // Clear stored sessions first
+      persistSession(null);
+      cleanupAuthState();
+      
+      // Then sign out from Supabase 
+      await supabase.auth.signOut({ scope: 'global' });
+      
       toast({
         title: "Signed out",
         description: "You have been successfully signed out.",
       });
+      
+      // Force a page reload to ensure clean state
+      window.location.href = '/login';
     } catch (error: any) {
       toast({
         title: "Sign out failed",
