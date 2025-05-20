@@ -89,8 +89,12 @@ const SocialConnect = () => {
   if (code || error) {
     // Determine platform from state or localStorage
     const platform = localStorage.getItem('connecting_platform');
+    
+    // Use a wrapper div to avoid passing the component directly as a child
     return (
-      <SocialConnectCallback platform={platform || undefined} />
+      <div>
+        <SocialConnectCallback platform={platform || undefined} />
+      </div>
     );
   }
   

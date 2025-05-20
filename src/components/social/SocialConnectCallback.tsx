@@ -1,8 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 import { useInstagramConnect } from '@/hooks/useInstagramConnect';
 import { useTwitterConnect } from '@/hooks/useTwitterConnect';
 import { useTiktokConnect } from '@/hooks/useTiktokConnect';
@@ -13,123 +13,102 @@ interface SocialConnectCallbackProps {
   platform?: string;
 }
 
-const SocialConnectCallback: React.FC<SocialConnectCallbackProps> = ({ platform }) => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [status, setStatus] = useState('Processing your connection...');
+const SocialConnectCallback = ({ platform }: SocialConnectCallbackProps) => {
+  const [searchParams] = useSearchParams();
+  const code = searchParams.get('code');
+  const error = searchParams.get('error');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [message, setMessage] = useState('Processing your connection...');
   
+  // Get platform-specific callback handlers
   const { handleCallback: handleInstagramCallback } = useInstagramConnect();
   const { handleCallback: handleTwitterCallback } = useTwitterConnect();
   const { handleCallback: handleTiktokCallback } = useTiktokConnect();
   const { handleCallback: handleYoutubeCallback } = useYoutubeConnect();
   const { handleCallback: handleTwitchCallback } = useTwitchConnect();
-
+  
   useEffect(() => {
-    const processOAuthCallback = async () => {
+    const processCallback = async () => {
+      if (error) {
+        setStatus('error');
+        setMessage(`Connection failed: ${error}`);
+        return;
+      }
+      
+      if (!code) {
+        setStatus('error');
+        setMessage('No authorization code provided');
+        return;
+      }
+      
       try {
-        // Get current URL parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        const state = urlParams.get('state');
-        const error = urlParams.get('error');
-        const errorReason = urlParams.get('error_reason') || urlParams.get('error_description');
-        
-        // Handle errors from OAuth provider
-        if (error) {
-          console.error('OAuth error:', error, errorReason);
-          setStatus('Connection failed');
-          toast({
-            title: 'Connection failed',
-            description: errorReason || 'Authentication was canceled or failed',
-            variant: 'destructive',
-          });
-          
-          // Redirect after a short delay
-          setTimeout(() => navigate('/social-connect'), 2000);
-          return;
-        }
-        
-        // Verify we have the required data
-        if (!code) {
-          console.error('Missing authorization code');
-          setStatus('Missing authorization data');
-          toast({
-            title: 'Connection failed',
-            description: 'Missing authorization data',
-            variant: 'destructive',
-          });
-          
-          // Redirect after a short delay
-          setTimeout(() => navigate('/social-connect'), 2000);
-          return;
-        }
-        
-        setStatus('Processing your connection...');
-        
-        // Determine the platform from URL or props
-        const activePlatform = platform || localStorage.getItem('connecting_platform') || '';
-        
-        let result;
-        // Call the appropriate handler based on the platform
-        switch (activePlatform.toLowerCase()) {
+        switch(platform) {
           case 'instagram':
-            result = await handleInstagramCallback(code);
+            await handleInstagramCallback(code);
             break;
           case 'twitter':
-            result = await handleTwitterCallback(code);
+            await handleTwitterCallback(code);
             break;
           case 'tiktok':
-            result = await handleTiktokCallback(code);
+            await handleTiktokCallback(code);
             break;
           case 'youtube':
-            result = await handleYoutubeCallback(code);
+            await handleYoutubeCallback(code);
             break;
           case 'twitch':
-            result = await handleTwitchCallback(code);
+            await handleTwitchCallback(code);
             break;
           default:
-            console.error('Unknown platform:', activePlatform);
-            setStatus('Unknown social platform');
-            toast({
-              title: 'Connection failed',
-              description: 'Unknown social platform',
-              variant: 'destructive',
-            });
-            
-            // Redirect after a short delay
-            setTimeout(() => navigate('/social-connect'), 2000);
-            return;
+            throw new Error(`Unknown platform: ${platform}`);
         }
         
-        // Clear connecting platform from localStorage
-        localStorage.removeItem('connecting_platform');
+        setStatus('success');
+        setMessage(`Successfully connected to ${platform || 'social account'}`);
         
-        setStatus('Connection successful!');
-        // Redirect to social connect page
-        setTimeout(() => navigate('/social-connect'), 1500);
-      } catch (error) {
-        console.error('Error processing callback:', error);
-        setStatus('Connection failed');
-        toast({
-          title: 'Connection failed',
-          description: error instanceof Error ? error.message : 'An unexpected error occurred',
-          variant: 'destructive',
-        });
-        
-        // Redirect after a short delay
-        setTimeout(() => navigate('/social-connect'), 2000);
+        // Redirect after success
+        setTimeout(() => {
+          window.location.href = '/social-connect';
+        }, 3000);
+      } catch (err) {
+        console.error('Error during callback processing:', err);
+        setStatus('error');
+        setMessage(err instanceof Error ? err.message : 'Connection failed');
       }
     };
     
-    processOAuthCallback();
-  }, [navigate, toast, platform, handleInstagramCallback, handleTwitterCallback, handleTiktokCallback, handleYoutubeCallback, handleTwitchCallback]);
-
+    processCallback();
+  }, [code, error, platform, handleInstagramCallback, handleTwitterCallback, handleTiktokCallback, handleYoutubeCallback, handleTwitchCallback]);
+  
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <div className="text-center p-8 rounded-lg shadow-lg bg-card border border-border">
-        <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-        <h2 className="text-2xl font-bold mb-2">{status}</h2>
-        <p className="text-muted-foreground">Please wait while we complete your account connection...</p>
+    <div className="w-full flex justify-center items-center min-h-[400px] p-6">
+      <div className="w-full max-w-md">
+        {status === 'loading' && (
+          <Alert>
+            <div className="flex items-center gap-2">
+              <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
+              <AlertTitle>Processing</AlertTitle>
+            </div>
+            <AlertDescription>{message}</AlertDescription>
+          </Alert>
+        )}
+        
+        {status === 'success' && (
+          <Alert className="bg-green-50 border-green-200">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <AlertTitle className="text-green-600">Success</AlertTitle>
+            </div>
+            <AlertDescription>{message}</AlertDescription>
+          </Alert>
+        )}
+        
+        {status === 'error' && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{message}</AlertDescription>
+          </Alert>
+        )}
       </div>
     </div>
   );
