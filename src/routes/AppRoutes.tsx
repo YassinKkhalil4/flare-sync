@@ -21,6 +21,14 @@ import NotificationsPage from '../pages/NotificationsPage';
 import TermsOfUse from '../pages/TermsOfUse';
 import TermsAndConditions from '../pages/TermsAndConditions';
 import Login from '../pages/Login';
+import SocialConnectCallback from '../components/social/SocialConnectCallback';
+// Content pages
+import ContentCalendarPage from '../pages/Content/ContentCalendarPage';
+import ContentListPage from '../pages/Content/ContentListPage';
+import ContentCreatePage from '../pages/Content/ContentCreatePage';
+import ContentEditPage from '../pages/Content/ContentEditPage';
+import ContentDetailPage from '../pages/Content/ContentDetailPage';
+import ContentApprovalPage from '../pages/Content/ContentApprovalPage';
 
 // Placeholder for pages that don't exist yet
 const PlaceholderPage = () => (
@@ -60,6 +68,11 @@ const AppRoutes = () => {
           <SocialConnect />
         </ProtectedRoute>
       } />
+      <Route path="/social-callback" element={
+        <ProtectedRoute>
+          <SocialConnectCallback />
+        </ProtectedRoute>
+      } />
       <Route path="/profile" element={
         <ProtectedRoute>
           <CreatorProfile />
@@ -93,6 +106,38 @@ const AppRoutes = () => {
       <Route path="/settings" element={
         <ProtectedRoute>
           <Settings />
+        </ProtectedRoute>
+      } />
+      
+      {/* Content Management Routes */}
+      <Route path="/content" element={
+        <ProtectedRoute>
+          <ContentListPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/content/calendar" element={
+        <ProtectedRoute>
+          <ContentCalendarPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/content/create" element={
+        <ProtectedRoute>
+          <ContentCreatePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/content/edit/:id" element={
+        <ProtectedRoute>
+          <ContentEditPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/content/:id" element={
+        <ProtectedRoute>
+          <ContentDetailPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/content/approval" element={
+        <ProtectedRoute>
+          <ContentApprovalPage />
         </ProtectedRoute>
       } />
       
