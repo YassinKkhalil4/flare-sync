@@ -16,7 +16,7 @@ import { supabase } from '@/lib/supabase';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const { hasNotifications } = useNotifications();
+  const { unreadCount } = useNotifications();
   const { subscription, isLoading: isSubscriptionLoading } = useSubscription();
   const [stats, setStats] = useState({
     scheduledPosts: 0,

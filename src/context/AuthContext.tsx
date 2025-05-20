@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { getPersistedSession, persistSession, ExtendedProfile, mapDatabaseProfileToExtended } from '@/lib/supabase';
@@ -21,22 +20,26 @@ export interface AuthContextType {
   user: User | null;
   session: any;
   loading: boolean;
+  isLoading: boolean; // Added for consistency
+  isAdmin: boolean; // Added property
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, metadata?: any) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<{ error: any }>;
-  uploadAvatar: (file: File) => Promise<{ url?: string; error?: any }>;
+  uploadAvatar: (file: File) => Promise<string | undefined>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   loading: true,
+  isLoading: true, // Added for consistency
+  isAdmin: false, // Added default value
   signIn: async () => ({ error: null }),
   signUp: async () => ({ error: null }),
   signOut: async () => {},
   updateProfile: async () => ({ error: null }),
-  uploadAvatar: async () => ({ error: null }),
+  uploadAvatar: async () => undefined,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -46,6 +49,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  // Check if the user has admin role
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     // Check if we have a session in localStorage
@@ -244,9 +250,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const uploadAvatar = async (file: File) => {
+  const uploadAvatar = async (file: File): Promise<string | undefined> => {
     if (!user) {
-      return { error: new Error('User not authenticated') };
+      toast({
+        title: 'Upload failed',
+        description: 'User not authenticated',
+        variant: 'destructive',
+      });
+      return undefined;
     }
 
     try {
@@ -288,7 +299,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: 'Your profile picture has been updated.',
       });
 
-      return { url: avatarUrl };
+      return avatarUrl;
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
       toast({
@@ -296,7 +307,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: error.message,
         variant: 'destructive',
       });
-      return { error };
+      return undefined;
     }
   };
 
@@ -304,6 +315,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     session,
     loading,
+    isLoading: loading, // Added for consistency
+    isAdmin,
     signIn,
     signUp,
     signOut,
