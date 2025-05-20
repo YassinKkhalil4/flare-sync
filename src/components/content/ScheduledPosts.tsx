@@ -5,6 +5,7 @@ import { scheduledPostService } from '@/services/scheduledPostService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from 'lucide-react';
 import { format } from 'date-fns';
+import { ScheduledPost } from '@/types/database';
 
 export const ScheduledPosts = () => {
   const { data: posts, isLoading } = useQuery({
@@ -22,7 +23,7 @@ export const ScheduledPosts = () => {
       {posts?.length === 0 ? (
         <p className="text-muted-foreground">No scheduled posts yet.</p>
       ) : (
-        posts?.map((post) => (
+        posts?.map((post: ScheduledPost) => (
           <Card key={post.id}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">

@@ -6,6 +6,7 @@ import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { scheduledPostService } from '@/services/scheduledPostService';
 import { ContentPost } from '@/types/content';
+import { ScheduledPost } from '@/types/database';
 
 interface ScheduleParams {
   platform: string;
@@ -32,7 +33,7 @@ export const useScheduler = () => {
         
         if (error) throw error;
         
-        return data as ContentPost[];
+        return data as ScheduledPost[];
       } catch (error) {
         console.error('Error fetching scheduled posts:', error);
         return [];

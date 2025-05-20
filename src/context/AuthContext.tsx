@@ -1,8 +1,10 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { getPersistedSession, persistSession, ExtendedProfile, mapDatabaseProfileToExtended } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { Profile, UserRole } from '@/types/database';
 
 // Extended User type with additional properties needed by components
 export interface User {
@@ -120,13 +122,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Construct extended user profile
+      const profileData = data as Profile;
+      const roleInfo = roleData as UserRole | null;
+      
       const extendedUser: User = {
         id: userId,
-        email: session?.user?.email || '',
-        name: data?.full_name || '',
-        username: data?.username || '',
-        avatar: data?.avatar_url || '',
-        role: roleData?.role || 'creator', // Default to creator if no role found
+        email: session?.user?.email || profileData?.email || '',
+        name: profileData?.full_name || '',
+        username: profileData?.username || '',
+        avatar: profileData?.avatar_url || '',
+        role: roleInfo?.role || profileData?.role as 'creator' | 'brand' | 'admin' || 'creator', // Default to creator if no role found
         // Add other properties as needed
       };
 
@@ -219,7 +224,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           full_name: data.name,
           username: data.username,
           // Add other fields as needed
-        })
+        } as any)
         .eq('id', user.id);
 
       if (error) {
@@ -284,7 +289,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Update profile with new avatar URL
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: avatarUrl })
+        .update({ 
+          avatar_url: avatarUrl 
+        } as any)
         .eq('id', user.id);
 
       if (updateError) {

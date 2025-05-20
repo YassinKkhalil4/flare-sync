@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { ContentPost } from '@/types/content';
+import { ContentPost, ScheduledPost } from '@/types/database';
 
 export class ScheduledPostService {
   async schedulePost(post: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>) {
@@ -18,17 +18,17 @@ export class ScheduledPostService {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as ScheduledPost;
   }
 
-  async getScheduledPosts() {
+  async getScheduledPosts(): Promise<ScheduledPost[]> {
     const { data, error } = await supabase
       .from('scheduled_posts')
       .select('*')
       .order('scheduled_for', { ascending: true });
 
     if (error) throw error;
-    return data;
+    return data as ScheduledPost[];
   }
 
   async deleteScheduledPost(id: string) {

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNotifications } from '@/hooks/useNotifications';
 import { Link } from 'react-router-dom';
 import { Bell, Loader2 } from 'lucide-react';
+import { Notification } from '@/types/database';
 
 interface NotificationsWidgetProps {
   limit?: number;
@@ -28,7 +29,7 @@ const NotificationsWidget = ({ limit = 5 }: NotificationsWidgetProps) => {
           </div>
         ) : limitedNotifications.length > 0 ? (
           <ul className="space-y-2">
-            {limitedNotifications.map(notification => (
+            {limitedNotifications.map((notification: Notification) => (
               <li key={notification.id} className="rounded-md p-2 hover:bg-muted transition-colors">
                 <div className="text-sm font-medium">{notification.title}</div>
                 <p className="text-xs text-muted-foreground">{notification.message}</p>

@@ -1,23 +1,9 @@
 
-export interface ContentPost {
-  id: string;
-  user_id: string;
-  title: string;
-  body?: string;
-  media_urls?: string[];
-  status: ContentStatus;
-  scheduled_for?: string;
-  platform: SocialPlatform;
-  platform_post_id?: string;
-  reviewer_id?: string;
-  reviewer_notes?: string;
-  created_at: string;
-  updated_at: string;
-  tags?: ContentTag[];
-}
+import { ContentPost as DatabaseContentPost, ScheduledPost as DatabaseScheduledPost } from './database';
 
+// Re-export types from database.ts with any additional properties needed
+export type ContentPost = DatabaseContentPost;
 export type ContentStatus = 'draft' | 'pending' | 'pending_approval' | 'approved' | 'rejected' | 'scheduled' | 'published' | 'failed';
-
 export type SocialPlatform = 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'facebook' | 'twitch';
 
 export interface ContentTag {
