@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
-import { toast } from '@/components/ui/use-toast';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { AlertCircle, Loader2, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const AdminLogin = () => {
@@ -21,9 +21,22 @@ const AdminLogin = () => {
 
   React.useEffect(() => {
     console.log("AdminLogin component rendered");
-    if (user?.isAdmin) {
-      navigate('/admin');
-    }
+    const checkAdminStatus = async () => {
+      if (user) {
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
+          
+        if (roleData) {
+          navigate('/admin');
+        }
+      }
+    };
+    
+    checkAdminStatus();
   }, [user, navigate]);
 
   const validateEmail = (email: string) => {
@@ -88,7 +101,6 @@ const AdminLogin = () => {
       toast({
         title: 'Login Successful',
         description: 'Welcome to the admin dashboard',
-        variant: 'success'
       });
       
       // Navigate to admin dashboard
@@ -120,7 +132,10 @@ const AdminLogin = () => {
     <div className="flex items-center justify-center min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Admin Login</CardTitle>
+          <div className="flex items-center space-x-2 justify-center">
+            <Shield className="h-6 w-6 text-primary" />
+            <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
+          </div>
           <CardDescription className="text-center">
             Enter your credentials to access the admin dashboard
           </CardDescription>

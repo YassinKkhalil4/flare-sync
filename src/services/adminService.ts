@@ -95,7 +95,7 @@ class AdminService {
   /**
    * Log admin access to sensitive data
    */
-  private async logAdminAccess(
+  async logAdminAccess(
     adminId: string,
     action: 'view' | 'update' | 'delete',
     resourceType: string,
@@ -230,7 +230,7 @@ class AdminService {
     try {
       console.log("Starting admin user creation process");
       
-      // Create user account
+      // Create user account with admin:true metadata
       const { data: userData, error: userError } = await supabase.auth.admin.createUser({
         email,
         password,
@@ -317,6 +317,10 @@ export const useAdmin = () => {
       
       const permissions = await adminService.getAdminPermissions(user.id);
       return permissions.includes(permission);
+    },
+    logAdminAccess: async (action: 'view' | 'update' | 'delete', resourceType: string, resourceId: string) => {
+      if (!user) return;
+      await adminService.logAdminAccess(user.id, action, resourceType, resourceId);
     }
   };
 };

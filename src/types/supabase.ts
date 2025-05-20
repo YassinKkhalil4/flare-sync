@@ -1,3 +1,4 @@
+
 export type Json =
   | string
   | number
@@ -13,14 +14,9 @@ export interface Database {
         Row: {
           id: string
           email: string | null
-          name: string | null
-          role: 'creator' | 'brand'
-          plan: 'free' | 'basic' | 'pro'
+          full_name: string | null
+          username: string | null
           avatar_url: string | null
-          stripe_customer_id: string | null
-          subscription_id: string | null
-          subscription_status: string | null
-          current_period_end: string | null
           created_at: string
           updated_at: string
           onboarded: boolean | null
@@ -28,14 +24,9 @@ export interface Database {
         Insert: {
           id: string
           email?: string | null
-          name?: string | null
-          role: 'creator' | 'brand'
-          plan?: 'free' | 'basic' | 'pro'
+          full_name?: string | null
+          username?: string | null
           avatar_url?: string | null
-          stripe_customer_id?: string | null
-          subscription_id?: string | null
-          subscription_status?: string | null
-          current_period_end?: string | null
           created_at?: string
           updated_at?: string
           onboarded?: boolean | null
@@ -43,14 +34,9 @@ export interface Database {
         Update: {
           id?: string
           email?: string | null
-          name?: string | null
-          role?: 'creator' | 'brand'
-          plan?: 'free' | 'basic' | 'pro'
+          full_name?: string | null
+          username?: string | null
           avatar_url?: string | null
-          stripe_customer_id?: string | null
-          subscription_id?: string | null
-          subscription_status?: string | null
-          current_period_end?: string | null
           created_at?: string
           updated_at?: string
           onboarded?: boolean | null
@@ -72,6 +58,11 @@ export interface Database {
           engagement: number | null
           created_at: string
           updated_at: string
+          access_token_encrypted: string | null
+          refresh_token_encrypted: string | null
+          access_token_iv: string | null
+          refresh_token_iv: string | null
+          stats: Json | null
         }
         Insert: {
           id?: string
@@ -88,6 +79,11 @@ export interface Database {
           engagement?: number | null
           created_at?: string
           updated_at?: string
+          access_token_encrypted?: string | null
+          refresh_token_encrypted?: string | null
+          access_token_iv?: string | null
+          refresh_token_iv?: string | null
+          stats?: Json | null
         }
         Update: {
           id?: string
@@ -104,6 +100,11 @@ export interface Database {
           engagement?: number | null
           created_at?: string
           updated_at?: string
+          access_token_encrypted?: string | null
+          refresh_token_encrypted?: string | null
+          access_token_iv?: string | null
+          refresh_token_iv?: string | null
+          stats?: Json | null
         }
       }
       brand_deals: {
@@ -243,15 +244,68 @@ export interface Database {
           created_at?: string
         }
       }
+      admin_permissions: {
+        Row: {
+          id: string
+          admin_id: string
+          permission: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          admin_id: string
+          permission: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          admin_id?: string
+          permission?: string
+          created_at?: string | null
+        }
+      }
+      admin_access_logs: {
+        Row: {
+          id: string
+          admin_id: string
+          action: 'view' | 'update' | 'delete'
+          resource_type: string
+          resource_id: string
+          access_time: string
+        }
+        Insert: {
+          id?: string
+          admin_id: string
+          action: 'view' | 'update' | 'delete'
+          resource_type: string
+          resource_id: string
+          access_time?: string
+        }
+        Update: {
+          id?: string
+          admin_id?: string
+          action?: 'view' | 'update' | 'delete'
+          resource_type?: string
+          resource_id?: string
+          access_time?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          user_id: string;
+          role: 'admin' | 'user' | 'creator' | 'brand';
+        };
+        Returns: boolean;
+      }
     }
     Enums: {
       app_role: 'user' | 'creator' | 'brand' | 'admin'
+      admin_action: 'view' | 'update' | 'delete'
     }
   }
 }

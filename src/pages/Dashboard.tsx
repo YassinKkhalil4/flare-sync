@@ -1,145 +1,234 @@
 
-import { useState, useEffect } from 'react';
-import OverviewCard from '@/components/Dashboard/OverviewCard';
-import { Button } from '@/components/ui/button';
-import { 
-  BarChart4, 
-  Users, 
-  Heart, 
-  TrendingUp, 
-  Clock,
-  CalendarDays
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { SocialService, ContentService } from '@/services/api';
-import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Loader2, Calendar, Users, ArrowRight, Instagram, Clock } from 'lucide-react';
+import OverviewCard from '@/components/Dashboard/OverviewCard';
 import NotificationsWidget from '@/components/Dashboard/NotificationsWidget';
 import PaymentHistoryWidget from '@/components/Dashboard/PaymentHistoryWidget';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { supabase } from '@/lib/supabase';
+import { userService } from '@/services/userService';
 
-function Dashboard() {
+interface UserStats {
+  followers: number;
+  engagement: number;
+  posts: number;
+}
+
+const Dashboard = () => {
   const { user } = useAuth();
-
-  // Fetch social profiles
-  const { data: socialProfiles } = useQuery({
-    queryKey: ['social-profiles'],
-    queryFn: async () => await SocialService.getProfiles(),
-    enabled: !!user,
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+  const [userRole, setUserRole] = useState<'creator' | 'brand' | null>(null);
+  const [stats, setStats] = useState<UserStats>({
+    followers: 0,
+    engagement: 0,
+    posts: 0
   });
 
-  // Fetch content posts
-  const { data: contentPosts } = useQuery({
-    queryKey: ['content-posts'],
-    queryFn: async () => await ContentService.getPosts(),
-    enabled: !!user,
-  });
+  useEffect(() => {
+    const loadDashboard = async () => {
+      if (!user) return;
 
-  // Calculate total followers across all platforms
-  const totalFollowers = socialProfiles?.reduce((sum, profile) => 
-    sum + (profile.stats?.followers || 0), 0) || 0;
+      try {
+        setIsLoading(true);
+        
+        // Get user role
+        const role = await userService.getUserRole(user.id);
+        setUserRole(role);
+        
+        // Get user stats from social profiles
+        if (role === 'creator') {
+          const { data, error } = await supabase
+            .from('social_profiles')
+            .select('followers, posts, engagement')
+            .eq('user_id', user.id)
+            .eq('connected', true);
+            
+          if (!error && data && data.length > 0) {
+            // Aggregate stats from all connected profiles
+            const aggregatedStats = data.reduce((acc, profile) => {
+              return {
+                followers: acc.followers + (profile.followers || 0),
+                posts: acc.posts + (profile.posts || 0),
+                engagement: Math.max(acc.engagement, profile.engagement || 0)
+              };
+            }, { followers: 0, posts: 0, engagement: 0 });
+            
+            setStats(aggregatedStats);
+          }
+        }
+        
+        // Check if user has completed onboarding
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('onboarded')
+          .eq('id', user.id)
+          .single();
+          
+        if (profile && !profile.onboarded) {
+          // Redirect to onboarding flow
+          // We'll implement this later
+        }
+        
+      } catch (error) {
+        console.error("Error loading dashboard:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  // Calculate engagement - for demo purposes we'll use a random percentage
-  // In a real app, this would come from analytics data
-  const engagementRate = Math.round((Math.random() * 2 + 3) * 10) / 10;
-  
-  // Mock impressions data - in a real app would come from analytics
-  const impressions = Math.floor(totalFollowers * 3.5);
-  
-  // Mock watch time - in a real app would come from analytics
-  const avgWatchTime = "2:45";
+    loadDashboard();
+  }, [user]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Loading Dashboard</h2>
+          <p className="text-muted-foreground">Please wait while we load your data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back, {user?.name || user?.email || 'Creator'}!
-          </p>
-        </div>
-        <Button>
-          <CalendarDays className="mr-2 h-4 w-4" /> 
-          Schedule Post
-        </Button>
+    <div className="container py-6">
+      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {userRole === 'creator' ? (
+          <>
+            <OverviewCard
+              title="Total Followers"
+              value={stats.followers.toLocaleString()}
+              description="Across all platforms"
+              icon={<Users className="h-4 w-4 text-muted-foreground" />}
+            />
+            <OverviewCard
+              title="Engagement Rate"
+              value={`${stats.engagement.toFixed(2)}%`}
+              description="Average across platforms"
+              icon={<Users className="h-4 w-4 text-muted-foreground" />}
+            />
+            <OverviewCard
+              title="Total Posts"
+              value={stats.posts.toLocaleString()}
+              description="Published content"
+              icon={<Calendar className="h-4 w-4 text-muted-foreground" />}
+            />
+            <OverviewCard
+              title="Scheduled Posts"
+              value="0"
+              description="Pending publication"
+              icon={<Clock className="h-4 w-4 text-muted-foreground" />}
+            />
+          </>
+        ) : (
+          <>
+            <OverviewCard
+              title="Active Campaigns"
+              value="0"
+              description="Currently running"
+              icon={<Calendar className="h-4 w-4 text-muted-foreground" />}
+            />
+            <OverviewCard
+              title="Creator Partnerships"
+              value="0"
+              description="Active collaborations"
+              icon={<Users className="h-4 w-4 text-muted-foreground" />}
+            />
+            <OverviewCard
+              title="Pending Deals"
+              value="0"
+              description="Awaiting response"
+              icon={<Clock className="h-4 w-4 text-muted-foreground" />}
+            />
+            <OverviewCard
+              title="Total Reach"
+              value="0"
+              description="Potential audience"
+              icon={<Users className="h-4 w-4 text-muted-foreground" />}
+            />
+          </>
+        )}
       </div>
       
-      {/* Overview Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-8">
-        <OverviewCard
-          title="Total Followers"
-          value={totalFollowers >= 1000 ? `${(totalFollowers/1000).toFixed(1)}K` : totalFollowers.toString()}
-          change={{ value: 12, positive: true }}
-          icon={<Users />}
-        />
-        <OverviewCard
-          title="Engagement Rate"
-          value={`${engagementRate}%`}
-          change={{ value: 3.1, positive: true }}
-          icon={<Heart />}
-        />
-        <OverviewCard
-          title="Impressions"
-          value={impressions >= 1000 ? `${Math.floor(impressions/1000)}K` : impressions.toString()}
-          change={{ value: 28, positive: true }}
-          icon={<BarChart4 />}
-        />
-        <OverviewCard
-          title="Avg. Watch Time"
-          value={avgWatchTime}
-          change={{ value: 12, positive: false }}
-          icon={<Clock />}
-        />
-      </div>
-      
-      {/* Main Dashboard Content */}
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* Charts - Taking up 2 columns */}
-        <div className="md:col-span-2 grid gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="lg:col-span-2">
           <Card>
-            <CardHeader>
-              <CardTitle>Growth Trends</CardTitle>
-              <CardDescription>Your audience growth over time</CardDescription>
+            <CardHeader className="pb-2">
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Tasks you might want to do next</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="h-[300px] flex items-center justify-center border-2 border-dashed border-muted rounded-lg">
-                <div className="text-center space-y-2">
-                  <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground" />
-                  <p>Chart placeholder</p>
-                </div>
-              </div>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              {userRole === 'creator' ? (
+                <>
+                  <Button 
+                    variant="outline" 
+                    className="flex justify-between items-center"
+                    onClick={() => navigate('/social-connect')}
+                  >
+                    <div className="flex items-center">
+                      <Instagram className="mr-2 h-4 w-4" />
+                      Connect Social Accounts
+                    </div>
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="flex justify-between items-center"
+                    onClick={() => navigate('/profile')}
+                  >
+                    <div className="flex items-center">
+                      <Users className="mr-2 h-4 w-4" />
+                      Complete Your Profile
+                    </div>
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant="outline" 
+                    className="flex justify-between items-center"
+                    onClick={() => navigate('/deals')}
+                  >
+                    <div className="flex items-center">
+                      <Users className="mr-2 h-4 w-4" />
+                      Browse Creators
+                    </div>
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="flex justify-between items-center"
+                    onClick={() => navigate('/profile')}
+                  >
+                    <div className="flex items-center">
+                      <Users className="mr-2 h-4 w-4" />
+                      Complete Brand Profile
+                    </div>
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Content Performance</CardTitle>
-              <CardDescription>How your recent posts are performing</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] flex items-center justify-center border-2 border-dashed border-muted rounded-lg">
-                <div className="text-center space-y-2">
-                  <BarChart4 className="h-12 w-12 mx-auto text-muted-foreground" />
-                  <p>Chart placeholder</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          
+          <div className="mt-6">
+            <PaymentHistoryWidget limit={5} />
+          </div>
         </div>
         
-        {/* Sidebar Widgets - Taking up 1 column */}
         <div className="space-y-6">
-          <NotificationsWidget />
-          <PaymentHistoryWidget />
+          <NotificationsWidget limit={5} />
         </div>
       </div>
     </div>
   );
-}
+};
 
 export default Dashboard;

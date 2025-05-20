@@ -1,119 +1,75 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, useNavigate } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
-import CookieConsent from "./components/CookieConsent";
-import AppRoutes from "./routes/AppRoutes";
-import { useEffect, useState } from "react";
-import { encryptionService } from "./services/encryptionService";
-import { databaseEncryptionService } from "./services/databaseEncryptionService";
-import { supabase } from "./integrations/supabase/client";
-import LandingPage from "./pages/Landing";
-import { toast } from "./hooks/use-toast";
-import { initializeAppEnvironment } from "./utils/appSetup";
+import { useState, useEffect } from 'react';
+import { BrowserRouter as Router } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from './components/ui/toaster';
+import { AuthProvider } from './context/AuthContext';
+import CookieConsent from './components/CookieConsent';
+import AppRoutes from './routes/AppRoutes';
+import { Loader2 } from 'lucide-react';
+import { initializeAppEnvironment } from './utils/appSetup';
+import './App.css';
 
-// Create a new QueryClient instance
+// Create a client for React Query
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
-      staleTime: 30000,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnWindowFocus: false,
     },
   },
 });
 
-// Initialize function for encryption services
-const initEncryptionServices = async () => {
-  try {
-    await Promise.all([
-      encryptionService.initialize(),
-      databaseEncryptionService.initialize()
-    ]);
-    console.log("Encryption services initialized");
-  } catch (error) {
-    console.error("Failed to initialize encryption services:", error);
-  }
-};
+function App() {
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
 
-// Call initialization immediately to ensure encryption services
-// are ready as soon as possible
-initEncryptionServices();
-
-// External landing page URL
-const LANDING_PAGE_URL = "https://flaresync.org";
-
-const App = () => {
-  const [isAuthenticating, setIsAuthenticating] = useState(true);
-  
-  // Ensure encryption services and app environment are initialized when the app component mounts
   useEffect(() => {
-    const initApp = async () => {
+    const initialize = async () => {
       try {
-        await initEncryptionServices();
-        await initializeAppEnvironment();
-      } catch (error) {
-        console.error("App initialization error:", error);
-      }
-    };
-    
-    initApp();
-  }, []);
-
-  // Check if the user is coming from the external landing page
-  useEffect(() => {
-    const checkAuthRedirect = async () => {
-      // Check for authentication token in URL parameters (coming from external site)
-      const urlParams = new URLSearchParams(window.location.search);
-      const externalToken = urlParams.get('auth_token');
-      
-      if (externalToken) {
-        try {
-          // If we have a token from the external site, let's use it to sign in
-          // This would be a special method to verify the token from external site
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email: urlParams.get('email') || '',
-            password: externalToken
-          });
-          
-          if (error) throw error;
-          
-          // Clear the URL parameters after successful login
-          window.history.replaceState({}, document.title, window.location.pathname);
-          
-          toast({
-            title: "Signed in successfully",
-            description: "Welcome back to FlareSync!"
-          });
-        } catch (error) {
-          console.error("External auth error:", error);
-          toast({
-            variant: "destructive",
-            title: "Authentication failed",
-            description: "There was an error authenticating with the external service."
-          });
-          
-          // Redirect to landing page on auth failure
-          window.location.href = LANDING_PAGE_URL;
-        } finally {
-          setIsAuthenticating(false);
+        const result = await initializeAppEnvironment();
+        
+        if (!result.success) {
+          setInitError(result.error || 'Failed to initialize application');
         }
-      } else {
-        setIsAuthenticating(false);
+      } catch (error) {
+        console.error('Error initializing app:', error);
+        setInitError(error instanceof Error ? error.message : 'Unknown initialization error');
+      } finally {
+        setIsInitializing(false);
       }
     };
-    
-    checkAuthRedirect();
+
+    initialize();
   }, []);
 
-  if (isAuthenticating) {
+  if (isInitializing) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Authenticating...</p>
+          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+          <h2 className="text-xl font-bold mb-2">Initializing FlareSync</h2>
+          <p className="text-muted-foreground">Please wait while we set up your environment...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (initError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <div className="text-center max-w-md p-6 bg-white rounded shadow-lg">
+          <h2 className="text-xl font-bold text-red-600 mb-4">Initialization Error</h2>
+          <p className="mb-4">{initError}</p>
+          <p className="text-sm text-muted-foreground">
+            Please check your connection and try again. If the problem persists, contact support.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
@@ -121,18 +77,15 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider externalLandingPageUrl={LANDING_PAGE_URL}>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <AppRoutes />
-            <CookieConsent />
-          </TooltipProvider>
-        </AuthProvider>
-      </BrowserRouter>
+      <AuthProvider>
+        <Router>
+          <AppRoutes />
+          <Toaster />
+          <CookieConsent />
+        </Router>
+      </AuthProvider>
     </QueryClientProvider>
   );
-};
+}
 
 export default App;
