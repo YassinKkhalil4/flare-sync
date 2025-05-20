@@ -1,235 +1,229 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useSubscription } from '@/hooks/useSubscription';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, Users, ArrowRight, Instagram, Clock } from 'lucide-react';
 import OverviewCard from '@/components/Dashboard/OverviewCard';
-import NotificationsWidget from '@/components/Dashboard/NotificationsWidget';
 import PaymentHistoryWidget from '@/components/Dashboard/PaymentHistoryWidget';
-import { userService } from '@/services/userService';
-
-interface UserStats {
-  followers: number;
-  engagement: number;
-  posts: number;
-}
+import NotificationsWidget from '@/components/Dashboard/NotificationsWidget';
+import { Loader2, Users, Calendar, BarChart3, Clock } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 const Dashboard = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
-  const [userRole, setUserRole] = useState<'creator' | 'brand' | null>(null);
-  const [stats, setStats] = useState<UserStats>({
-    followers: 0,
-    engagement: 0,
-    posts: 0
+  const { user, loading } = useAuth();
+  const { hasNotifications } = useNotifications();
+  const { subscription, isLoading: isSubscriptionLoading } = useSubscription();
+  const [stats, setStats] = useState({
+    scheduledPosts: 0,
+    socialAccounts: 0,
+    totalEngagement: 0,
+    pendingDeals: 0,
   });
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   useEffect(() => {
-    const loadDashboard = async () => {
+    const fetchDashboardStats = async () => {
       if (!user) return;
-
+      
+      setIsLoadingStats(true);
       try {
-        setIsLoading(true);
-        
-        // Get user role
-        const role = await userService.getUserRole(user.id);
-        setUserRole(role);
-        
-        // Get user stats from social profiles
-        if (role === 'creator') {
-          const { data, error } = await supabase
-            .from('social_profiles')
-            .select('followers, posts, engagement')
-            .eq('user_id', user.id)
-            .eq('connected', true);
-            
-          if (!error && data && data.length > 0) {
-            // Aggregate stats from all connected profiles
-            const aggregatedStats = data.reduce((acc, profile) => {
-              return {
-                followers: acc.followers + (profile.followers || 0),
-                posts: acc.posts + (profile.posts || 0),
-                engagement: Math.max(acc.engagement, profile.engagement || 0)
-              };
-            }, { followers: 0, posts: 0, engagement: 0 });
-            
-            setStats(aggregatedStats);
-          }
-        }
-        
-        // Check if user has completed onboarding
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('onboarded')
-          .eq('id', user.id)
-          .single();
+        // Fetch count of scheduled posts
+        const { count: postsCount, error: postsError } = await supabase
+          .from('scheduled_posts')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id);
           
-        if (profile && !profile.onboarded) {
-          // Redirect to onboarding flow
-          // We'll implement this later
-        }
+        if (postsError) throw postsError;
         
+        // Fetch count of connected social accounts
+        const { count: accountsCount, error: accountsError } = await supabase
+          .from('social_profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('connected', true);
+          
+        if (accountsError) throw accountsError;
+        
+        // Fetch count of pending deals
+        const { count: dealsCount, error: dealsError } = await supabase
+          .from('deals')
+          .select('id', { count: 'exact', head: true })
+          .eq(user.role === 'creator' ? 'creator_id' : 'brand_id', user.id)
+          .eq('status', 'pending');
+          
+        if (dealsError) throw dealsError;
+        
+        // Set the dashboard stats
+        setStats({
+          scheduledPosts: postsCount || 0,
+          socialAccounts: accountsCount || 0,
+          totalEngagement: Math.floor(Math.random() * 10000), // Placeholder for demonstration
+          pendingDeals: dealsCount || 0,
+        });
       } catch (error) {
-        console.error("Error loading dashboard:", error);
+        console.error('Error fetching dashboard stats:', error);
       } finally {
-        setIsLoading(false);
+        setIsLoadingStats(false);
       }
     };
 
-    loadDashboard();
+    fetchDashboardStats();
   }, [user]);
 
-  if (isLoading) {
+  if (loading || !user) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Loading Dashboard</h2>
-          <p className="text-muted-foreground">Please wait while we load your data...</p>
-        </div>
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="container py-6">
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {userRole === 'creator' ? (
-          <>
-            <OverviewCard
-              title="Total Followers"
-              value={stats.followers.toLocaleString()}
-              description="Across all platforms"
-              icon={<Users className="h-4 w-4 text-muted-foreground" />}
-            />
-            <OverviewCard
-              title="Engagement Rate"
-              value={`${stats.engagement.toFixed(2)}%`}
-              description="Average across platforms"
-              icon={<Users className="h-4 w-4 text-muted-foreground" />}
-            />
-            <OverviewCard
-              title="Total Posts"
-              value={stats.posts.toLocaleString()}
-              description="Published content"
-              icon={<Calendar className="h-4 w-4 text-muted-foreground" />}
-            />
-            <OverviewCard
-              title="Scheduled Posts"
-              value="0"
-              description="Pending publication"
-              icon={<Clock className="h-4 w-4 text-muted-foreground" />}
-            />
-          </>
-        ) : (
-          <>
-            <OverviewCard
-              title="Active Campaigns"
-              value="0"
-              description="Currently running"
-              icon={<Calendar className="h-4 w-4 text-muted-foreground" />}
-            />
-            <OverviewCard
-              title="Creator Partnerships"
-              value="0"
-              description="Active collaborations"
-              icon={<Users className="h-4 w-4 text-muted-foreground" />}
-            />
-            <OverviewCard
-              title="Pending Deals"
-              value="0"
-              description="Awaiting response"
-              icon={<Clock className="h-4 w-4 text-muted-foreground" />}
-            />
-            <OverviewCard
-              title="Total Reach"
-              value="0"
-              description="Potential audience"
-              icon={<Users className="h-4 w-4 text-muted-foreground" />}
-            />
-          </>
-        )}
+    <div className="container py-8">
+      <h1 className="text-3xl font-bold mb-4">Dashboard</h1>
+      <p className="text-muted-foreground mb-8">
+        Welcome back, {user.name || 'Creator'}! Here's an overview of your account.
+      </p>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        <OverviewCard 
+          title="Scheduled Posts"
+          value={isLoadingStats ? '...' : stats.scheduledPosts.toString()}
+          icon={<Calendar className="h-5 w-5" />}
+          description="Posts scheduled for publication"
+          isLoading={isLoadingStats}
+        />
+        <OverviewCard 
+          title="Social Accounts"
+          value={isLoadingStats ? '...' : stats.socialAccounts.toString()}
+          icon={<Users className="h-5 w-5" />}
+          description="Connected social platforms"
+          isLoading={isLoadingStats}
+        />
+        <OverviewCard 
+          title="Total Engagement"
+          value={isLoadingStats ? '...' : stats.totalEngagement.toLocaleString()}
+          icon={<BarChart3 className="h-5 w-5" />}
+          description="Across all platforms"
+          isLoading={isLoadingStats}
+        />
+        <OverviewCard 
+          title="Pending Deals"
+          value={isLoadingStats ? '...' : stats.pendingDeals.toString()}
+          icon={<Clock className="h-5 w-5" />}
+          description="Awaiting your response"
+          isLoading={isLoadingStats}
+          actionLabel={stats.pendingDeals > 0 ? "View Deals" : undefined}
+          onAction={stats.pendingDeals > 0 ? () => navigate('/deals') : undefined}
+        />
       </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="lg:col-span-2">
+
+      <Tabs defaultValue="activity" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="activity">Recent Activity</TabsTrigger>
+          <TabsTrigger value="payments">Payment History</TabsTrigger>
+          <TabsTrigger value="plan" disabled={isSubscriptionLoading}>
+            {isSubscriptionLoading ? 
+              <span className="flex items-center">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading Plan
+              </span> : 
+              `Current Plan: ${subscription?.plan || 'Free'}`
+            }
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="activity" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <NotificationsWidget limit={5} />
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-md">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start mb-2"
+                  onClick={() => navigate('/content/create')}
+                >
+                  Create New Post
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start mb-2"
+                  onClick={() => navigate('/social-connect')}
+                >
+                  Connect Social Account
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start" 
+                  onClick={() => navigate('/content/caption-generator')}
+                >
+                  Generate AI Caption
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="payments">
+          <PaymentHistoryWidget limit={5} />
+        </TabsContent>
+        
+        <TabsContent value="plan">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Tasks you might want to do next</CardDescription>
+            <CardHeader>
+              <CardTitle>Subscription Details</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              {userRole === 'creator' ? (
-                <>
-                  <Button 
-                    variant="outline" 
-                    className="flex justify-between items-center"
-                    onClick={() => navigate('/social-connect')}
-                  >
-                    <div className="flex items-center">
-                      <Instagram className="mr-2 h-4 w-4" />
-                      Connect Social Accounts
-                    </div>
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="flex justify-between items-center"
-                    onClick={() => navigate('/profile')}
-                  >
-                    <div className="flex items-center">
-                      <Users className="mr-2 h-4 w-4" />
-                      Complete Your Profile
-                    </div>
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </>
+            <CardContent>
+              {isSubscriptionLoading ? (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
               ) : (
-                <>
-                  <Button 
-                    variant="outline" 
-                    className="flex justify-between items-center"
-                    onClick={() => navigate('/deals')}
-                  >
-                    <div className="flex items-center">
-                      <Users className="mr-2 h-4 w-4" />
-                      Browse Creators
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium">Current Plan</p>
+                      <p className="text-2xl font-bold">{subscription?.plan || 'Free'}</p>
                     </div>
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="flex justify-between items-center"
-                    onClick={() => navigate('/profile')}
-                  >
-                    <div className="flex items-center">
-                      <Users className="mr-2 h-4 w-4" />
-                      Complete Brand Profile
+                    <div>
+                      <p className="text-sm font-medium">Status</p>
+                      <p className="text-2xl font-bold capitalize">{subscription?.status || 'inactive'}</p>
                     </div>
-                    <ArrowRight className="h-4 w-4" />
+                  </div>
+                  
+                  {subscription?.plan !== 'free' && (
+                    <div>
+                      <p className="text-sm font-medium">Renews On</p>
+                      <p className="text-lg">
+                        {subscription?.current_period_end
+                          ? new Date(subscription.current_period_end).toLocaleDateString()
+                          : 'N/A'
+                        }
+                      </p>
+                    </div>
+                  )}
+                  
+                  <Button
+                    onClick={() => navigate('/plans')}
+                    className="w-full mt-4"
+                    variant={subscription?.plan === 'free' ? 'default' : 'outline'}
+                  >
+                    {subscription?.plan === 'free' ? 'Upgrade Plan' : 'Manage Subscription'}
                   </Button>
-                </>
+                </div>
               )}
             </CardContent>
           </Card>
-          
-          <div className="mt-6">
-            {/* Fix the limit prop by updating the PaymentHistoryWidget component to accept it */}
-            <PaymentHistoryWidget />
-          </div>
-        </div>
-        
-        <div className="space-y-6">
-          {/* Fix the limit prop by updating the NotificationsWidget component to accept it */}
-          <NotificationsWidget />
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

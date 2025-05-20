@@ -1,8 +1,12 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/supabase';
+
+// Re-export the supabase client from the integrations folder
+import { supabase as integrationSupabase } from '@/integrations/supabase/client';
 
 // Re-export for backward compatibility
-export { supabase };
+export const supabase = integrationSupabase;
 
 // Helper functions for session persistence
 export const persistSession = (session: any) => {

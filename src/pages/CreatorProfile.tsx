@@ -35,7 +35,7 @@ const CreatorProfile = () => {
                         src={user?.avatar || '/placeholder.svg'} 
                         alt={user?.name || 'Profile'}
                       />
-                      <AvatarFallback>{user?.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                      <AvatarFallback>{user?.name?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
                     </Avatar>
                     <div>
                       <h2 className="text-lg font-semibold">{user?.name || 'Unknown User'}</h2>
