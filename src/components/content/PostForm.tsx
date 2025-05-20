@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -67,7 +68,8 @@ const PostForm: React.FC<PostFormProps> = ({ onSubmit, onCancel, initialValues, 
     { value: 'twitch', label: 'Twitch' }
   ] as const;
 
-  const tinyMCEApiKey = process.env.NEXT_PUBLIC_TINYMCE_API_KEY;
+  // Fix: Use import.meta.env instead of process.env for Vite
+  const tinyMCEApiKey = import.meta.env.VITE_TINYMCE_API_KEY || '';
 
   const watchedStatus = watch("status");
   
