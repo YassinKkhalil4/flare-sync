@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -13,11 +13,22 @@ const ProfileInformation = () => {
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
   const [formData, setFormData] = useState({
-    full_name: profile?.full_name || user?.name || '',
+    full_name: '',
     bio: '',
     location: '',
     website: ''
   });
+
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || '',
+        bio: profile.bio || '',
+        location: profile.location || '',
+        website: profile.website || ''
+      });
+    }
+  }, [profile]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -30,7 +41,11 @@ const ProfileInformation = () => {
     
     try {
       await updateProfile({
-        full_name: formData.full_name
+        full_name: formData.full_name,
+        // Assuming these fields would be added to the Profile type in database.ts
+        bio: formData.bio,
+        location: formData.location,
+        website: formData.website
       });
       
       toast({

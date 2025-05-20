@@ -15,8 +15,22 @@ export const storageService = {
       const fileExt = file.name.split('.').pop();
       const filePath = `${userId}/${uuidv4()}.${fileExt}`;
       
-      // Ensure the bucket exists
-      await ensureBucketExists('avatars');
+      // Check if bucket exists first
+      const { data: bucketExists } = await supabase.storage.getBucket('avatars');
+      
+      // If bucket doesn't exist, we'll try to create it, but won't fail if we can't
+      if (!bucketExists) {
+        try {
+          // Try to create the bucket through the edge function
+          await supabase.functions.invoke('create-storage-bucket', {
+            body: { bucketName: 'avatars' }
+          });
+          console.log("Attempted to create avatars bucket via edge function");
+        } catch (error) {
+          console.warn("Failed to create avatars bucket via edge function:", error);
+          // Continue anyway - the upload might still work if bucket was created via other means
+        }
+      }
       
       // Upload the file
       const { data, error } = await supabase.storage
@@ -52,8 +66,22 @@ export const storageService = {
       const fileExt = file.name.split('.').pop();
       const filePath = `${userId}/${uuidv4()}.${fileExt}`;
       
-      // Ensure the bucket exists
-      await ensureBucketExists('content');
+      // Check if bucket exists first
+      const { data: bucketExists } = await supabase.storage.getBucket('content');
+      
+      // If bucket doesn't exist, we'll try to create it, but won't fail if we can't
+      if (!bucketExists) {
+        try {
+          // Try to create the bucket through the edge function
+          await supabase.functions.invoke('create-storage-bucket', {
+            body: { bucketName: 'content' }
+          });
+          console.log("Attempted to create content bucket via edge function");
+        } catch (error) {
+          console.warn("Failed to create content bucket via edge function:", error);
+          // Continue anyway - the upload might still work if bucket was created via other means
+        }
+      }
       
       // Upload the file
       const { data, error } = await supabase.storage
@@ -99,30 +127,18 @@ export const storageService = {
       console.error(`Error in deleteFile from ${bucket}:`, error);
       return false;
     }
+  },
+  
+  /**
+   * Check if a bucket exists
+   */
+  checkBucketExists: async (bucketName: string): Promise<boolean> => {
+    try {
+      const { data } = await supabase.storage.getBucket(bucketName);
+      return !!data;
+    } catch (error) {
+      console.error(`Error checking if bucket ${bucketName} exists:`, error);
+      return false;
+    }
   }
 };
-
-/**
- * Helper function to ensure a bucket exists
- */
-async function ensureBucketExists(bucketName: string): Promise<void> {
-  try {
-    // Check if bucket exists
-    const { data: buckets } = await supabase.storage.listBuckets();
-    const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
-    
-    if (!bucketExists) {
-      // Create the bucket
-      const { error } = await supabase.storage.createBucket(bucketName, {
-        public: true,
-        fileSizeLimit: 5242880, // 5MB
-      });
-      
-      if (error) {
-        console.error(`Error creating ${bucketName} bucket:`, error);
-      }
-    }
-  } catch (error) {
-    console.error(`Error checking/creating ${bucketName} bucket:`, error);
-  }
-}

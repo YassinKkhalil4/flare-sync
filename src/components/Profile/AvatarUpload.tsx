@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, Camera, User } from 'lucide-react';
 
@@ -15,6 +14,7 @@ const AvatarUpload = ({ userInitials, avatarUrl }: AvatarUploadProps) => {
   const { uploadAvatar } = useAuth();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState(avatarUrl);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -40,7 +40,14 @@ const AvatarUpload = ({ userInitials, avatarUrl }: AvatarUploadProps) => {
     
     setIsUploading(true);
     try {
-      await uploadAvatar(file);
+      const newAvatarUrl = await uploadAvatar(file);
+      if (newAvatarUrl) {
+        setCurrentAvatarUrl(newAvatarUrl);
+        toast({
+          title: 'Avatar updated',
+          description: 'Your profile picture has been updated.',
+        });
+      }
     } catch (error) {
       console.error('Error uploading avatar:', error);
       toast({
@@ -57,8 +64,8 @@ const AvatarUpload = ({ userInitials, avatarUrl }: AvatarUploadProps) => {
     <div className="flex flex-col items-center">
       <div className="relative group mb-4">
         <Avatar className="h-32 w-32">
-          {avatarUrl ? (
-            <AvatarImage src={avatarUrl} alt="Profile" />
+          {currentAvatarUrl ? (
+            <AvatarImage src={currentAvatarUrl} alt="Profile" />
           ) : (
             <AvatarFallback className="text-2xl">
               <User className="h-10 w-10" />

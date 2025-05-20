@@ -13,7 +13,9 @@ export interface ContentPost extends DatabaseContentPost {
   }[];
 }
 
-export { type DatabaseScheduledPost as ScheduledPost };
+export interface ScheduledPost extends DatabaseScheduledPost {
+  // Add any additional front-end properties here
+}
 
 export type ContentStatus = 'draft' | 'pending' | 'pending_approval' | 'approved' | 'rejected' | 'scheduled' | 'published' | 'failed';
 export type SocialPlatform = 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'facebook' | 'twitch';

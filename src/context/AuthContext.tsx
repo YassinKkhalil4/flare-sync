@@ -3,16 +3,17 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { supabase } from '@/integrations/supabase/client';
 import { Profile } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
+import { SignInCredentials, SignUpCredentials } from '@/utils/authHelpers';
 
 interface AuthContextType {
   session: any | null;
   user: any | null;
   profile: Profile | null;
   loading: boolean;
-  signIn: (email: string) => Promise<void>;
+  signIn: (credentials: SignInCredentials) => Promise<{ data?: any; error?: any }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
-  signUp: (email: string, password: string, metadata?: any) => Promise<any>;
+  signUp: (credentials: SignUpCredentials) => Promise<any>;
   isLoading: boolean;
   isAdmin: boolean;
   uploadAvatar: (file: File) => Promise<string | null>;
@@ -100,38 +101,52 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signIn = async (email: string) => {
+  const signIn = async (credentials: SignInCredentials) => {
     try {
-      const { error } = await supabase.auth.signInWithOtp({ email });
-      if (error) throw error;
-      toast({
-        title: "Check your email",
-        description: "We've sent you a magic link to sign in.",
+      const { email, password } = credentials;
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
       });
+      
+      if (error) throw error;
+      
+      if (data?.user) {
+        toast({
+          title: "Signed in successfully",
+          description: "Welcome back!",
+        });
+      }
+      
+      return { data };
     } catch (error: any) {
       toast({
         title: "Sign in failed",
         description: error.error_description || error.message,
         variant: "destructive",
       });
+      
+      return { error };
     }
   };
 
-  const signUp = async (email: string, password: string, metadata?: any) => {
+  const signUp = async (credentials: SignUpCredentials) => {
     setIsLoading(true);
     try {
+      const { email, password, options } = credentials;
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: metadata
-        }
+        options
       });
+      
       if (error) throw error;
+      
       toast({
         title: "Sign up successful",
         description: "Check your email for the verification link.",
       });
+      
       setIsLoading(false);
       return data;
     } catch (error: any) {
@@ -140,7 +155,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         description: error.error_description || error.message,
         variant: "destructive",
       });
+      
       setIsLoading(false);
+      return { error };
     }
   };
 

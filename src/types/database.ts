@@ -17,7 +17,9 @@ export interface Profile {
   onboarded?: boolean | null;
   created_at?: string | null;
   updated_at?: string | null;
-  name?: string | null; // Added name property for compatibility with existing components
+  bio?: string | null;
+  location?: string | null;
+  website?: string | null;
 }
 
 // User roles
