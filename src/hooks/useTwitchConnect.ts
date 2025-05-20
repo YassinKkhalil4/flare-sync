@@ -1,7 +1,10 @@
 
 import { useSocialConnect } from './useSocialConnect';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export const useTwitchConnect = () => {
+  const { toast } = useToast();
   const {
     isLoading,
     isConnecting,
@@ -22,6 +25,33 @@ export const useTwitchConnect = () => {
     initiateConnect(CLIENT_ID, REDIRECT_URI, SCOPE);
   };
 
+  // Handle OAuth callback with error handling
+  const handleCallback = async (code: string) => {
+    try {
+      // Exchange code for token using our edge function
+      const { data, error } = await supabase.functions.invoke('twitch-auth', {
+        body: { code }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Twitch Connected',
+        description: 'Your Twitch account has been successfully connected.',
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Error handling Twitch callback:', error);
+      toast({
+        title: 'Connection error',
+        description: 'Failed to complete Twitch connection. Please try again.',
+        variant: 'destructive',
+      });
+      throw error;
+    }
+  };
+
   return {
     isLoading,
     isConnecting,
@@ -31,5 +61,6 @@ export const useTwitchConnect = () => {
     initiateTwitchConnect,
     disconnectTwitch: disconnect,
     syncTwitchData: syncData,
+    handleCallback,
   };
 };

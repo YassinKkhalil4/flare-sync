@@ -1,10 +1,9 @@
-
 import React, { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import MainLayout from '@/components/layouts/MainLayout';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import SocialPlatformTabs from '@/components/social/SocialPlatformTabs';
+import { SocialPlatformTabs } from '@/components/social/SocialPlatformTabs';
 import InstagramConnectCard from '@/components/social/InstagramConnectCard';
 import TwitterConnectCard from '@/components/social/TwitterConnectCard';
 import TiktokConnectCard from '@/components/social/TiktokConnectCard';
