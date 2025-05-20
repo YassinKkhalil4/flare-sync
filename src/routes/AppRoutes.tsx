@@ -2,9 +2,6 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import NotFound from '../pages/NotFound';
-import AdminLogin from '../pages/AdminLogin';
-import AdminDashboard from '../pages/AdminDashboard';
-import CreateAdminUser from '../pages/CreateAdminUser';
 import Index from '../pages/Index';
 import Legal from '../pages/Legal';
 import Privacy from '../pages/Privacy';
@@ -30,27 +27,32 @@ import ContentCreatePage from '../pages/Content/ContentCreatePage';
 import ContentEditPage from '../pages/Content/ContentEditPage';
 import ContentDetailPage from '../pages/Content/ContentDetailPage';
 import ContentApprovalPage from '../pages/Content/ContentApprovalPage';
+// Admin pages
+import AdminLogin from '../pages/AdminLogin';
+import AdminDashboard from '../pages/AdminDashboard';
+import CreateAdminUser from '../pages/CreateAdminUser';
+// Brand pages
+import CreatorDiscovery from '../pages/Brand/CreatorDiscovery';
+import CampaignManagement from '../pages/Brand/CampaignManagement';
 
-// Placeholder for pages that don't exist yet
+// Placeholder for pages that don't exist yet but will be implemented later
 const PlaceholderPage = () => (
   <div className="flex items-center justify-center min-h-screen">
     <div className="p-8 border rounded shadow-lg text-center">
-      <h1 className="text-2xl font-bold mb-4">Page Not Implemented</h1>
-      <p>This page is part of the routes but hasn't been implemented yet.</p>
+      <h1 className="text-2xl font-bold mb-4">Coming Soon</h1>
+      <p>This feature is currently under development and will be available soon.</p>
     </div>
   </div>
 );
 
 const AppRoutes = () => {
-  console.log('AppRoutes component rendering');
-  
   return (
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       
-      {/* Admin routes - making sure they are correctly defined */}
+      {/* Admin routes */}
       <Route path="/admin-login" element={<AdminLogin />} />
       <Route path="/admin" element={
         <ProtectedRoute requireAdmin={true}>
@@ -65,46 +67,55 @@ const AppRoutes = () => {
           <Dashboard />
         </ProtectedRoute>
       } />
+      
       <Route path="/social-connect" element={
         <ProtectedRoute>
           <SocialConnect />
         </ProtectedRoute>
       } />
+      
       <Route path="/social-callback" element={
         <ProtectedRoute>
           <SocialConnectCallback />
         </ProtectedRoute>
       } />
+      
       <Route path="/profile" element={
         <ProtectedRoute>
           <CreatorProfile />
         </ProtectedRoute>
       } />
+      
       <Route path="/messaging" element={
         <ProtectedRoute>
           <Messaging />
         </ProtectedRoute>
       } />
+      
       <Route path="/deals" element={
         <ProtectedRoute>
           <BrandDeals />
         </ProtectedRoute>
       } />
+      
       <Route path="/notifications" element={
         <ProtectedRoute>
           <NotificationsPage />
         </ProtectedRoute>
       } />
+      
       <Route path="/plans" element={
         <ProtectedRoute>
           <Plans />
         </ProtectedRoute>
       } />
+      
       <Route path="/payment-history" element={
         <ProtectedRoute>
           <PaymentHistory />
         </ProtectedRoute>
       } />
+      
       <Route path="/settings" element={
         <ProtectedRoute>
           <Settings />
@@ -117,29 +128,47 @@ const AppRoutes = () => {
           <ContentListPage />
         </ProtectedRoute>
       } />
+      
       <Route path="/content/calendar" element={
         <ProtectedRoute>
           <ContentCalendarPage />
         </ProtectedRoute>
       } />
+      
       <Route path="/content/create" element={
         <ProtectedRoute>
           <ContentCreatePage />
         </ProtectedRoute>
       } />
+      
       <Route path="/content/edit/:id" element={
         <ProtectedRoute>
           <ContentEditPage />
         </ProtectedRoute>
       } />
+      
       <Route path="/content/:id" element={
         <ProtectedRoute>
           <ContentDetailPage />
         </ProtectedRoute>
       } />
+      
       <Route path="/content/approval" element={
         <ProtectedRoute>
           <ContentApprovalPage />
+        </ProtectedRoute>
+      } />
+      
+      {/* Brand-specific routes */}
+      <Route path="/creators" element={
+        <ProtectedRoute>
+          <CreatorDiscovery />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/campaigns" element={
+        <ProtectedRoute>
+          <CampaignManagement />
         </ProtectedRoute>
       } />
       
@@ -149,16 +178,15 @@ const AppRoutes = () => {
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms-conditions" element={<TermsAndConditions />} />
       
-      {/* Placeholder pages that will be implemented later */}
-      <Route path="/profile/:username" element={<PlaceholderPage />} />
-      <Route path="/social-profile/:id" element={<PlaceholderPage />} />
-      <Route path="/contact" element={<PlaceholderPage />} />
-      <Route path="/pricing" element={<PlaceholderPage />} />
-      <Route path="/blog" element={<PlaceholderPage />} />
-      <Route path="/blog/:id" element={<PlaceholderPage />} />
-      <Route path="/auth" element={<PlaceholderPage />} />
-      <Route path="/edit-profile" element={<PlaceholderPage />} />
-      <Route path="/upgrade" element={<PlaceholderPage />} />
+      {/* Placeholder routes for features mentioned in plans but not implemented yet */}
+      <Route path="/content/caption-generator" element={<PlaceholderPage />} />
+      <Route path="/content/engagement-predictor" element={<PlaceholderPage />} />
+      <Route path="/content/brand-matchmaker" element={<PlaceholderPage />} />
+      <Route path="/content/content-plan" element={<PlaceholderPage />} />
+      <Route path="/content/smart-assistant" element={<PlaceholderPage />} />
+      <Route path="/content/smart-scheduler" element={<PlaceholderPage />} />
+      <Route path="/social-profiles" element={<PlaceholderPage />} />
+      <Route path="/scheduler" element={<PlaceholderPage />} />
       
       {/* Catch-all route */}
       <Route path="*" element={<NotFound />} />

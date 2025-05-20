@@ -2,7 +2,6 @@
 import React from 'react';
 import MainLayout from '@/components/layouts/MainLayout';
 import { Card } from '@/components/ui/card';
-// Fix import statement to use default export instead of named export
 import ContentScheduler from '@/components/content/ContentScheduler';
 
 const ContentCalendarPage: React.FC = () => {

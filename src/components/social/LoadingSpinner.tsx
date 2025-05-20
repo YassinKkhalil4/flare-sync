@@ -1,12 +1,10 @@
 
 import React from 'react';
-import { Loader2 } from 'lucide-react';
 
-export const LoadingSpinner = () => {
+export const LoadingSpinner: React.FC = () => {
   return (
-    <div className="text-center">
-      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-      <p>Loading your connected accounts...</p>
+    <div className="flex items-center justify-center py-10">
+      <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
     </div>
   );
 };

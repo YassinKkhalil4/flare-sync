@@ -1,52 +1,49 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { SocialAPI } from '@/services/socialService';
-import { useToast } from '@/hooks/use-toast';
+import { useInstagramConnect } from './useInstagramConnect';
+import { useTwitterConnect } from './useTwitterConnect';
+import { useTiktokConnect } from './useTiktokConnect';
+import { useYoutubeConnect } from './useYoutubeConnect';
+import { useTwitchConnect } from './useTwitchConnect';
 
 export const useSocialPlatforms = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
-
+  const [hasSocialAccounts, setHasSocialAccounts] = useState(false);
+  
+  const { isInstagramConnected } = useInstagramConnect();
+  const { isTwitterConnected } = useTwitterConnect();
+  const { isTiktokConnected } = useTiktokConnect();
+  const { isYoutubeConnected } = useYoutubeConnect();
+  const { isTwitchConnected } = useTwitchConnect();
+  
   useEffect(() => {
-    if (!user) {
-      setIsLoading(false);
-      return;
-    }
-
-    // Force loading to false after 5 seconds
-    const timeout = setTimeout(() => {
-      if (isLoading) {
-        setIsLoading(false);
-        setInitialLoadComplete(true);
-      }
-    }, 5000);
-
-    const checkConnections = async () => {
-      try {
-        await SocialAPI.getProfiles();
-        setInitialLoadComplete(true);
-      } catch (error) {
-        console.error('Error checking social connections:', error);
-        toast({
-          title: "Couldn't load social profiles",
-          description: "There was an error loading your social profiles. Please try again later.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-        setInitialLoadComplete(true);
-      }
-    };
-
-    checkConnections();
-    return () => clearTimeout(timeout);
-  }, [user, toast, isLoading]);
-
+    // Check if any platforms are connected
+    const hasAnyConnections = 
+      isInstagramConnected || 
+      isTwitterConnected || 
+      isTiktokConnected || 
+      isYoutubeConnected || 
+      isTwitchConnected;
+    
+    setHasSocialAccounts(hasAnyConnections);
+    setInitialLoadComplete(true);
+  }, [
+    isInstagramConnected, 
+    isTwitterConnected, 
+    isTiktokConnected, 
+    isYoutubeConnected, 
+    isTwitchConnected
+  ]);
+  
   return {
-    isLoading,
+    hasSocialAccounts,
     initialLoadComplete,
+    platformConnections: {
+      instagram: isInstagramConnected,
+      twitter: isTwitterConnected,
+      tiktok: isTiktokConnected,
+      youtube: isYoutubeConnected,
+      twitch: isTwitchConnected
+    }
   };
 };

@@ -1,35 +1,24 @@
 
-import React, { useState } from 'react';
-import Sidebar from '@/components/Sidebar';
+import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import AppSidebar from '@/components/AppSidebar';
+import SocialConnectModal from '@/components/social/SocialConnectModal';
 
 const MainLayout: React.FC = () => {
-  const isMobile = useIsMobile();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(isMobile);
-
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
-        <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+    <SidebarProvider defaultOpen={true}>
+      <div className="flex h-screen w-full bg-background">
+        <AppSidebar />
+        
+        <main className="flex-1 overflow-auto">
+          <Outlet />
+        </main>
+        
+        {/* Social Connect Modal for new users */}
+        <SocialConnectModal />
       </div>
-      
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto relative">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-4 left-4 z-10 lg:hidden"
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-        >
-          {sidebarCollapsed ? <ChevronRight /> : <ChevronLeft />}
-        </Button>
-        <Outlet />
-      </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
