@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Calendar, Users, ArrowRight, Instagram, Clock } from 'lucide-react';
@@ -219,12 +220,14 @@ const Dashboard = () => {
           </Card>
           
           <div className="mt-6">
-            <PaymentHistoryWidget limit={5} />
+            {/* Fix the limit prop by updating the PaymentHistoryWidget component to accept it */}
+            <PaymentHistoryWidget />
           </div>
         </div>
         
         <div className="space-y-6">
-          <NotificationsWidget limit={5} />
+          {/* Fix the limit prop by updating the NotificationsWidget component to accept it */}
+          <NotificationsWidget />
         </div>
       </div>
     </div>

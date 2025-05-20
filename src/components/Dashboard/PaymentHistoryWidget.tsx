@@ -1,13 +1,16 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePaymentHistory } from '@/hooks/usePaymentHistory';
 import { DollarSign, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
-const PaymentHistoryWidget = () => {
+interface PaymentHistoryWidgetProps {
+  limit?: number;
+}
+
+const PaymentHistoryWidget = ({ limit = 5 }: PaymentHistoryWidgetProps) => {
   const { transactions, isLoading } = usePaymentHistory();
   
-  // Only show the 5 most recent transactions
-  const recentTransactions = transactions.slice(0, 5);
+  // Only show the specified number of most recent transactions
+  const recentTransactions = transactions.slice(0, limit);
   
   const formatCurrency = (amount: number, currency: string = 'USD') => {
     return new Intl.NumberFormat('en-US', {
