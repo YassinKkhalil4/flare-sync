@@ -1,16 +1,14 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import MainLayout from '@/components/layouts/MainLayout';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SocialPlatformTabs } from '@/components/social/SocialPlatformTabs';
 import InstagramConnectCard from '@/components/social/InstagramConnectCard';
 import TwitterConnectCard from '@/components/social/TwitterConnectCard';
 import TiktokConnectCard from '@/components/social/TiktokConnectCard';
 import YoutubeConnectCard from '@/components/social/YoutubeConnectCard';
 import TwitchConnectCard from '@/components/social/TwitchConnectCard';
-import ComingSoonCard from '@/components/social/ComingSoonCard';
 import SocialConnectCallback from '@/components/social/SocialConnectCallback';
 import { useInstagramConnect } from '@/hooks/useInstagramConnect';
 import { useTwitterConnect } from '@/hooks/useTwitterConnect';
@@ -87,15 +85,9 @@ const SocialConnect = () => {
   
   // Handle OAuth callback if code is present in URL
   if (code || error) {
-    // Determine platform from state or localStorage
     const platform = localStorage.getItem('connecting_platform');
     
-    // Use a wrapper div to avoid passing the component directly as a child
-    return (
-      <div>
-        <SocialConnectCallback platform={platform || undefined} />
-      </div>
-    );
+    return <SocialConnectCallback platform={platform || undefined} />;
   }
   
   return (
