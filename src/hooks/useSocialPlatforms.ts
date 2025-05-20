@@ -9,6 +9,7 @@ import { useTwitchConnect } from './useTwitchConnect';
 export const useSocialPlatforms = () => {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [hasSocialAccounts, setHasSocialAccounts] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   const { isInstagramConnected } = useInstagramConnect();
   const { isTwitterConnected } = useTwitterConnect();
@@ -27,6 +28,7 @@ export const useSocialPlatforms = () => {
     
     setHasSocialAccounts(hasAnyConnections);
     setInitialLoadComplete(true);
+    setIsLoading(false);
   }, [
     isInstagramConnected, 
     isTwitterConnected, 
@@ -38,6 +40,7 @@ export const useSocialPlatforms = () => {
   return {
     hasSocialAccounts,
     initialLoadComplete,
+    isLoading,
     platformConnections: {
       instagram: isInstagramConnected,
       twitter: isTwitterConnected,
