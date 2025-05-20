@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import MainLayout from '@/components/layouts/MainLayout';
@@ -54,7 +55,8 @@ const SocialConnect = () => {
     isTiktokConnected,
     initiateTiktokConnect,
     disconnectTiktok,
-    syncTiktokData
+    syncTiktokData,
+    handleCallback: handleTiktokCallback
   } = useTiktokConnect();
   
   const {
@@ -65,7 +67,8 @@ const SocialConnect = () => {
     isYoutubeConnected,
     initiateYoutubeConnect,
     disconnectYoutube,
-    syncYoutubeData
+    syncYoutubeData,
+    handleCallback: handleYoutubeCallback
   } = useYoutubeConnect();
   
   const {
@@ -76,7 +79,8 @@ const SocialConnect = () => {
     isTwitchConnected,
     initiateTwitchConnect,
     disconnectTwitch,
-    syncTwitchData
+    syncTwitchData,
+    handleCallback: handleTwitchCallback
   } = useTwitchConnect();
   
   // Handle OAuth callback if code is present in URL
