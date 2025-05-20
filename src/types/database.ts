@@ -1,4 +1,3 @@
-
 // Define types that match our Supabase database schema
 // These types will be used throughout the application
 
@@ -9,7 +8,7 @@ export interface Profile {
   full_name?: string | null;
   username?: string | null;
   avatar_url?: string | null;
-  role?: 'creator' | 'brand' | 'admin' | null;
+  role?: 'creator' | 'brand' | 'admin' | 'user' | null;
   plan?: string | null;
   stripe_customer_id?: string | null;
   subscription_id?: string | null;
@@ -18,6 +17,7 @@ export interface Profile {
   onboarded?: boolean | null;
   created_at?: string | null;
   updated_at?: string | null;
+  name?: string | null; // Added name property for compatibility with existing components
 }
 
 // User roles

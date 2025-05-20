@@ -9,11 +9,11 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 
 const ProfileInformation = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
   const [formData, setFormData] = useState({
-    name: user?.name || '',
+    full_name: profile?.full_name || user?.name || '',
     bio: '',
     location: '',
     website: ''
@@ -30,7 +30,7 @@ const ProfileInformation = () => {
     
     try {
       await updateProfile({
-        name: formData.name
+        full_name: formData.full_name
       });
       
       toast({
@@ -51,11 +51,11 @@ const ProfileInformation = () => {
   return (
     <form id="profile-form" onSubmit={handleProfileUpdate} className="space-y-4">
       <div>
-        <Label htmlFor="name">Display Name</Label>
+        <Label htmlFor="full_name">Display Name</Label>
         <Input 
-          id="name" 
-          name="name" 
-          value={formData.name} 
+          id="full_name" 
+          name="full_name" 
+          value={formData.full_name} 
           onChange={handleInputChange} 
           placeholder="Your display name"
           disabled={isUpdating}

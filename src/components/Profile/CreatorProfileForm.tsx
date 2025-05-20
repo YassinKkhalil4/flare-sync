@@ -10,21 +10,21 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, Upload } from 'lucide-react';
 
 const CreatorProfileForm = () => {
-  const { user, updateProfile, uploadAvatar } = useAuth();
+  const { user, profile, updateProfile, uploadAvatar } = useAuth();
   const { toast } = useToast();
-  const [name, setName] = useState('');
+  const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      setName(user.name || '');
-      setUsername(user.username || '');
-      setAvatarUrl(user.avatar || '');
+    if (profile) {
+      setFullName(profile.full_name || '');
+      setUsername(profile.username || '');
+      setAvatarUrl(profile.avatar_url || '');
     }
-  }, [user]);
+  }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +33,7 @@ const CreatorProfileForm = () => {
     setIsLoading(true);
     try {
       await updateProfile({ 
-        name,
+        full_name: fullName,
         username
       });
       
@@ -94,8 +94,8 @@ const CreatorProfileForm = () => {
     }
   };
 
-  const userInitials = user?.name
-    ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+  const userInitials = profile?.full_name
+    ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
     : 'U';
 
   return (
@@ -108,7 +108,7 @@ const CreatorProfileForm = () => {
         <CardContent className="space-y-6">
           <div className="flex flex-col items-center gap-4">
             <Avatar className="h-24 w-24">
-              <AvatarImage src={avatarUrl} alt={name} />
+              <AvatarImage src={avatarUrl} alt={fullName} />
               <AvatarFallback>{userInitials}</AvatarFallback>
             </Avatar>
             <div className="flex items-center">
@@ -134,11 +134,11 @@ const CreatorProfileForm = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
+            <Label htmlFor="fullName">Full Name</Label>
             <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              id="fullName"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
               placeholder="Your full name"
             />
           </div>

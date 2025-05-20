@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 
 import { scheduledPostService } from '@/services/scheduledPostService';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ContentPost, ScheduledPost } from '@/types/content';
+import { ContentPost } from '@/types/content';
+import { ScheduledPost } from '@/types/database';
 
 const SmartPostSchedulerPage: React.FC = () => {
   const [selectedPlatform, setSelectedPlatform] = useState<string>('instagram');
