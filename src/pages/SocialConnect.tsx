@@ -33,7 +33,8 @@ const SocialConnect = () => {
     isInstagramConnected,
     initiateInstagramConnect,
     disconnectInstagram,
-    syncInstagramData
+    syncInstagramData,
+    handleCallback: handleInstagramCallback
   } = useInstagramConnect();
   
   const {
@@ -44,7 +45,8 @@ const SocialConnect = () => {
     isTwitterConnected,
     initiateTwitterConnect,
     disconnectTwitter,
-    syncTwitterData
+    syncTwitterData,
+    handleCallback: handleTwitterCallback
   } = useTwitterConnect();
   
   const {
@@ -87,7 +89,9 @@ const SocialConnect = () => {
   if (code || error) {
     // Determine platform from state or localStorage
     const platform = localStorage.getItem('connecting_platform');
-    return <SocialConnectCallback platform={platform || undefined} />;
+    return (
+      <SocialConnectCallback platform={platform || undefined} />
+    );
   }
   
   return (
