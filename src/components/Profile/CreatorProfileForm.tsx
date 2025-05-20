@@ -81,6 +81,10 @@ const CreatorProfileForm = () => {
       const url = await uploadAvatar(file);
       if (url) {
         setAvatarUrl(url);
+        toast({
+          title: 'Avatar uploaded',
+          description: 'Your profile picture has been updated.',
+        });
       }
     } catch (error) {
       console.error('Error uploading avatar:', error);
@@ -96,7 +100,7 @@ const CreatorProfileForm = () => {
 
   const userInitials = profile?.full_name
     ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
-    : 'U';
+    : user?.email?.substring(0, 2).toUpperCase() || 'U';
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -140,6 +144,7 @@ const CreatorProfileForm = () => {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="Your full name"
+              disabled={isLoading}
             />
           </div>
 
@@ -150,6 +155,7 @@ const CreatorProfileForm = () => {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Your username"
+              disabled={isLoading}
             />
           </div>
 

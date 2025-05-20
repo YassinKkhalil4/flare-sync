@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Loader2 } from 'lucide-react';
 
@@ -11,6 +11,17 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin = false }) => {
   const { user, isAdmin, loading } = useAuth();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Log route access for debugging
+    console.log('Protected route access:', { 
+      path: location.pathname, 
+      user: user?.id, 
+      isAdmin, 
+      requireAdmin 
+    });
+  }, [location, user, isAdmin, requireAdmin]);
 
   if (loading) {
     return (
@@ -24,10 +35,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin 
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // Save the current path to redirect back after login
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   if (requireAdmin && !isAdmin) {
+    console.log('Access denied: Admin access required for', location.pathname);
     return <Navigate to="/dashboard" replace />;
   }
 

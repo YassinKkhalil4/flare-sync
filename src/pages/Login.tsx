@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,29 +21,23 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // For demonstration purposes, let's simulate a successful login
-      console.log('Simulating login with:', email);
+      const { error } = await signIn({ email, password });
       
-      // In a real app, you'd use Supabase auth here
-      // await signIn({ email, password });
+      if (error) throw error;
       
-      // Simulate successful login after brief delay
-      setTimeout(() => {
-        toast({
-          title: "Login successful",
-          description: "Welcome back to FlareSync!",
-        });
-        navigate('/dashboard');
-        setIsLoading(false);
-      }, 1000);
-      
-    } catch (error) {
+      toast({
+        title: "Login successful",
+        description: "Welcome back to FlareSync!",
+      });
+      navigate('/dashboard');
+    } catch (error: any) {
       console.error('Login error:', error);
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: "Please check your credentials and try again.",
+        description: error?.message || "Please check your credentials and try again.",
       });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -97,7 +91,7 @@ const Login = () => {
             </Button>
             <div className="mt-4 text-center">
               <p className="text-sm text-gray-600">
-                Don't have an account? <span className="text-blue-600 cursor-pointer hover:underline">Sign up</span>
+                Don't have an account? <Link to="/signup" className="text-blue-600 cursor-pointer hover:underline">Sign up</Link>
               </p>
             </div>
           </CardFooter>
