@@ -23,24 +23,49 @@ const getFutureDate = (daysAhead: number = 0, hoursAhead: number = 0, minutesAhe
 export const generateMockScheduledPosts = (userId: string, count: number = 10) => {
   const posts = [];
   const platforms = ['instagram', 'tiktok', 'twitter', 'youtube'];
-  const statuses: ContentStatus[] = ['scheduled', 'published', 'failed', 'draft'];
+  const statuses: ContentStatus[] = ['scheduled', 'published', 'failed', 'cancelled'];
   
-  for (let i = 0; i < count; i++) {
+  // Ensure we always have at least 3-5 scheduled posts for better UI
+  const minScheduledPosts = Math.min(count, 5);
+  const scheduledCount = Math.max(3, Math.floor(count * 0.6));
+  
+  // First generate some scheduled posts
+  for (let i = 0; i < scheduledCount; i++) {
     const platform = platforms[Math.floor(Math.random() * platforms.length)] as SocialPlatform;
-    // Adjust status probabilities to have more upcoming scheduled posts
-    const statusIndex = Math.random() < 0.6 ? 0 : Math.floor(Math.random() * statuses.length);
-    const status = statuses[statusIndex];
+    const daysAhead = Math.floor(Math.random() * 7) + 1; // 1-7 days ahead
     
-    const isScheduled = status === 'scheduled';
-    const scheduledDate = isScheduled ? getFutureDate(
-      Math.floor(Math.random() * 7), 
-      Math.floor(Math.random() * 24),
-      Math.floor(Math.random() * 60)
-    ) : getRecentDate(
-      Math.floor(Math.random() * 7), 
-      Math.floor(Math.random() * 24),
-      Math.floor(Math.random() * 60)
-    );
+    posts.push({
+      id: `scheduled-${i + 1}`,
+      user_id: userId,
+      platform,
+      status: 'scheduled',
+      content: `This is a scheduled ${platform} post #${i + 1} with hashtags #creator #content #flareSync`,
+      scheduled_for: getFutureDate(
+        daysAhead, 
+        Math.floor(Math.random() * 24),
+        Math.floor(Math.random() * 60)
+      ),
+      created_at: getRecentDate(Math.floor(Math.random() * 7)),
+      updated_at: getRecentDate(Math.floor(Math.random() * 3)),
+      media_urls: [`https://picsum.photos/seed/${platform}${i}/400/400`],
+      metadata: {
+        caption_suggestions: ["Try this caption!", "Or maybe this one?"],
+        engagement_prediction: {
+          estimated_likes: Math.floor(Math.random() * 5000),
+          estimated_comments: Math.floor(Math.random() * 500),
+          confidence_score: Math.random() * 0.5 + 0.5 // 0.5 to 1.0
+        }
+      },
+      error_message: null,
+      post_id: null
+    });
+  }
+  
+  // Fill the rest with other status posts
+  for (let i = scheduledCount; i < count; i++) {
+    const platform = platforms[Math.floor(Math.random() * platforms.length)] as SocialPlatform;
+    const statusIndex = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3 (published, failed, cancelled)
+    const status = statuses[statusIndex];
     
     posts.push({
       id: `post-${i + 1}`,
@@ -48,7 +73,15 @@ export const generateMockScheduledPosts = (userId: string, count: number = 10) =
       platform,
       status,
       content: `This is a mock ${platform} post #${i + 1} with hashtags #creator #content #flareSync`,
-      scheduled_for: scheduledDate,
+      scheduled_for: status === 'published' ? getRecentDate(
+        Math.floor(Math.random() * 7), 
+        Math.floor(Math.random() * 24),
+        Math.floor(Math.random() * 60)
+      ) : getFutureDate(
+        Math.floor(Math.random() * 7), 
+        Math.floor(Math.random() * 24),
+        Math.floor(Math.random() * 60)
+      ),
       created_at: getRecentDate(Math.floor(Math.random() * 30)),
       updated_at: getRecentDate(Math.floor(Math.random() * 15)),
       media_urls: [`https://picsum.photos/seed/${platform}${i}/400/400`],
