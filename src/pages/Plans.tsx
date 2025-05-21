@@ -4,17 +4,19 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Check, X, Users, BarChart3, Crown, Headset, Palette, Code, UserPlus, Hash, Workflow } from 'lucide-react';
+import { Loader2, Check, X, Users, BarChart3, Crown, Headset, Palette, Code, UserPlus, Hash, Workflow, BulbIcon, CaptionsIcon, MonitorIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { PLAN_DETAILS, isAgencyPlan, UserPlan } from '@/lib/supabase';
+import { useUserRole } from '@/hooks/useUserRole';
 
 const Plans = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const { userRole } = useUserRole();
   
   const { 
     plan,
@@ -39,9 +41,11 @@ const Plans = () => {
         { name: '2 social media accounts', included: true },
         { name: 'Single user', included: true },
         { name: 'Email support', included: true },
+        { name: 'Basic analytics', included: true },
+        { name: 'Caption generation (5/month)', included: true },
         { name: 'Advanced analytics', included: false },
         { name: 'Priority support', included: false },
-        { name: 'Content generation', included: false },
+        { name: 'AI content recommendations', included: false },
         { name: 'Team collaboration', included: false },
       ]
     },
@@ -59,7 +63,9 @@ const Plans = () => {
         { name: 'Up to 3 team members', included: true },
         { name: 'Advanced analytics', included: true },
         { name: 'Priority support', included: true },
-        { name: 'Content generation', included: true },
+        { name: 'Caption generation (unlimited)', included: true },
+        { name: 'AI content recommendations', included: true },
+        { name: 'Engagement predictions', included: true },
         { name: 'Team collaboration tools', included: true },
         { name: 'Custom branding', included: false },
         { name: 'API access', included: false },
@@ -79,8 +85,10 @@ const Plans = () => {
         { name: 'Up to 10 team members', included: true },
         { name: 'Advanced analytics', included: true },
         { name: 'Priority support', included: true },
+        { name: 'Caption generation (unlimited)', included: true },
+        { name: 'AI content recommendations', included: true },
+        { name: 'Engagement predictions', included: true },
         { name: 'Team collaboration tools', included: true },
-        { name: 'Content generation', included: true },
         { name: 'Automated scheduling', included: true },
         { name: 'Custom branding', included: true },
         { name: 'API access', included: true },
@@ -100,7 +108,9 @@ const Plans = () => {
         { name: 'Up to 25 team members', included: true },
         { name: 'Advanced analytics', included: true },
         { name: 'Priority support', included: true },
-        { name: 'Content generation', included: true },
+        { name: 'Caption generation (unlimited)', included: true },
+        { name: 'AI content recommendations', included: true },
+        { name: 'Engagement predictions', included: true },
         { name: 'Automated scheduling', included: true },
         { name: 'Team collaboration tools', included: true },
         { name: 'Custom branding', included: true },
@@ -121,7 +131,9 @@ const Plans = () => {
         { name: 'Up to 100 team members', included: true },
         { name: 'Advanced analytics', included: true },
         { name: 'Priority support', included: true },
-        { name: 'Content generation', included: true },
+        { name: 'Caption generation (unlimited)', included: true },
+        { name: 'AI content recommendations', included: true },
+        { name: 'Engagement predictions', included: true },
         { name: 'Automated scheduling', included: true },
         { name: 'Team collaboration tools', included: true },
         { name: 'Custom branding', included: true },
@@ -142,7 +154,9 @@ const Plans = () => {
         { name: 'Up to 500 team members', included: true },
         { name: 'Advanced analytics', included: true },
         { name: 'Priority support', included: true },
-        { name: 'Content generation', included: true },
+        { name: 'Caption generation (unlimited)', included: true },
+        { name: 'AI content recommendations', included: true },
+        { name: 'Engagement predictions', included: true },
         { name: 'Automated scheduling', included: true },
         { name: 'Team collaboration tools', included: true },
         { name: 'Custom branding', included: true },
@@ -241,8 +255,10 @@ const Plans = () => {
     if (feature.includes('branding')) return <Palette className="h-4 w-4" />;
     if (feature.includes('API')) return <Code className="h-4 w-4" />;
     if (feature.includes('collaboration')) return <UserPlus className="h-4 w-4" />;
-    if (feature.includes('generation')) return <BarChart3 className="h-4 w-4" />;
+    if (feature.includes('caption generation')) return <CaptionsIcon className="h-4 w-4" />;
+    if (feature.includes('content recommendations')) return <BulbIcon className="h-4 w-4" />;
     if (feature.includes('scheduling')) return <Workflow className="h-4 w-4" />;
+    if (feature.includes('engagement')) return <MonitorIcon className="h-4 w-4" />;
     return null;
   };
 
@@ -259,17 +275,42 @@ const Plans = () => {
     return Math.round((1 - yearlyCost / monthlyCost) * 100);
   };
 
+  // Check if the current plan allows access to a feature
+  const hasFeatureAccess = (feature: string) => {
+    const currentPlan = plan || 'basic';
+    
+    // Map features to plan tiers
+    const featureAccess: Record<string, UserPlan[]> = {
+      'Basic analytics': ['basic', 'pro', 'enterprise', 'agency-small', 'agency-medium', 'agency-large'],
+      'Advanced analytics': ['pro', 'enterprise', 'agency-small', 'agency-medium', 'agency-large'],
+      'Caption generation (5/month)': ['basic', 'pro', 'enterprise', 'agency-small', 'agency-medium', 'agency-large'],
+      'Caption generation (unlimited)': ['pro', 'enterprise', 'agency-small', 'agency-medium', 'agency-large'],
+      'AI content recommendations': ['pro', 'enterprise', 'agency-small', 'agency-medium', 'agency-large'],
+      'Engagement predictions': ['pro', 'enterprise', 'agency-small', 'agency-medium', 'agency-large'],
+      'Team collaboration tools': ['pro', 'enterprise', 'agency-small', 'agency-medium', 'agency-large'],
+      'Automated scheduling': ['enterprise', 'agency-small', 'agency-medium', 'agency-large'],
+      'Custom branding': ['enterprise', 'agency-small', 'agency-medium', 'agency-large'],
+      'API access': ['enterprise', 'agency-small', 'agency-medium', 'agency-large']
+    };
+    
+    // Check if the feature exists in our map and if the current plan is included
+    const requiredPlans = featureAccess[feature];
+    if (!requiredPlans) return true; // If we don't have rules for this feature, allow it
+    
+    return requiredPlans.includes(currentPlan);
+  };
+
   return (
-    <div className="container max-w-5xl py-12">
+    <div className="container max-w-7xl py-12">
       <h1 className="text-3xl font-bold mb-2">Choose Your Plan</h1>
       <p className="text-muted-foreground mb-8">Select the plan that best fits your needs</p>
       
-      <div className="mb-8 flex justify-center">
+      <div className="mb-8">
         <Tabs 
           defaultValue="individual" 
-          className="w-full max-w-md"
+          className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
             <TabsTrigger value="individual">Individual Plans</TabsTrigger>
             <TabsTrigger value="agency">Agency Plans</TabsTrigger>
           </TabsList>
@@ -297,7 +338,7 @@ const Plans = () => {
           </div>
           
           <TabsContent value="individual" className="mt-0">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {(['basic', 'pro', 'enterprise'] as UserPlan[]).map((planName) => {
                 const planInfo = planData[planName];
                 const isCurrentPlan = plan === planName;
@@ -305,32 +346,32 @@ const Plans = () => {
                 const savings = savingsPercentage(planName);
                 
                 return (
-                  <Card key={planName} className={`relative ${planInfo.highlight ? 'border-primary' : ''}`}>
+                  <Card key={planName} className={`relative ${planInfo.highlight ? 'border-primary shadow-lg' : ''} h-full`}>
                     {planInfo.highlight && (
                       <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                         <Badge className="bg-primary hover:bg-primary">Most Popular</Badge>
                       </div>
                     )}
-                    <CardHeader>
+                    <CardHeader className={`${planInfo.highlight ? 'bg-primary/5' : ''} rounded-t-lg`}>
                       <CardTitle>{planInfo.title}</CardTitle>
                       <CardDescription>{planInfo.description}</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
+                    <CardContent className="space-y-6 pt-6">
                       <div>
-                        <span className="text-3xl font-bold">${price}</span>
+                        <span className="text-4xl font-bold">${price}</span>
                         <span className="text-muted-foreground">/{billingCycle === 'monthly' ? 'month' : 'year'}</span>
                         {billingCycle === 'yearly' && price > 0 && (
                           <div className="text-sm text-muted-foreground mt-1">Save {savings}% with annual billing</div>
                         )}
                       </div>
                       
-                      <ul className="space-y-2">
+                      <ul className="space-y-3 mt-6">
                         {planInfo.features.map((feature, i) => (
                           <li key={i} className="flex items-center gap-2">
                             {feature.included ? (
-                              <Check className="h-4 w-4 text-green-500" />
+                              <Check className="h-4 w-4 text-green-500 shrink-0" />
                             ) : (
-                              <X className="h-4 w-4 text-gray-300" />
+                              <X className="h-4 w-4 text-gray-300 shrink-0" />
                             )}
                             <span className="flex items-center gap-1 text-sm">
                               {getFeatureIcon(feature.name)}
@@ -340,7 +381,7 @@ const Plans = () => {
                         ))}
                       </ul>
                     </CardContent>
-                    <CardFooter>
+                    <CardFooter className="pt-2">
                       {subscribed ? (
                         isCurrentPlan ? (
                           <Button variant="secondary" disabled className="w-full">
@@ -353,7 +394,7 @@ const Plans = () => {
                           </Button>
                         ) : (
                           <Button 
-                            variant="outline" 
+                            variant={planName === 'pro' ? 'default' : 'outline'}
                             onClick={() => handleSubscribe(planName)} 
                             disabled={isLoading[planName]} 
                             className="w-full"
@@ -369,8 +410,9 @@ const Plans = () => {
                         <Button 
                           onClick={() => handleSubscribe(planName)} 
                           disabled={isLoading[planName]} 
-                          variant={planName === 'pro' ? 'default' : 'outline'}
+                          variant={planInfo.highlight ? 'default' : 'outline'}
                           className="w-full"
+                          size="lg"
                         >
                           {isLoading[planName] ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -387,7 +429,7 @@ const Plans = () => {
           </TabsContent>
           
           <TabsContent value="agency" className="mt-0">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {(['agency-small', 'agency-medium', 'agency-large'] as UserPlan[]).map((planName) => {
                 const planInfo = planData[planName];
                 const isCurrentPlan = plan === planName;
@@ -396,14 +438,14 @@ const Plans = () => {
                 const setupFee = PLAN_DETAILS[planName].pricing.setupFee;
                 
                 return (
-                  <Card key={planName} className="relative">
+                  <Card key={planName} className="relative h-full">
                     <CardHeader>
                       <CardTitle>{planInfo.title}</CardTitle>
                       <CardDescription>{planInfo.description}</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
+                    <CardContent className="space-y-6 pt-4">
                       <div>
-                        <span className="text-3xl font-bold">${price}</span>
+                        <span className="text-4xl font-bold">${price}</span>
                         <span className="text-muted-foreground">/{billingCycle === 'monthly' ? 'month' : 'year'}</span>
                         {setupFee && (
                           <div className="text-sm text-muted-foreground mt-1">
@@ -415,13 +457,13 @@ const Plans = () => {
                         )}
                       </div>
                       
-                      <ul className="space-y-2">
+                      <ul className="space-y-3 mt-6">
                         {planInfo.features.map((feature, i) => (
                           <li key={i} className="flex items-center gap-2">
                             {feature.included ? (
-                              <Check className="h-4 w-4 text-green-500" />
+                              <Check className="h-4 w-4 text-green-500 shrink-0" />
                             ) : (
-                              <X className="h-4 w-4 text-gray-300" />
+                              <X className="h-4 w-4 text-gray-300 shrink-0" />
                             )}
                             <span className="flex items-center gap-1 text-sm">
                               {getFeatureIcon(feature.name)}
@@ -431,7 +473,7 @@ const Plans = () => {
                         ))}
                       </ul>
                     </CardContent>
-                    <CardFooter>
+                    <CardFooter className="pt-2">
                       {subscribed ? (
                         isCurrentPlan ? (
                           <Button variant="secondary" disabled className="w-full">
@@ -448,6 +490,7 @@ const Plans = () => {
                             onClick={() => handleSubscribe(planName)} 
                             disabled={isLoading[planName]} 
                             className="w-full"
+                            size="lg"
                           >
                             {isLoading[planName] ? (
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -459,6 +502,7 @@ const Plans = () => {
                           onClick={() => handleSubscribe(planName)} 
                           disabled={isLoading[planName]} 
                           className="w-full"
+                          size="lg"
                         >
                           {isLoading[planName] ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -521,29 +565,102 @@ const Plans = () => {
         </div>
       )}
       
+      {/* Feature Access Table */}
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold mb-6">Plan Features Comparison</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-muted">
+                <th className="p-4 text-left">Feature</th>
+                <th className="p-4 text-center">Basic</th>
+                <th className="p-4 text-center">Pro</th>
+                <th className="p-4 text-center">Enterprise</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b">
+                <td className="p-4">Posts per month</td>
+                <td className="p-4 text-center">30</td>
+                <td className="p-4 text-center">120</td>
+                <td className="p-4 text-center">500</td>
+              </tr>
+              <tr className="border-b">
+                <td className="p-4">Social media accounts</td>
+                <td className="p-4 text-center">2</td>
+                <td className="p-4 text-center">5</td>
+                <td className="p-4 text-center">10</td>
+              </tr>
+              <tr className="border-b">
+                <td className="p-4">Team members</td>
+                <td className="p-4 text-center">1</td>
+                <td className="p-4 text-center">3</td>
+                <td className="p-4 text-center">10</td>
+              </tr>
+              <tr className="border-b">
+                <td className="p-4">Analytics</td>
+                <td className="p-4 text-center">Basic</td>
+                <td className="p-4 text-center">Advanced</td>
+                <td className="p-4 text-center">Advanced</td>
+              </tr>
+              <tr className="border-b">
+                <td className="p-4">Caption generation</td>
+                <td className="p-4 text-center">5/month</td>
+                <td className="p-4 text-center">Unlimited</td>
+                <td className="p-4 text-center">Unlimited</td>
+              </tr>
+              <tr className="border-b">
+                <td className="p-4">AI content recommendations</td>
+                <td className="p-4 text-center"><X className="h-4 w-4 text-gray-300 mx-auto" /></td>
+                <td className="p-4 text-center"><Check className="h-4 w-4 text-green-500 mx-auto" /></td>
+                <td className="p-4 text-center"><Check className="h-4 w-4 text-green-500 mx-auto" /></td>
+              </tr>
+              <tr className="border-b">
+                <td className="p-4">Engagement predictions</td>
+                <td className="p-4 text-center"><X className="h-4 w-4 text-gray-300 mx-auto" /></td>
+                <td className="p-4 text-center"><Check className="h-4 w-4 text-green-500 mx-auto" /></td>
+                <td className="p-4 text-center"><Check className="h-4 w-4 text-green-500 mx-auto" /></td>
+              </tr>
+              <tr className="border-b">
+                <td className="p-4">Automated scheduling</td>
+                <td className="p-4 text-center"><X className="h-4 w-4 text-gray-300 mx-auto" /></td>
+                <td className="p-4 text-center"><X className="h-4 w-4 text-gray-300 mx-auto" /></td>
+                <td className="p-4 text-center"><Check className="h-4 w-4 text-green-500 mx-auto" /></td>
+              </tr>
+              <tr className="border-b">
+                <td className="p-4">API access</td>
+                <td className="p-4 text-center"><X className="h-4 w-4 text-gray-300 mx-auto" /></td>
+                <td className="p-4 text-center"><X className="h-4 w-4 text-gray-300 mx-auto" /></td>
+                <td className="p-4 text-center"><Check className="h-4 w-4 text-green-500 mx-auto" /></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
       {/* FAQ Section */}
       <div className="mt-12">
         <h2 className="text-2xl font-bold mb-6">Frequently Asked Questions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
+          <div className="bg-card p-6 rounded-lg border">
             <h3 className="font-bold mb-2">How do I change my plan?</h3>
             <p className="text-muted-foreground">
               You can upgrade or downgrade your plan at any time through the Manage Subscription button if you're already a subscriber.
             </p>
           </div>
-          <div>
+          <div className="bg-card p-6 rounded-lg border">
             <h3 className="font-bold mb-2">Are there any setup fees?</h3>
             <p className="text-muted-foreground">
               Individual plans have no setup fees. Agency plans include a one-time setup fee to cover onboarding, account configuration, and team training.
             </p>
           </div>
-          <div>
+          <div className="bg-card p-6 rounded-lg border">
             <h3 className="font-bold mb-2">Can I cancel anytime?</h3>
             <p className="text-muted-foreground">
               Yes, you can cancel your subscription at any time. You'll continue to have access to your plan features until the end of your billing period.
             </p>
           </div>
-          <div>
+          <div className="bg-card p-6 rounded-lg border">
             <h3 className="font-bold mb-2">What payment methods do you accept?</h3>
             <p className="text-muted-foreground">
               We accept all major credit cards including Visa, Mastercard, American Express, and Discover.
