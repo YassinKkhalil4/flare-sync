@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ScheduledPost } from '@/types/database';
 import { generateMockScheduledPosts } from '@/utils/mockScheduledPostsData';
@@ -14,7 +15,7 @@ export const scheduledPostService = {
         
       if (countError || count === 0) {
         // If there's an error or no data, use mock data
-        return generateMockScheduledPosts(8, userId);
+        return generateMockScheduledPosts(userId);
       }
       
       // Otherwise, get real data
@@ -28,7 +29,7 @@ export const scheduledPostService = {
       return data as ScheduledPost[];
     } catch (error) {
       console.error('Error fetching scheduled posts, using mock data:', error);
-      return generateMockScheduledPosts(8, userId);
+      return generateMockScheduledPosts(userId);
     }
   },
   
@@ -46,7 +47,7 @@ export const scheduledPostService = {
     } catch (error) {
       console.error('Error fetching scheduled post, using mock data:', error);
       // Return a mock post with the given ID
-      return generateMockScheduledPosts(1, 'current-user')[0];
+      return generateMockScheduledPosts('current-user')[0];
     }
   },
   

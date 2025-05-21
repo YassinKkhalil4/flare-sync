@@ -1,3 +1,4 @@
+
 import { ContentStatus, SocialPlatform } from '@/types/content';
 
 // Helper function to get recent dates
@@ -22,7 +23,7 @@ const getFutureDate = (daysAhead: number = 0, hoursAhead: number = 0, minutesAhe
 export const generateMockScheduledPosts = (userId: string, count: number = 10) => {
   const posts = [];
   const platforms = ['instagram', 'tiktok', 'twitter', 'youtube'];
-  const statuses: ContentStatus[] = ['scheduled', 'published', 'failed', 'cancelled'];
+  const statuses: ContentStatus[] = ['scheduled', 'published', 'failed', 'draft'];
   
   for (let i = 0; i < count; i++) {
     const platform = platforms[Math.floor(Math.random() * platforms.length)] as SocialPlatform;
