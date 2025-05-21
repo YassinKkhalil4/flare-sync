@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from './components/ui/toaster';
+import { Toaster } from './components/ui/sonner';
 import { AuthProvider } from './context/AuthContext';
 import CookieConsent from './components/CookieConsent';
 import AppRoutes from './routes/AppRoutes';
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/AppSidebar';
 import SocialConnectModal from '@/components/social/SocialConnectModal';
+import { toast } from '@/hooks/use-toast';
 import './App.css';
 
 // Create a client for React Query
@@ -42,6 +43,15 @@ function App() {
         console.error("Initialization failed:", result.error);
       } else {
         console.log("Initialization successful");
+        
+        // Show demo data notification after a short delay
+        setTimeout(() => {
+          toast({
+            title: "Creator Dashboard (Demo Data)",
+            description: "FlareSync helps creators plan, predict, and profit.",
+            variant: "success",
+          });
+        }, 1500);
       }
     } catch (error) {
       console.error('Error initializing app:', error);
