@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -28,7 +27,7 @@ import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AIFeaturesBadge from './AIFeaturesBadge';
-import FlareSync from './FlareSync';
+import Logo from './Logo';
 
 interface SidebarLinkProps {
   to: string;
@@ -122,7 +121,7 @@ const AppSidebar = () => {
       <div className="flex items-center px-4 py-3 h-[60px]">
         {!collapsed ? (
           <>
-            <FlareSync className="h-8 w-8 text-primary" />
+            <Logo size="medium" />
             <h1 className="text-xl font-bold ml-2">FlareSync</h1>
             <Button 
               variant="ghost" 
@@ -134,14 +133,17 @@ const AppSidebar = () => {
             </Button>
           </>
         ) : (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="mx-auto h-8 w-8" 
-            onClick={toggleCollapsed}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          <>
+            <Logo size="small" className="mx-auto" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="absolute right-0 h-8 w-8" 
+              onClick={toggleCollapsed}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </>
         )}
       </div>
       

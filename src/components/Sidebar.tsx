@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Sheet,
@@ -9,7 +8,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Menu } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,20 +17,18 @@ import {
   Settings,
   CreditCard,
   Users,
-  Plus,
   LogOut,
   ChevronsLeft,
   ChevronsRight,
-  File,
-  Brain,
-  TrendingUp,
   Link2,
   Calendar,
   MessageSquare,
+  TrendingUp,
 } from "lucide-react";
 import { useAuth } from '@/context/AuthContext';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import Logo from './Logo';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -190,7 +186,10 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
         </SheetTrigger>
         <SheetContent side="left" className="w-full sm:w-64">
           <SheetHeader className="text-left">
-            <SheetTitle>Menu</SheetTitle>
+            <div className="flex items-center">
+              <Logo size="medium" />
+              <SheetTitle className="ml-2">FlareSync</SheetTitle>
+            </div>
             <SheetDescription>
               Navigate through the application.
             </SheetDescription>
@@ -254,8 +253,8 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => {
         >
           <div className="flex items-center justify-between px-2 py-3">
             <Link to="/" className="flex items-center">
-              {!collapsed && <span className="text-2xl font-bold">FlareSync</span>}
-              {collapsed && <span className="text-2xl font-bold">FS</span>}
+              <Logo size={collapsed ? "small" : "medium"} />
+              {!collapsed && <span className="text-2xl font-bold ml-2">FlareSync</span>}
             </Link>
             <Button
               variant="ghost"
