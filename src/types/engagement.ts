@@ -1,45 +1,18 @@
 
-export interface EngagementPredictionRequest {
-  platform: "instagram" | "tiktok" | "youtube";
-  caption: string;
-  scheduledTime: string;
-  postType: "photo" | "video" | "carousel";
-  mediaMetadata?: any;
-}
-
 export interface EngagementMetric {
+  type: 'likes' | 'comments' | 'shares';
+  label: string;
   estimatedCount: number;
-  confidence: number;
+  confidenceScore: number;
 }
 
-export interface EngagementPredictionResult {
-  overallScore: number;
-  metrics: {
-    likes: EngagementMetric;
-    comments: EngagementMetric;
-    shares: EngagementMetric;
-    saves?: EngagementMetric;
-  };
-  insights: string[];
-  recommendedTimes?: string[];
-}
-
+// Adding these interfaces if they don't exist already
 export interface EngagementPrediction {
   id: string;
-  user_id: string;
   platform: string;
-  caption: string;
-  scheduled_time: string;
-  post_type: string;
-  media_metadata?: any;
-  overall_score: number;
-  metrics: {
-    likes: EngagementMetric;
-    comments: EngagementMetric;
-    shares: EngagementMetric;
-    saves?: EngagementMetric;
-  };
-  insights: string[];
-  created_at: string;
-  recommended_times?: string[];
+  createdAt: string;
+  metrics: EngagementMetric[];
+  mediaUrls?: string[];
+  content?: string;
+  confidence: number;
 }

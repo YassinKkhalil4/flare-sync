@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -9,6 +9,36 @@ export const useSocialPlatforms = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSocialAccounts, setHasSocialAccounts] = useState(false);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  
+  useEffect(() => {
+    const checkSocialAccounts = async () => {
+      if (!user) {
+        setInitialLoadComplete(true);
+        return;
+      }
+      
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('social_profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1);
+          
+        if (!error && data) {
+          setHasSocialAccounts(data.length > 0);
+        }
+      } catch (error) {
+        console.error('Error checking social accounts:', error);
+      } finally {
+        setIsLoading(false);
+        setInitialLoadComplete(true);
+      }
+    };
+    
+    checkSocialAccounts();
+  }, [user]);
   
   const connectPlatform = async (platform: string) => {
     try {
@@ -55,6 +85,7 @@ export const useSocialPlatforms = () => {
     connectPlatform,
     isConnecting,
     isLoading,
-    hasSocialAccounts
+    hasSocialAccounts,
+    initialLoadComplete
   };
 };

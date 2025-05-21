@@ -1,7 +1,7 @@
 
 export interface Notification {
   id: string;
-  type: NotificationType;
+  type: string; // Changed from NotificationType to string to match database type
   title: string;
   message: string;
   image_url?: string;

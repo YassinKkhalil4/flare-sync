@@ -14,3 +14,15 @@ export const cleanupAuthState = (): void => {
     console.error('Error cleaning up auth state:', error);
   }
 };
+
+export interface SignInCredentials {
+  email: string;
+  password: string;
+}
+
+export interface SignUpCredentials {
+  email: string;
+  password: string;
+  full_name?: string;
+  role?: 'creator' | 'brand';
+}

@@ -1,4 +1,3 @@
-
 // Database types for Supabase integration
 
 export interface Profile {
@@ -12,6 +11,9 @@ export interface Profile {
   role: string | null;
   plan: string;
   onboarded: boolean;
+  bio: string | null;
+  location: string | null;
+  website: string | null;
 }
 
 export interface SocialProfile {
