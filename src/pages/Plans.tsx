@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Check, X, Users, BarChart3, Crown, Headset, Palette, Code, UserPlus } from 'lucide-react';
+import { Loader2, Check, X, Users, BarChart3, Crown, Headset, Palette, Code, UserPlus, Hash, Workflow } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -25,52 +26,40 @@ const Plans = () => {
   } = useSubscription();
 
   const planData = {
-    'free': {
-      title: 'Free',
-      description: 'For exploring the platform',
-      priceId: { monthly: '', yearly: '' },
-      highlight: false,
-      features: [
-        { name: '5 posts per month', included: true },
-        { name: 'Basic analytics', included: true },
-        { name: 'Single user', included: true },
-        { name: 'Community support', included: true },
-        { name: 'Advanced analytics', included: false },
-        { name: 'Priority support', included: false },
-        { name: 'Team collaboration', included: false },
-      ]
-    },
     'basic': {
       title: 'Basic',
-      description: 'For growing creators',
+      description: 'For individual creators',
       priceId: { 
         monthly: 'price_1OlocDSB3KooqHkwHXaG9z9A', 
         yearly: 'price_1OPnB1SB3KooqHkwjvg6YTq3'
       },
       highlight: false,
       features: [
-        { name: '20 posts per month', included: true },
-        { name: 'Basic analytics', included: true },
+        { name: '30 posts per month', included: true },
+        { name: '2 social media accounts', included: true },
         { name: 'Single user', included: true },
         { name: 'Email support', included: true },
         { name: 'Advanced analytics', included: false },
         { name: 'Priority support', included: false },
+        { name: 'Content generation', included: false },
         { name: 'Team collaboration', included: false },
       ]
     },
     'pro': {
       title: 'Pro',
-      description: 'For established creators',
+      description: 'For growing creators',
       priceId: { 
         monthly: 'price_1OloeJSB3KooqHkwjvg3Cg9Y', 
         yearly: 'price_1OPnGKSB3KooqHkwdmgl5Xhr' 
       },
       highlight: true,
       features: [
-        { name: '100 posts per month', included: true },
-        { name: 'Advanced analytics', included: true },
+        { name: '120 posts per month', included: true },
+        { name: '5 social media accounts', included: true },
         { name: 'Up to 3 team members', included: true },
+        { name: 'Advanced analytics', included: true },
         { name: 'Priority support', included: true },
+        { name: 'Content generation', included: true },
         { name: 'Team collaboration tools', included: true },
         { name: 'Custom branding', included: false },
         { name: 'API access', included: false },
@@ -86,10 +75,13 @@ const Plans = () => {
       highlight: false,
       features: [
         { name: '500 posts per month', included: true },
-        { name: 'Advanced analytics', included: true },
+        { name: '10 social media accounts', included: true },
         { name: 'Up to 10 team members', included: true },
+        { name: 'Advanced analytics', included: true },
         { name: 'Priority support', included: true },
         { name: 'Team collaboration tools', included: true },
+        { name: 'Content generation', included: true },
+        { name: 'Automated scheduling', included: true },
         { name: 'Custom branding', included: true },
         { name: 'API access', included: true },
       ]
@@ -104,9 +96,12 @@ const Plans = () => {
       highlight: false,
       features: [
         { name: '1,000 posts per month', included: true },
-        { name: 'Advanced analytics', included: true },
+        { name: '20 social media accounts', included: true },
         { name: 'Up to 25 team members', included: true },
+        { name: 'Advanced analytics', included: true },
         { name: 'Priority support', included: true },
+        { name: 'Content generation', included: true },
+        { name: 'Automated scheduling', included: true },
         { name: 'Team collaboration tools', included: true },
         { name: 'Custom branding', included: true },
         { name: 'API access', included: true },
@@ -122,9 +117,12 @@ const Plans = () => {
       highlight: false,
       features: [
         { name: '5,000 posts per month', included: true },
-        { name: 'Advanced analytics', included: true },
+        { name: '50 social media accounts', included: true },
         { name: 'Up to 100 team members', included: true },
+        { name: 'Advanced analytics', included: true },
         { name: 'Priority support', included: true },
+        { name: 'Content generation', included: true },
+        { name: 'Automated scheduling', included: true },
         { name: 'Team collaboration tools', included: true },
         { name: 'Custom branding', included: true },
         { name: 'API access', included: true },
@@ -140,9 +138,12 @@ const Plans = () => {
       highlight: false,
       features: [
         { name: '20,000 posts per month', included: true },
-        { name: 'Advanced analytics', included: true },
+        { name: '100 social media accounts', included: true },
         { name: 'Up to 500 team members', included: true },
+        { name: 'Advanced analytics', included: true },
         { name: 'Priority support', included: true },
+        { name: 'Content generation', included: true },
+        { name: 'Automated scheduling', included: true },
         { name: 'Team collaboration tools', included: true },
         { name: 'Custom branding', included: true },
         { name: 'API access', included: true },
@@ -231,14 +232,17 @@ const Plans = () => {
   };
 
   const getFeatureIcon = (feature: string) => {
-    if (feature.includes('posts')) return <BarChart3 className="h-4 w-4" />;
+    if (feature.includes('posts')) return <Hash className="h-4 w-4" />;
     if (feature.includes('analytics')) return <BarChart3 className="h-4 w-4" />;
+    if (feature.includes('social media accounts')) return <Hash className="h-4 w-4" />;
     if (feature.includes('team members') || feature.includes('user')) return <Users className="h-4 w-4" />;
     if (feature.includes('priority')) return <Crown className="h-4 w-4" />;
     if (feature.includes('support')) return <Headset className="h-4 w-4" />;
     if (feature.includes('branding')) return <Palette className="h-4 w-4" />;
     if (feature.includes('API')) return <Code className="h-4 w-4" />;
     if (feature.includes('collaboration')) return <UserPlus className="h-4 w-4" />;
+    if (feature.includes('generation')) return <BarChart3 className="h-4 w-4" />;
+    if (feature.includes('scheduling')) return <Workflow className="h-4 w-4" />;
     return null;
   };
 
@@ -293,8 +297,8 @@ const Plans = () => {
           </div>
           
           <TabsContent value="individual" className="mt-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {(['free', 'basic', 'pro', 'enterprise'] as UserPlan[]).map((planName) => {
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {(['basic', 'pro', 'enterprise'] as UserPlan[]).map((planName) => {
                 const planInfo = planData[planName];
                 const isCurrentPlan = plan === planName;
                 const price = getPlanPrice(planName);
@@ -351,27 +355,27 @@ const Plans = () => {
                           <Button 
                             variant="outline" 
                             onClick={() => handleSubscribe(planName)} 
-                            disabled={isLoading[planName] || planName === 'free'} 
+                            disabled={isLoading[planName]} 
                             className="w-full"
                           >
                             {isLoading[planName] ? (
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             ) : (
-                              planName === 'free' ? 'Free Plan' : `Upgrade to ${planInfo.title}`
+                              `Upgrade to ${planInfo.title}`
                             )}
                           </Button>
                         )
                       ) : (
                         <Button 
                           onClick={() => handleSubscribe(planName)} 
-                          disabled={isLoading[planName] || planName === 'free'} 
-                          variant={planName === 'free' ? 'outline' : 'default'}
+                          disabled={isLoading[planName]} 
+                          variant={planName === 'pro' ? 'default' : 'outline'}
                           className="w-full"
                         >
                           {isLoading[planName] ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           ) : (
-                            planName === 'free' ? 'Get Started' : `Subscribe`
+                            'Subscribe'
                           )}
                         </Button>
                       )}
@@ -470,15 +474,20 @@ const Plans = () => {
         </Tabs>
       </div>
       
-      {/* Enterprise Contact Section */}
+      {/* Custom Plan Contact Section */}
       <div className="mt-12 bg-muted/50 rounded-lg p-8 text-center">
         <h2 className="text-2xl font-bold mb-4">Need a Custom Plan?</h2>
         <p className="mb-6 max-w-xl mx-auto">
-          For larger agencies or enterprises with specific requirements, contact our sales team for a tailored solution.
+          For enterprises or agencies with specific requirements, contact our sales team for a tailored solution that fits your unique needs.
         </p>
-        <Button size="lg" variant="outline">
-          Contact Sales
-        </Button>
+        <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <Button size="lg" variant="outline" onClick={() => window.location.href = 'mailto:sales@flaresync.com'}>
+            Email Sales Team
+          </Button>
+          <Button size="lg">
+            Schedule Consultation
+          </Button>
+        </div>
       </div>
       
       {/* Subscription Management */}
@@ -525,7 +534,7 @@ const Plans = () => {
           <div>
             <h3 className="font-bold mb-2">Are there any setup fees?</h3>
             <p className="text-muted-foreground">
-              Individual plans have no setup fees. Agency plans include a one-time setup fee to cover onboarding and account configuration.
+              Individual plans have no setup fees. Agency plans include a one-time setup fee to cover onboarding, account configuration, and team training.
             </p>
           </div>
           <div>

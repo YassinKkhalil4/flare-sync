@@ -8,22 +8,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Initialize Stripe with the secret key
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-  apiVersion: "2023-10-16",
-});
-
 // Helper to validate plan
 const ensureValidPlan = (plan: string): string => {
   const validPlans = [
-    'free', 'basic', 'pro', 'enterprise', 
+    'basic', 'pro', 'enterprise', 
     'agency-small', 'agency-medium', 'agency-large'
   ];
   
   if (validPlans.includes(plan)) {
     return plan;
   }
-  return 'free'; // Default to free for any invalid value
+  return 'basic'; // Default to basic for any invalid value
 };
 
 serve(async (req) => {
@@ -60,10 +55,15 @@ serve(async (req) => {
       .single();
     
     if (profileError || !profile?.stripe_customer_id) {
-      // No subscription found
+      // No subscription found - set to basic plan (non-subscribed)
+      await supabaseAdmin
+        .from("profiles")
+        .update({ plan: 'basic' })
+        .eq("id", userData.user.id);
+        
       return new Response(JSON.stringify({ 
         subscribed: false,
-        plan: 'free'
+        plan: 'basic'
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -71,6 +71,12 @@ serve(async (req) => {
     }
     
     // Get subscriptions from Stripe
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      throw new Error("STRIPE_SECRET_KEY is not set");
+    }
+    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
+    
     const subscriptions = await stripe.subscriptions.list({
       customer: profile.stripe_customer_id,
       status: 'active',
@@ -79,15 +85,15 @@ serve(async (req) => {
     });
     
     if (subscriptions.data.length === 0) {
-      // No active subscription
+      // No active subscription - set to basic plan (non-subscribed)
       await supabaseAdmin
         .from("profiles")
-        .update({ plan: 'free' })
+        .update({ plan: 'basic' })
         .eq("id", userData.user.id);
         
       return new Response(JSON.stringify({ 
         subscribed: false,
-        plan: 'free'
+        plan: 'basic'
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -96,7 +102,7 @@ serve(async (req) => {
     
     // We have an active subscription
     const subscription = subscriptions.data[0];
-    const plan = ensureValidPlan(subscription.metadata.plan || 'free');
+    const plan = ensureValidPlan(subscription.metadata.plan || 'basic');
     
     // Update user profile with subscription info
     await supabaseAdmin

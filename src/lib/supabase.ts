@@ -45,7 +45,7 @@ export const getPersistedSession = () => {
 export const isRealSupabaseClient = () => true;
 
 // Define plan types for individual users and agencies
-export type UserPlanTier = 'free' | 'basic' | 'pro' | 'enterprise';
+export type UserPlanTier = 'basic' | 'pro' | 'enterprise';
 export type AgencyPlanTier = 'agency-small' | 'agency-medium' | 'agency-large';
 export type UserPlan = UserPlanTier | AgencyPlanTier;
 
@@ -53,11 +53,14 @@ export type UserPlan = UserPlanTier | AgencyPlanTier;
 export interface PlanFeatures {
   maxPosts: number;
   maxUsers: number;
+  maxSocialAccounts: number;
   advancedAnalytics: boolean;
   prioritySupport: boolean;
   customBranding: boolean;
   apiAccess: boolean;
   teamCollaboration: boolean;
+  contentGeneration: boolean;
+  automatedScheduling: boolean;
 }
 
 // Plan pricing
@@ -69,60 +72,54 @@ export interface PlanPricing {
 
 // Define plan details mapping
 export const PLAN_DETAILS: Record<UserPlan, { features: PlanFeatures, pricing: PlanPricing }> = {
-  'free': {
-    features: {
-      maxPosts: 5,
-      maxUsers: 1,
-      advancedAnalytics: false,
-      prioritySupport: false,
-      customBranding: false,
-      apiAccess: false,
-      teamCollaboration: false
-    },
-    pricing: {
-      monthly: 0,
-      yearly: 0
-    }
-  },
   'basic': {
     features: {
-      maxPosts: 20,
+      maxPosts: 30,
       maxUsers: 1,
+      maxSocialAccounts: 2,
       advancedAnalytics: false,
       prioritySupport: false,
       customBranding: false,
       apiAccess: false,
-      teamCollaboration: false
+      teamCollaboration: false,
+      contentGeneration: false,
+      automatedScheduling: false
     },
     pricing: {
-      monthly: 19,
-      yearly: 190 // ~2 months free
+      monthly: 25,
+      yearly: 250 // ~2 months free
     }
   },
   'pro': {
     features: {
-      maxPosts: 100,
+      maxPosts: 120,
       maxUsers: 3,
+      maxSocialAccounts: 5,
       advancedAnalytics: true,
       prioritySupport: true,
       customBranding: false,
       apiAccess: false,
-      teamCollaboration: true
+      teamCollaboration: true,
+      contentGeneration: true,
+      automatedScheduling: false
     },
     pricing: {
-      monthly: 49,
-      yearly: 490 // ~2 months free
+      monthly: 59,
+      yearly: 590 // ~2 months free
     }
   },
   'enterprise': {
     features: {
       maxPosts: 500,
       maxUsers: 10,
+      maxSocialAccounts: 10,
       advancedAnalytics: true,
       prioritySupport: true,
       customBranding: true,
       apiAccess: true,
-      teamCollaboration: true
+      teamCollaboration: true,
+      contentGeneration: true,
+      automatedScheduling: true
     },
     pricing: {
       monthly: 199,
@@ -133,11 +130,14 @@ export const PLAN_DETAILS: Record<UserPlan, { features: PlanFeatures, pricing: P
     features: {
       maxPosts: 1000,
       maxUsers: 25,
+      maxSocialAccounts: 20,
       advancedAnalytics: true,
       prioritySupport: true,
       customBranding: true,
       apiAccess: true,
-      teamCollaboration: true
+      teamCollaboration: true,
+      contentGeneration: true,
+      automatedScheduling: true
     },
     pricing: {
       monthly: 399,
@@ -149,11 +149,14 @@ export const PLAN_DETAILS: Record<UserPlan, { features: PlanFeatures, pricing: P
     features: {
       maxPosts: 5000,
       maxUsers: 100,
+      maxSocialAccounts: 50,
       advancedAnalytics: true,
       prioritySupport: true,
       customBranding: true,
       apiAccess: true,
-      teamCollaboration: true
+      teamCollaboration: true,
+      contentGeneration: true,
+      automatedScheduling: true
     },
     pricing: {
       monthly: 999,
@@ -165,11 +168,14 @@ export const PLAN_DETAILS: Record<UserPlan, { features: PlanFeatures, pricing: P
     features: {
       maxPosts: 20000,
       maxUsers: 500,
+      maxSocialAccounts: 100,
       advancedAnalytics: true,
       prioritySupport: true,
       customBranding: true,
       apiAccess: true,
-      teamCollaboration: true
+      teamCollaboration: true,
+      contentGeneration: true,
+      automatedScheduling: true
     },
     pricing: {
       monthly: 2499,
@@ -187,14 +193,14 @@ export const isAgencyPlan = (plan: UserPlan): boolean => {
 // Function to ensure plan is one of the allowed values
 export const ensureValidPlan = (plan: string): UserPlan => {
   const validPlans: UserPlan[] = [
-    'free', 'basic', 'pro', 'enterprise', 
+    'basic', 'pro', 'enterprise', 
     'agency-small', 'agency-medium', 'agency-large'
   ];
   
   if (validPlans.includes(plan as UserPlan)) {
     return plan as UserPlan;
   }
-  return 'free'; // Default to free for any invalid value
+  return 'basic'; // Default to basic for any invalid value
 };
 
 // Function to get plan features
@@ -227,7 +233,7 @@ export const mapDatabaseProfileToExtended = (dbProfile: any, email: string = '')
     name: dbProfile.full_name || 'User',
     username: dbProfile.username || '',
     role: dbProfile.role || 'creator',
-    plan: ensureValidPlan(dbProfile.plan || 'free'),
+    plan: ensureValidPlan(dbProfile.plan || 'basic'), // Changed default from 'free' to 'basic'
     avatar: dbProfile.avatar_url,
     user_metadata: {}
   };
