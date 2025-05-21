@@ -52,7 +52,7 @@ export const mockConversations = [
       type: 'brand'
     },
     lastMessage: {
-      content: 'Hi there! We noticed your fitness content and think you'd be perfect for our new campaign.',
+      content: "Hi there! We noticed your fitness content and think you'd be perfect for our new campaign.",
       timestamp: '2023-04-07T11:22:00Z',
       read: false
     }
@@ -94,31 +94,31 @@ export const generateMockMessages = (conversationId: string) => {
       {
         id: `${conversationId}-2`,
         sender: 'me',
-        content: 'Hello! Thanks for reaching out. I\'m always open to new opportunities.',
+        content: "Hello! Thanks for reaching out. I'm always open to new opportunities.",
         timestamp: '2023-04-05T10:35:00Z'
       },
       {
         id: `${conversationId}-3`,
         sender: conversation.partner.id,
-        content: 'We\'re launching a new product next month and looking for creators like you to help promote it. We think your audience would be a great fit.',
+        content: "We're launching a new product next month and looking for creators like you to help promote it. We think your audience would be a great fit.",
         timestamp: '2023-04-05T10:40:00Z'
       },
       {
         id: `${conversationId}-4`,
         sender: 'me',
-        content: 'That sounds interesting! What kind of content are you looking for and what's the timeline?',
+        content: "That sounds interesting! What kind of content are you looking for and what's the timeline?",
         timestamp: '2023-04-05T10:45:00Z'
       },
       {
         id: `${conversationId}-5`,
         sender: conversation.partner.id,
-        content: 'We're thinking 2-3 posts over the course of a month, starting in about 3 weeks. We'd provide you with the product, key messaging points, but would love for you to bring your own creative direction.',
+        content: "We're thinking 2-3 posts over the course of a month, starting in about 3 weeks. We'd provide you with the product, key messaging points, but would love for you to bring your own creative direction.",
         timestamp: '2023-04-05T10:50:00Z'
       },
       {
         id: `${conversationId}-6`,
         sender: 'me',
-        content: 'That works with my schedule. What's your budget range for this campaign?',
+        content: "That works with my schedule. What's your budget range for this campaign?",
         timestamp: '2023-04-05T10:55:00Z'
       },
       {
@@ -140,19 +140,19 @@ export const generateMockMessages = (conversationId: string) => {
       {
         id: `${conversationId}-2`,
         sender: 'me',
-        content: 'Hi Alex! Thanks for reaching out. I'm glad you found it helpful.',
+        content: "Hi Alex! Thanks for reaching out. I'm glad you found it helpful.",
         timestamp: '2023-04-05T10:35:00Z'
       },
       {
         id: `${conversationId}-3`,
         sender: conversation.partner.id,
-        content: 'I've been trying to improve my engagement rates. Do you have any specific tips that worked well for you?',
+        content: "I've been trying to improve my engagement rates. Do you have any specific tips that worked well for you?",
         timestamp: '2023-04-05T10:40:00Z'
       },
       {
         id: `${conversationId}-4`,
         sender: 'me',
-        content: 'Absolutely! I found that posting at consistent times and using Instagram's new features like Reels has helped a lot. Also, responding quickly to comments can boost the algorithm in your favor.',
+        content: "Absolutely! I found that posting at consistent times and using Instagram's new features like Reels has helped a lot. Also, responding quickly to comments can boost the algorithm in your favor.",
         timestamp: '2023-04-05T10:45:00Z'
       },
       {
@@ -183,4 +183,3 @@ export const getRecentDate = (daysAgo: number = 0, hoursAgo: number = 0) => {
   date.setHours(date.getHours() - hoursAgo);
   return date.toISOString();
 };
-
