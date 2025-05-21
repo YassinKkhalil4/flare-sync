@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import SocialPlatformTabs from '@/components/social/SocialPlatformTabs';
+import { SocialPlatformTabs } from '@/components/social/SocialPlatformTabs';
 import { LoadingSpinner } from '@/components/social/LoadingSpinner';
 import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
 
