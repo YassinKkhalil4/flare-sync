@@ -1,45 +1,90 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { ContentPost, ScheduledPost } from '@/types/database';
-import { assertType } from '@/utils/supabaseHelpers';
+import { ScheduledPost } from '@/types/database';
 
-export class ScheduledPostService {
-  async schedulePost(post: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>) {
-    const { data, error } = await supabase
-      .from('scheduled_posts')
-      .insert([{
-        user_id: post.user_id,
-        content: post.body || '',
-        media_urls: post.media_urls,
-        platform: post.platform,
-        scheduled_for: post.scheduled_for,
-        status: 'pending'
-      }])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return assertType<ScheduledPost>(data);
-  }
-
-  async getScheduledPosts(): Promise<ScheduledPost[]> {
+export const scheduledPostService = {
+  // Get all scheduled posts for a user
+  getScheduledPosts: async (userId: string) => {
     const { data, error } = await supabase
       .from('scheduled_posts')
       .select('*')
+      .eq('user_id', userId)
       .order('scheduled_for', { ascending: true });
-
+    
     if (error) throw error;
-    return assertType<ScheduledPost[]>(data || []);
-  }
-
-  async deleteScheduledPost(id: string) {
+    return data as ScheduledPost[];
+  },
+  
+  // Get a single scheduled post by ID
+  getScheduledPost: async (postId: string) => {
+    const { data, error } = await supabase
+      .from('scheduled_posts')
+      .select('*')
+      .eq('id', postId)
+      .single();
+    
+    if (error) throw error;
+    return data as ScheduledPost;
+  },
+  
+  // Create a new scheduled post
+  createScheduledPost: async (post: Partial<ScheduledPost>) => {
+    const { data, error } = await supabase
+      .from('scheduled_posts')
+      .insert(post)
+      .select();
+    
+    if (error) throw error;
+    return data[0] as ScheduledPost;
+  },
+  
+  // Update an existing scheduled post
+  updateScheduledPost: async (postId: string, updates: Partial<ScheduledPost>) => {
+    const { data, error } = await supabase
+      .from('scheduled_posts')
+      .update(updates)
+      .eq('id', postId)
+      .select();
+    
+    if (error) throw error;
+    return data[0] as ScheduledPost;
+  },
+  
+  // Delete a scheduled post
+  deleteScheduledPost: async (postId: string) => {
     const { error } = await supabase
       .from('scheduled_posts')
       .delete()
-      .eq('id', id);
-
+      .eq('id', postId);
+    
     if (error) throw error;
+    return true;
+  },
+  
+  // Cancel a scheduled post (mark as cancelled without deleting)
+  cancelScheduledPost: async (postId: string) => {
+    const { data, error } = await supabase
+      .from('scheduled_posts')
+      .update({ status: 'cancelled' })
+      .eq('id', postId)
+      .select();
+    
+    if (error) throw error;
+    return data[0] as ScheduledPost;
+  },
+  
+  // Reschedule a post for a new time
+  reschedulePost: async (postId: string, newScheduledTime: string) => {
+    const { data, error } = await supabase
+      .from('scheduled_posts')
+      .update({ 
+        scheduled_for: newScheduledTime,
+        status: 'scheduled'
+      })
+      .eq('id', postId)
+      .select();
+    
+    if (error) throw error;
+    return data[0] as ScheduledPost;
   }
-}
-
-export const scheduledPostService = new ScheduledPostService();
+};

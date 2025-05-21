@@ -15,8 +15,8 @@ export interface ContentPlanPost {
   contentType: string;
   title: string;
   description: string;
-  suggestedCaption: string;
-  hashtags: string[];
+  suggestedCaption?: string;
+  hashtags?: string[];
   status: 'draft' | 'scheduled' | 'published';
 }
 

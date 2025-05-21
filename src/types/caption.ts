@@ -1,28 +1,27 @@
 
 export interface CaptionGenerationRequest {
-  platform: 'instagram' | 'tiktok' | 'youtube';
+  platform: string;
   niche: string;
   tone: string;
-  postType: 'video' | 'photo' | 'carousel';
-  objective: 'engagement' | 'saves' | 'brand_interest';
+  postType: string;
+  objective: string;
   description: string;
 }
 
 export interface CaptionGenerationResponse {
   success: boolean;
   captions: string[];
-  captionId: string | null;
-  error?: string;
-  details?: string;
+  captionId: string;
 }
 
 export interface SavedCaption {
   id: string;
-  platform: 'instagram' | 'tiktok' | 'youtube';
+  user_id: string;
+  platform: string;
   niche: string;
   tone: string;
-  post_type: 'video' | 'photo' | 'carousel';
-  objective: 'engagement' | 'saves' | 'brand_interest';
+  post_type: string;
+  objective: string;
   description: string;
   captions: string[];
   selected_caption: string | null;

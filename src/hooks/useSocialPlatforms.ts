@@ -1,52 +1,60 @@
 
-import { useState, useEffect } from 'react';
-import { useInstagramConnect } from './useInstagramConnect';
-import { useTwitterConnect } from './useTwitterConnect';
-import { useTiktokConnect } from './useTiktokConnect';
-import { useYoutubeConnect } from './useYoutubeConnect';
-import { useTwitchConnect } from './useTwitchConnect';
+import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 export const useSocialPlatforms = () => {
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const { user } = useAuth();
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [hasSocialAccounts, setHasSocialAccounts] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   
-  const { isInstagramConnected } = useInstagramConnect();
-  const { isTwitterConnected } = useTwitterConnect();
-  const { isTiktokConnected } = useTiktokConnect();
-  const { isYoutubeConnected } = useYoutubeConnect();
-  const { isTwitchConnected } = useTwitchConnect();
-  
-  useEffect(() => {
-    // Check if any platforms are connected
-    const hasAnyConnections = 
-      isInstagramConnected || 
-      isTwitterConnected || 
-      isTiktokConnected || 
-      isYoutubeConnected || 
-      isTwitchConnected;
-    
-    setHasSocialAccounts(hasAnyConnections);
-    setInitialLoadComplete(true);
-    setIsLoading(false);
-  }, [
-    isInstagramConnected, 
-    isTwitterConnected, 
-    isTiktokConnected, 
-    isYoutubeConnected, 
-    isTwitchConnected
-  ]);
+  const connectPlatform = async (platform: string) => {
+    try {
+      setIsConnecting(true);
+      
+      if (!user) {
+        toast({
+          variant: 'destructive',
+          title: 'Authentication required',
+          description: 'Please log in to connect social accounts',
+        });
+        return;
+      }
+      
+      // Instagram OAuth process would go here
+      if (platform === 'instagram') {
+        // For demo purposes, we'll just show a toast that would redirect in a real implementation
+        toast({
+          title: 'Redirecting to Instagram',
+          description: 'You will be redirected to authorize with Instagram',
+        });
+        
+        // In a real implementation, we would redirect to Instagram OAuth
+        // window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=instagram&redirect_to=${redirectUrl}`;
+      } else {
+        toast({
+          title: 'Coming Soon',
+          description: `${platform} integration will be available in a future update.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error connecting platform:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Connection failed',
+        description: 'Failed to connect your account. Please try again.',
+      });
+    } finally {
+      setIsConnecting(false);
+    }
+  };
   
   return {
-    hasSocialAccounts,
-    initialLoadComplete,
+    connectPlatform,
+    isConnecting,
     isLoading,
-    platformConnections: {
-      instagram: isInstagramConnected,
-      twitter: isTwitterConnected,
-      tiktok: isTiktokConnected,
-      youtube: isYoutubeConnected,
-      twitch: isTwitchConnected
-    }
+    hasSocialAccounts
   };
 };

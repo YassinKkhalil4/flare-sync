@@ -20,30 +20,28 @@ import TermsAndConditions from '../pages/TermsAndConditions';
 import Login from '../pages/Login';
 import Signup from '../pages/Signup';
 import SocialConnectCallback from '../components/social/SocialConnectCallback';
+// Content pages
 import ContentCalendarPage from '../pages/Content/ContentCalendarPage';
 import ContentListPage from '../pages/Content/ContentListPage';
 import ContentCreatePage from '../pages/Content/ContentCreatePage';
 import ContentEditPage from '../pages/Content/ContentEditPage';
 import ContentDetailPage from '../pages/Content/ContentDetailPage';
 import ContentApprovalPage from '../pages/Content/ContentApprovalPage';
+// Brand pages
+import CreatorDiscovery from '../pages/Brand/CreatorDiscovery';
+import CampaignManagement from '../pages/Brand/CampaignManagement';
+// AI Feature Pages
+import CaptionGeneratorPage from '../pages/Content/CaptionGeneratorPage';
+import EngagementPredictorPage from '../pages/Content/EngagementPredictorPage';
+import ContentPlanGeneratorPage from '../pages/Content/ContentPlanGeneratorPage';
+import SmartAssistantPage from '../pages/Content/SmartAssistantPage';
+import SmartPostSchedulerPage from '../pages/Content/SmartPostSchedulerPage';
+import { useAuth } from '../context/AuthContext';
+import Landing from '../pages/Landing';
+// Admin pages
 import AdminLogin from '../pages/AdminLogin';
 import AdminDashboard from '../pages/AdminDashboard';
 import CreateAdminUser from '../pages/CreateAdminUser';
-import CreatorDiscovery from '../pages/Brand/CreatorDiscovery';
-import CampaignManagement from '../pages/Brand/CampaignManagement';
-import { useAuth } from '../context/AuthContext';
-import Landing from '../pages/Landing';
-
-// Placeholder for pages that don't exist yet but will be implemented later
-const PlaceholderPage = () => (
-  <div className="container mx-auto py-6">
-    <h1 className="text-3xl font-bold mb-6">Coming Soon</h1>
-    <div className="p-8 border rounded shadow-lg text-center">
-      <h3 className="text-xl font-medium mb-2">Under Development</h3>
-      <p>This feature is currently under development and will be available soon.</p>
-    </div>
-  </div>
-);
 
 // Route guard that redirects authenticated users away from auth pages
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
@@ -184,6 +182,37 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
       
+      {/* AI Feature Routes */}
+      <Route path="/content/caption-generator" element={
+        <ProtectedRoute>
+          <CaptionGeneratorPage />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/content/engagement-predictor" element={
+        <ProtectedRoute>
+          <EngagementPredictorPage />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/content/content-plan" element={
+        <ProtectedRoute>
+          <ContentPlanGeneratorPage />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/content/smart-assistant" element={
+        <ProtectedRoute>
+          <SmartAssistantPage />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/content/smart-scheduler" element={
+        <ProtectedRoute>
+          <SmartPostSchedulerPage />
+        </ProtectedRoute>
+      } />
+      
       {/* Brand-specific routes */}
       <Route path="/creators" element={
         <ProtectedRoute>
@@ -203,15 +232,24 @@ const AppRoutes = () => {
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms-conditions" element={<TermsAndConditions />} />
       
-      {/* Placeholder routes for features mentioned but not implemented yet */}
-      <Route path="/content/caption-generator" element={<PlaceholderPage />} />
-      <Route path="/content/engagement-predictor" element={<PlaceholderPage />} />
-      <Route path="/content/brand-matchmaker" element={<PlaceholderPage />} />
-      <Route path="/content/content-plan" element={<PlaceholderPage />} />
-      <Route path="/content/smart-assistant" element={<PlaceholderPage />} />
-      <Route path="/content/smart-scheduler" element={<PlaceholderPage />} />
-      <Route path="/social-profiles" element={<PlaceholderPage />} />
-      <Route path="/scheduler" element={<PlaceholderPage />} />
+      {/* Placeholder routes for other features mentioned in plans but not implemented yet */}
+      <Route path="/content/brand-matchmaker" element={
+        <ProtectedRoute>
+          <CaptionGeneratorPage />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/social-profiles" element={
+        <ProtectedRoute>
+          <SocialConnect />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/scheduler" element={
+        <ProtectedRoute>
+          <ContentCalendarPage />
+        </ProtectedRoute>
+      } />
       
       {/* Catch-all route */}
       <Route path="*" element={<NotFound />} />

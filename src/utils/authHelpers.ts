@@ -1,117 +1,16 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { Profile } from '@/types/database';
-import { storageService } from '@/services/storageService';
-
-export interface SignInCredentials {
-  email: string;
-  password: string;
-}
-
-export interface SignUpCredentials {
-  email: string;
-  password: string;
-  options?: {
-    data?: {
-      full_name?: string;
-      role?: 'creator' | 'brand';
-      [key: string]: any;
-    }
-  }
-}
-
-export const checkAdminRole = async (userId: string): Promise<boolean> => {
+/**
+ * Helper function to clean up any existing auth state
+ * This is useful for avoiding conflicts when signing in or out
+ */
+export const cleanupAuthState = (): void => {
   try {
-    const { data, error } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('role', 'admin')
-      .maybeSingle();
-      
-    if (error) {
-      console.error('Error checking admin role:', error);
-      return false;
-    }
+    // Clear any lingering auth tokens or state from localStorage
+    localStorage.removeItem('sb-lkezjcqdvxfrrfwwyjcp-auth-token');
     
-    return !!data;
+    // Additional cleanup can be added here as needed
+    console.log('Auth state cleaned up');
   } catch (error) {
-    console.error('Unexpected error checking admin role:', error);
-    return false;
+    console.error('Error cleaning up auth state:', error);
   }
-};
-
-export const fetchUserProfile = async (userId: string): Promise<Profile | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-      
-    if (error) {
-      console.error('Error fetching profile:', error);
-      return null;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Unexpected error fetching profile:', error);
-    return null;
-  }
-};
-
-export const updateUserProfile = async (userId: string, updates: Partial<Profile>): Promise<Profile | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', userId)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error updating profile:', error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Unexpected error updating profile:', error);
-    throw error;
-  }
-};
-
-export const uploadUserAvatar = async (userId: string, file: File): Promise<string | null> => {
-  try {
-    const url = await storageService.uploadAvatar(userId, file);
-    
-    if (url) {
-      // Update the user's profile with the new avatar URL
-      await updateUserProfile(userId, { avatar_url: url });
-    }
-    
-    return url;
-  } catch (error) {
-    console.error('Error uploading avatar:', error);
-    return null;
-  }
-};
-
-// Helper function to clean up auth state
-export const cleanupAuthState = () => {
-  // Remove standard auth tokens
-  localStorage.removeItem('supabase.auth.token');
-  // Remove all Supabase auth keys from localStorage
-  Object.keys(localStorage).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      localStorage.removeItem(key);
-    }
-  });
-  // Remove from sessionStorage if in use
-  Object.keys(sessionStorage || {}).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      sessionStorage.removeItem(key);
-    }
-  });
 };

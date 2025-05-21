@@ -1,9 +1,15 @@
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-import { EngagementPredictionResult } from "@/types/engagement";
-import { BarChart, Brain, TrendingUp, Clock } from "lucide-react";
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { EngagementPredictionResult } from '@/types/engagement';
+import { 
+  BarChart, BarChart2, ThumbsUp, MessageCircle, 
+  Share2, Bookmark, Clock, ArrowUpRight, 
+  ArrowDownRight, LineChart, AlertCircle
+} from 'lucide-react';
 
 interface PredictionResultsProps {
   prediction: EngagementPredictionResult | null;
@@ -14,171 +20,160 @@ export function PredictionResults({ prediction, isLoading }: PredictionResultsPr
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-[60px] w-full" />
-        <div className="grid grid-cols-2 gap-4">
-          <Skeleton className="h-[100px] w-full" />
-          <Skeleton className="h-[100px] w-full" />
+        <div className="flex items-center justify-between mb-6">
+          <Skeleton className="h-10 w-20" />
+          <Skeleton className="h-6 w-32" />
         </div>
-        <Skeleton className="h-[120px] w-full" />
+        
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center space-x-4">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="space-y-2 flex-1">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-2 w-full" />
+              </div>
+              <Skeleton className="h-6 w-12" />
+            </div>
+          ))}
+        </div>
+        
+        <Skeleton className="h-24 w-full mt-4" />
       </div>
     );
   }
 
   if (!prediction) {
     return (
-      <Card className="bg-muted/50">
-        <CardContent className="flex flex-col items-center justify-center py-10">
-          <Brain className="h-16 w-16 mb-4 text-muted-foreground opacity-50" />
-          <h3 className="text-lg font-medium mb-2">No Prediction Yet</h3>
-          <p className="text-sm text-center text-muted-foreground max-w-md">
-            Fill out the form to get AI-powered engagement predictions for your content.
-            Our algorithms analyze your caption, timing, and content type to estimate performance.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-center justify-center h-full text-center p-6">
+        <BarChart2 className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+        <h3 className="text-lg font-medium mb-2">No prediction yet</h3>
+        <p className="text-sm text-muted-foreground">
+          Fill out the form and run a prediction to see the results
+        </p>
+      </div>
     );
   }
 
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-green-500";
+    if (score >= 60) return "text-yellow-500";
+    return "text-red-500";
+  };
+  
+  const getConfidenceBadge = (confidence: number) => {
+    if (confidence >= 0.7) return "default";
+    if (confidence >= 0.4) return "secondary";
+    return "outline";
+  };
+
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center">
-            <TrendingUp className="h-5 w-5 mr-2 text-primary" />
-            Overall Engagement Score
-          </CardTitle>
-          <CardDescription>
-            How well this content is expected to perform
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center">
-            <div className="relative w-full max-w-[200px] aspect-square flex items-center justify-center my-4">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-4xl font-bold">{prediction.overallScore}</span>
-              </div>
-              <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full">
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                  className="text-muted-foreground/20"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  strokeDasharray={`${(prediction.overallScore / 100) * 251.2} 251.2`}
-                  strokeLinecap="round"
-                  className={`${
-                    prediction.overallScore > 80
-                      ? "text-green-500"
-                      : prediction.overallScore > 60
-                      ? "text-yellow-500"
-                      : "text-red-500"
-                  }`}
-                />
-              </svg>
-            </div>
-            <p className="text-sm text-center text-muted-foreground">
-              {prediction.overallScore > 80
-                ? "Excellent! This content should perform very well."
-                : prediction.overallScore > 60
-                ? "Good performance expected. Could be improved further."
-                : "Below average performance. Consider revising."
-              }
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Estimated Metrics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>Likes</span>
-                  <span className="font-medium">{prediction.metrics.likes.estimatedCount}</span>
-                </div>
-                <Progress value={prediction.metrics.likes.confidence * 100} />
-              </div>
-              
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>Comments</span>
-                  <span className="font-medium">{prediction.metrics.comments.estimatedCount}</span>
-                </div>
-                <Progress value={prediction.metrics.comments.confidence * 100} />
-              </div>
-              
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>Shares</span>
-                  <span className="font-medium">{prediction.metrics.shares.estimatedCount}</span>
-                </div>
-                <Progress value={prediction.metrics.shares.confidence * 100} />
-              </div>
-              
-              {prediction.metrics.saves && (
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span>Saves</span>
-                    <span className="font-medium">{prediction.metrics.saves.estimatedCount}</span>
-                  </div>
-                  <Progress value={prediction.metrics.saves.confidence * 100} />
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center">
-                <Brain className="h-4 w-4 mr-2" />
-                AI Insights
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="list-disc pl-5 space-y-1 text-sm">
-                {prediction.insights.map((insight, index) => (
-                  <li key={index}>{insight}</li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-
-          {prediction.recommendedTimes && prediction.recommendedTimes.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center">
-                  <Clock className="h-4 w-4 mr-2" />
-                  Better Posting Times
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="list-disc pl-5 space-y-1 text-sm">
-                  {prediction.recommendedTimes.map((time, index) => (
-                    <li key={index}>{time}</li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
+      <div className="flex items-center justify-between">
+        <div className="flex items-end gap-2">
+          <h2 className="text-3xl font-bold">
+            {prediction.overallScore}
+          </h2>
+          <p className="text-sm text-muted-foreground mb-1">/100</p>
+        </div>
+        
+        <Badge variant="outline" className="flex items-center">
+          <BarChart className="h-3 w-3 mr-1" />
+          Engagement Score
+        </Badge>
+      </div>
+      
+      <Progress 
+        value={prediction.overallScore} 
+        className="h-2"
+        indicatorClassName={`${prediction.overallScore >= 80 ? 'bg-green-500' : 
+          prediction.overallScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
+      />
+      
+      <div className="grid grid-cols-3 gap-4 mt-4">
+        <div className="flex flex-col items-center p-3 bg-muted/40 rounded-lg">
+          <ThumbsUp className="h-5 w-5 mb-1 text-blue-500" />
+          <span className="text-xl font-semibold">
+            {prediction.metrics.likes.estimatedCount}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Est. Likes
+          </span>
+          <Badge 
+            variant={getConfidenceBadge(prediction.metrics.likes.confidence)}
+            className="mt-1 text-xs"
+          >
+            {Math.round(prediction.metrics.likes.confidence * 100)}% confident
+          </Badge>
+        </div>
+        
+        <div className="flex flex-col items-center p-3 bg-muted/40 rounded-lg">
+          <MessageCircle className="h-5 w-5 mb-1 text-purple-500" />
+          <span className="text-xl font-semibold">
+            {prediction.metrics.comments.estimatedCount}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Est. Comments
+          </span>
+          <Badge 
+            variant={getConfidenceBadge(prediction.metrics.comments.confidence)}
+            className="mt-1 text-xs"
+          >
+            {Math.round(prediction.metrics.comments.confidence * 100)}% confident
+          </Badge>
+        </div>
+        
+        <div className="flex flex-col items-center p-3 bg-muted/40 rounded-lg">
+          <Share2 className="h-5 w-5 mb-1 text-green-500" />
+          <span className="text-xl font-semibold">
+            {prediction.metrics.shares.estimatedCount}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Est. Shares
+          </span>
+          <Badge 
+            variant={getConfidenceBadge(prediction.metrics.shares.confidence)}
+            className="mt-1 text-xs"
+          >
+            {Math.round(prediction.metrics.shares.confidence * 100)}% confident
+          </Badge>
         </div>
       </div>
+      
+      <Card className="mt-4">
+        <CardContent className="pt-6">
+          <h3 className="text-sm font-medium flex items-center mb-2">
+            <LineChart className="h-4 w-4 mr-1.5 text-primary" />
+            Engagement Insights
+          </h3>
+          <ul className="space-y-2">
+            {prediction.insights.map((insight, index) => (
+              <li key={index} className="flex items-start gap-2 text-sm">
+                <div className="rounded-full bg-primary/10 p-1 mt-0.5">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                </div>
+                <span>{insight}</span>
+              </li>
+            ))}
+          </ul>
+          
+          {prediction.recommendedTimes && prediction.recommendedTimes.length > 0 && (
+            <div className="mt-4 pt-4 border-t">
+              <h3 className="text-sm font-medium flex items-center mb-2">
+                <Clock className="h-4 w-4 mr-1.5 text-primary" />
+                Recommended Posting Times
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {prediction.recommendedTimes.map((time, index) => (
+                  <Badge key={index} variant="outline" className="flex items-center">
+                    {time}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
