@@ -1,154 +1,92 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { notificationsService } from '@/services/notificationsService';
 import { useAuth } from '@/context/AuthContext';
-import { toast } from '@/components/ui/use-toast';
-import { Notification } from '@/types/database';
+import { Notification } from '@/utils/mockNotificationsData';
 
-export function useNotifications() {
+export const useNotifications = (limit?: number) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
   
-  // Fetch all notifications for the current user
+  // Fetch notifications
   const {
-    data: notifications = [],
+    data: notifications,
     isLoading,
+    error,
     refetch
   } = useQuery({
-    queryKey: ['notifications', user?.id],
+    queryKey: ['notifications', user?.id, limit],
     queryFn: async () => {
-      if (!user) return [];
-      
-      try {
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(50);
-          
-        if (error) throw error;
-        
-        return data as Notification[];
-      } catch (error) {
-        console.error('Failed to fetch notifications:', error);
-        return [];
-      }
+      if (!user?.id) return [];
+      return notificationsService.getNotifications(user.id, limit);
     },
-    enabled: !!user,
+    enabled: !!user?.id,
   });
   
-  // Calculate unread count whenever notifications change
+  // Fetch unread count
   useEffect(() => {
-    const count = notifications.filter(notification => !notification.is_read).length;
-    setUnreadCount(count);
-  }, [notifications]);
+    const fetchUnreadCount = async () => {
+      if (user?.id) {
+        try {
+          const count = await notificationsService.getUnreadCount(user.id);
+          setUnreadCount(count);
+        } catch (error) {
+          console.error('Error fetching unread count:', error);
+        }
+      }
+    };
+    
+    fetchUnreadCount();
+    
+    // Set up polling for unread count (every minute)
+    const interval = setInterval(fetchUnreadCount, 60000);
+    
+    return () => clearInterval(interval);
+  }, [user?.id]);
   
-  // Mark a single notification as read
-  const markAsRead = useMutation({
-    mutationFn: async (notificationId: string) => {
-      if (!user) throw new Error('User not authenticated');
-      
-      const { error } = await supabase
-        .from('notifications')
-        .update({ 
-          is_read: true 
-        } as any)
-        .eq('id', notificationId)
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      
-      return notificationId;
+  // Mark as read mutation
+  const markAsReadMutation = useMutation({
+    mutationFn: (notificationId: string) => 
+      notificationsService.markAsRead(notificationId),
+    onSuccess: () => {
+      // Decrement unread count
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      // Invalidate notifications query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    }
+  });
+  
+  // Mark all as read mutation
+  const markAllAsReadMutation = useMutation({
+    mutationFn: () => {
+      if (!user?.id) return Promise.resolve();
+      return notificationsService.markAllAsRead(user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: `Failed to mark notification as read: ${error}`,
-        variant: 'destructive',
-      });
+      // Reset unread count
+      setUnreadCount(0);
+      // Invalidate notifications query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
     }
   });
   
-  // Mark all notifications as read
-  const markAllAsRead = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error('User not authenticated');
-      
-      const { error } = await supabase
-        .from('notifications')
-        .update({ 
-          is_read: true 
-        } as any)
-        .eq('user_id', user.id)
-        .eq('is_read', false);
-      
-      if (error) throw error;
-      
-      return true;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
-      toast({
-        title: 'Success',
-        description: 'All notifications marked as read',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: `Failed to mark all notifications as read: ${error}`,
-        variant: 'destructive',
-      });
-    }
-  });
+  const markAsRead = (notificationId: string) => {
+    markAsReadMutation.mutate(notificationId);
+  };
   
-  // Delete a notification
-  const deleteNotification = useMutation({
-    mutationFn: async (notificationId: string) => {
-      if (!user) throw new Error('User not authenticated');
-      
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId)
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      
-      return notificationId;
-    },
-    onSuccess: (notificationId) => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
-      toast({
-        title: 'Success',
-        description: 'Notification deleted successfully',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: `Failed to delete notification: ${error}`,
-        variant: 'destructive',
-      });
-    }
-  });
+  const markAllAsRead = () => {
+    markAllAsReadMutation.mutate();
+  };
   
   return {
-    notifications,
-    unreadCount,
+    notifications: notifications || [],
     isLoading,
-    refetch,
-    markAsRead: (notificationId: string) => markAsRead.mutate(notificationId),
-    markAllAsRead: () => markAllAsRead.mutate(),
-    deleteNotification: (notificationId: string) => deleteNotification.mutate(notificationId),
-    isMarkingAsRead: markAsRead.isPending,
-    isMarkingAllAsRead: markAllAsRead.isPending,
-    isDeleting: deleteNotification.isPending,
+    error,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    refresh: refetch,
   };
-}
+};

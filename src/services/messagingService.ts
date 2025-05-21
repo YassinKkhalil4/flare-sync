@@ -1,7 +1,7 @@
 
 import { Conversation, Message, MessageRequest } from '../types/messaging';
-import { supabase, isRealSupabaseClient } from '../lib/supabase';
-import { mockConversations, generateMockMessages } from '../utils/mockMessagingData';
+import { supabase } from '../lib/supabase';
+import { mockConversations, generateMockMessages, getRecentDate } from '../utils/mockMessagingData';
 
 // For development - mock API implementation for messaging
 const useMockMessagingData = () => {
