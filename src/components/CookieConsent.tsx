@@ -2,25 +2,27 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { getCookie, setCookie } from '@/utils/cookies';
-import { Cookie } from 'lucide-react';
+import { Cookie, X } from 'lucide-react';
 
 const CookieConsent = () => {
   const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
+    // Check if there's already a consent cookie
     const consent = getCookie('cookie-consent');
     if (!consent) {
+      // Only show banner if consent hasn't been given yet
       setShowBanner(true);
     }
   }, []);
 
   const acceptCookies = () => {
-    setCookie('cookie-consent', 'accepted');
+    setCookie('cookie-consent', 'accepted', 365);
     setShowBanner(false);
   };
 
   const declineCookies = () => {
-    setCookie('cookie-consent', 'declined');
+    setCookie('cookie-consent', 'declined', 365);
     setShowBanner(false);
   };
 
@@ -32,7 +34,8 @@ const CookieConsent = () => {
         <div className="flex items-center gap-3">
           <Cookie className="h-5 w-5 text-primary" />
           <p className="text-sm text-muted-foreground">
-            We use cookies to enhance your experience. By continuing to visit this site you agree to our use of cookies.
+            We use cookies to enhance your experience, improve functionality, and analyze website traffic. 
+            By clicking "Accept", you consent to our use of cookies.
           </p>
         </div>
         <div className="flex gap-3">

@@ -1,3 +1,4 @@
+
 import * as encryption from './encryption';
 
 // Get the encryption key from local storage or create one if it doesn't exist
@@ -20,11 +21,20 @@ async function getCookieEncryptionKey(): Promise<CryptoKey | null> {
   }
 }
 
+// Check if consent has been granted for cookie usage
+const hasConsent = (): boolean => {
+  const consent = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('cookie-consent='));
+  
+  return consent ? consent.split('=')[1] === 'accepted' : false;
+};
+
 export const setCookie = async (name: string, value: string, days: number = 365) => {
-  // Check if user has consented to cookies first
-  const cookieConsent = getCookie('cookie-consent');
-  if (!cookieConsent || cookieConsent === 'declined') {
-    console.log('Cookie consent not granted');
+  // Don't set cookies if they are not essential and consent hasn't been granted
+  // 'cookie-consent' is the only cookie we allow without consent
+  if (name !== 'cookie-consent' && !hasConsent()) {
+    console.log('Cookie consent not granted, cookie not set:', name);
     return;
   }
 
