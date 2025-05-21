@@ -20,7 +20,7 @@ import TermsAndConditions from '../pages/TermsAndConditions';
 import Login from '../pages/Login';
 import Signup from '../pages/Signup';
 import SocialConnectCallback from '../components/social/SocialConnectCallback';
-import Analytics from '../pages/Analytics'; // New Analytics page
+import Analytics from '../pages/Analytics';
 // Content pages
 import ContentCalendarPage from '../pages/Content/ContentCalendarPage';
 import ContentListPage from '../pages/Content/ContentListPage';
@@ -31,7 +31,7 @@ import ContentApprovalPage from '../pages/Content/ContentApprovalPage';
 // Brand pages
 import CreatorDiscovery from '../pages/Brand/CreatorDiscovery';
 import CampaignManagement from '../pages/Brand/CampaignManagement';
-import BrandMatchmakerPage from '../pages/Content/BrandMatchmakerPage'; // New Brand Matchmaker page
+import BrandMatchmakerPage from '../pages/Content/BrandMatchmakerPage';
 // AI Feature Pages
 import CaptionGeneratorPage from '../pages/Content/CaptionGeneratorPage';
 import EngagementPredictorPage from '../pages/Content/EngagementPredictorPage';
@@ -84,7 +84,11 @@ const AppRoutes = () => {
           <AdminDashboard />
         </ProtectedRoute>
       } />
-      <Route path="/admin/create-user" element={<CreateAdminUser />} />
+      <Route path="/admin/create-user" element={
+        <ProtectedRoute requireAdmin={true} requireAdminTier="owner">
+          <CreateAdminUser />
+        </ProtectedRoute>
+      } />
       
       {/* Protected routes */}
       <Route path="/dashboard" element={

@@ -1,20 +1,37 @@
 
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { useUserRole } from '@/hooks/useUserRole';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isAdmin } = useUserRole();
+  
+  // Get redirect path from location state or default to dashboard
+  const from = location.state?.from || '/dashboard';
+
+  // If user is already logged in, redirect them
+  useEffect(() => {
+    if (user) {
+      if (isAdmin) {
+        navigate('/admin');
+      } else {
+        navigate(from);
+      }
+    }
+  }, [user, isAdmin, navigate, from]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +46,8 @@ const Login = () => {
         title: "Login successful",
         description: "Welcome back to FlareSync!",
       });
-      navigate('/dashboard');
+      
+      // The redirection will be handled by the useEffect above
     } catch (error: any) {
       console.error('Login error:', error);
       toast({

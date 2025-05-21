@@ -7,6 +7,9 @@ import { toast } from '@/hooks/use-toast';
 // Admin permission type
 export type AdminPermission = 'users_manage' | 'content_manage' | 'social_manage' | 'conversations_manage' | 'analytics_view' | 'admins_manage';
 
+// Admin role types
+export type AdminRole = 'admin' | 'admin-owner' | 'admin-manager' | 'admin-support';
+
 // Interface for the data structure returned from Supabase for admin users
 interface AdminData {
   user_id: string;
@@ -33,13 +36,68 @@ class AdminService {
         .from('user_roles')
         .select('role')
         .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-        .eq('role', 'admin')
+        .or('role.eq.admin,role.eq.admin-owner,role.eq.admin-manager,role.eq.admin-support')
         .maybeSingle();
         
       return !error && roleData !== null;
     } catch (error) {
       console.error('Error checking admin status:', error);
       return false;
+    }
+  }
+
+  /**
+   * Get admin tier for a user
+   */
+  async getAdminTier(adminId: string): Promise<string | null> {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', adminId)
+        .or('role.eq.admin,role.eq.admin-owner,role.eq.admin-manager,role.eq.admin-support')
+        .maybeSingle();
+        
+      if (error || !data) return null;
+      
+      switch (data.role) {
+        case 'admin-owner':
+          return 'owner';
+        case 'admin-manager':
+          return 'manager';
+        case 'admin-support':
+          return 'support';
+        default:
+          return 'standard';
+      }
+    } catch (error) {
+      console.error('Error getting admin tier:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Check if user has specific admin permission based on tier
+   */
+  async hasAdminPermission(adminId: string, requiredTier: 'owner' | 'manager' | 'support' | 'standard'): Promise<boolean> {
+    const tier = await this.getAdminTier(adminId);
+    if (!tier) return false;
+    
+    switch (requiredTier) {
+      case 'standard':
+        // All admin tiers have standard permissions
+        return true;
+      case 'support':
+        // Only support, manager and owner have support permissions
+        return ['support', 'manager', 'owner'].includes(tier);
+      case 'manager':
+        // Only manager and owner have manager permissions
+        return ['manager', 'owner'].includes(tier);
+      case 'owner':
+        // Only owner has owner permissions
+        return tier === 'owner';
+      default:
+        return false;
     }
   }
 
@@ -195,23 +253,25 @@ class AdminService {
         .from('user_roles')
         .select(`
           user_id,
+          role,
           profiles!user_id(
             full_name,
             email
           )
         `)
-        .eq('role', 'admin');
+        .or('role.eq.admin,role.eq.admin-owner,role.eq.admin-manager,role.eq.admin-support');
 
       if (error) throw error;
       
       // Get permissions for each admin
-      const adminsWithPermissions = await Promise.all((data || []).map(async (admin: AdminData) => {
+      const adminsWithPermissions = await Promise.all((data || []).map(async (admin: any) => {
         const permissions = await this.getAdminPermissions(admin.user_id);
         
         return {
           id: admin.user_id,
           email: admin.profiles && admin.profiles[0] ? admin.profiles[0].email : '',
           full_name: admin.profiles && admin.profiles[0] ? admin.profiles[0].full_name || '' : '',
+          role: admin.role,
           permissions
         };
       }));
@@ -226,7 +286,13 @@ class AdminService {
   /**
    * Create a new admin user
    */
-  async createAdminUser(email: string, password: string, fullName: string, permissions: AdminPermission[]): Promise<boolean> {
+  async createAdminUser(
+    email: string, 
+    password: string, 
+    fullName: string, 
+    permissions: AdminPermission[],
+    role: AdminRole = 'admin'
+  ): Promise<boolean> {
     try {
       console.log("Starting admin user creation process");
       
@@ -237,7 +303,7 @@ class AdminService {
         email_confirm: true,
         user_metadata: {
           full_name: fullName,
-          role: 'admin'
+          role: role
         }
       });
       
@@ -253,7 +319,7 @@ class AdminService {
         .from('user_roles')
         .insert({
           user_id: userData.user.id,
-          role: 'admin'
+          role: role
         });
         
       if (roleError) {
@@ -286,6 +352,17 @@ export const useAdmin = () => {
     isAdmin: async (): Promise<boolean> => {
       return adminService.isAdmin();
     },
+    getAdminTier: async (adminId: string = user?.id || '') => {
+      if (!user) return null;
+      return adminService.getAdminTier(adminId);
+    },
+    hasAdminPermission: async (
+      requiredTier: 'owner' | 'manager' | 'support' | 'standard', 
+      adminId: string = user?.id || ''
+    ): Promise<boolean> => {
+      if (!user) return false;
+      return adminService.hasAdminPermission(adminId, requiredTier);
+    },
     getDecryptedSocialProfile: async (profileId: string) => {
       if (!user) return null;
       return adminService.getDecryptedSocialProfile(profileId);
@@ -306,10 +383,16 @@ export const useAdmin = () => {
       if (!user) return null;
       return adminService.getAllAdmins();
     },
-    createAdminUser: async (email: string, password: string, fullName: string, permissions: AdminPermission[]) => {
+    createAdminUser: async (
+      email: string, 
+      password: string, 
+      fullName: string, 
+      permissions: AdminPermission[],
+      role: AdminRole = 'admin'
+    ) => {
       // For the initial admin user creation, we don't require user to be logged in
-      console.log("Attempting to create admin user:", email);
-      return adminService.createAdminUser(email, password, fullName, permissions);
+      console.log("Attempting to create admin user:", email, "with role:", role);
+      return adminService.createAdminUser(email, password, fullName, permissions, role);
     },
     hasPermission: async (permission: AdminPermission): Promise<boolean> => {
       if (!user) return false;
