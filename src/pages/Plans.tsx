@@ -364,13 +364,22 @@ const Plans = () => {
                     </CardHeader>
                     <CardContent className="space-y-6 pt-6">
                       <div>
-                        <span className="text-4xl font-bold">${price}</span>
-                        <span className="text-muted-foreground">/{billingCycle === 'monthly' ? 'month' : 'year'}</span>
-                        {billingCycle === 'yearly' && price > 0 && (
-                          <div>
-                            <div className="text-sm text-muted-foreground mt-1">${monthlyEquivalent}/month when billed annually</div>
-                            <div className="text-sm text-muted-foreground">Save {savings}% with annual billing</div>
-                          </div>
+                        {billingCycle === 'monthly' ? (
+                          <>
+                            <span className="text-4xl font-bold">${price}</span>
+                            <span className="text-muted-foreground">/month</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-4xl font-bold">${monthlyEquivalent}</span>
+                            <span className="text-muted-foreground">/month</span>
+                            <div className="text-sm text-muted-foreground mt-1">
+                              Billed annually (${price}/year)
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              Save {savings}% with annual billing
+                            </div>
+                          </>
                         )}
                       </div>
                       
@@ -455,17 +464,27 @@ const Plans = () => {
                     </CardHeader>
                     <CardContent className="space-y-6 pt-4">
                       <div>
-                        <span className="text-4xl font-bold">${price}</span>
-                        <span className="text-muted-foreground">/{billingCycle === 'monthly' ? 'month' : 'year'}</span>
+                        {billingCycle === 'monthly' ? (
+                          <>
+                            <span className="text-4xl font-bold">${price}</span>
+                            <span className="text-muted-foreground">/month</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-4xl font-bold">${monthlyEquivalent}</span>
+                            <span className="text-muted-foreground">/month</span>
+                            <div className="text-sm text-muted-foreground mt-1">
+                              Billed annually (${price}/year)
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              Save {savings}% with annual billing
+                            </div>
+                          </>
+                        )}
+                        
                         {setupFee && (
                           <div className="text-sm text-muted-foreground mt-1">
                             + ${setupFee} one-time setup fee
-                          </div>
-                        )}
-                        {billingCycle === 'yearly' && (
-                          <div>
-                            <div className="text-sm text-muted-foreground mt-1">${monthlyEquivalent}/month when billed annually</div>
-                            <div className="text-sm text-muted-foreground">Save {savings}% with annual billing</div>
                           </div>
                         )}
                       </div>
