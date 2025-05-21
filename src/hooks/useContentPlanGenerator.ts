@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,39 +12,69 @@ export const useContentPlanGenerator = () => {
   const [contentPlan, setContentPlan] = useState<ContentPlan | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Query to fetch saved plans
+  const { 
+    data: savedPlans, 
+    isLoading: isLoadingPlans,
+    refetch: refetchPlans 
+  } = useQuery({
+    queryKey: ['contentPlans', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      try {
+        const { data, error } = await supabase
+          .from('content_plans')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+          
+        if (error) throw error;
+        return data || [];
+      } catch (err) {
+        console.error('Error fetching content plans:', err);
+        return [];
+      }
+    },
+    enabled: !!user
+  });
+
   // Generate content plan
   const generateContentPlan = async (params: ContentPlanRequest) => {
     try {
       setIsGenerating(true);
       
-      // Ensure all required fields are present
-      const request: ContentPlanRequest = {
-        timeCommitment: params.timeCommitment,
-        platforms: params.platforms,
-        goal: params.goal,
-        niche: params.niche,
-        additionalInfo: params.additionalInfo
-      };
+      // Use the real AI service if possible or fallback to mock
+      let plan: ContentPlan;
+      try {
+        const response = await aiServices.contentPlanGenerator.generateContentPlan({
+          timeCommitment: params.timeCommitment,
+          platforms: params.platforms,
+          goal: params.goal,
+          niche: params.niche,
+          additionalInfo: params.additionalInfo
+        });
+        
+        if (response.error) throw new Error(response.error.message);
+        plan = response.data;
+      } catch (err) {
+        console.warn('Using mock data because AI service failed:', err);
+        // Fallback to mock data
+        plan = {
+          id: `plan-${Date.now()}`,
+          name: `${params.niche} Content Plan`,
+          startDate: new Date().toISOString(),
+          endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          goal: params.goal,
+          platforms: params.platforms,
+          posts: generateMockPosts(params.platforms),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+      }
       
-      // Simulate API call for now
-      // In production, this would be a real API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock response 
-      const mockPlan: ContentPlan = {
-        id: `plan-${Date.now()}`,
-        name: `${params.niche} Content Plan`,
-        startDate: new Date().toISOString(),
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        goal: params.goal,
-        platforms: params.platforms,
-        posts: generateMockPosts(params.platforms),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      setContentPlan(mockPlan);
-      return mockPlan;
+      setContentPlan(plan);
+      return plan;
     } catch (error) {
       console.error('Error generating content plan:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate content plan';
@@ -88,47 +119,76 @@ export const useContentPlanGenerator = () => {
   };
 
   // Save content plan
-  const saveContentPlan = async (plan: ContentPlan): Promise<boolean> => {
-    try {
+  const saveContentPlanMutation = useMutation({
+    mutationFn: async (plan: ContentPlan) => {
       if (!user) {
-        toast({
-          variant: 'destructive',
-          title: 'Authentication Required',
-          description: 'You must be logged in to save content plans',
-        });
-        return false;
+        throw new Error('You must be logged in to save content plans');
       }
       
+      // Prepare the plan for saving in the database
+      const planToSave = {
+        ...plan,
+        user_id: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      const { data, error } = await supabase
+        .from('content_plans')
+        .insert(planToSave)
+        .select('id')
+        .single();
+        
+      if (error) throw error;
+      
+      // Save the posts with the plan_id reference
+      const postsToSave = plan.posts.map(post => ({
+        ...post,
+        plan_id: data.id,
+        user_id: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
+      
+      const { error: postsError } = await supabase
+        .from('content_plan_posts')
+        .insert(postsToSave);
+        
+      if (postsError) throw postsError;
+      
+      return true;
+    },
+    onSuccess: () => {
       toast({
         title: 'Content Plan Saved',
         description: 'Your content plan has been saved successfully',
       });
-      
-      return true;
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error('Error saving content plan:', error);
-      
       toast({
         variant: 'destructive',
         title: 'Failed to Save Content Plan',
         description: 'There was an error saving your content plan',
       });
-      
+    }
+  });
+
+  const saveContentPlan = async (plan: ContentPlan): Promise<boolean> => {
+    try {
+      await saveContentPlanMutation.mutateAsync(plan);
+      return true;
+    } catch (error) {
       return false;
     }
   };
-
-  // For mock data, return an empty array of saved plans
-  const savedPlans: ContentPlan[] = [];
-  const isLoadingPlans = false;
-  const refetchPlans = () => {};
 
   return {
     generateContentPlan,
     isGenerating,
     contentPlan,
     saveContentPlan,
-    savedPlans,
+    savedPlans: savedPlans || [],
     isLoadingPlans,
     refetchPlans,
     error: null,
