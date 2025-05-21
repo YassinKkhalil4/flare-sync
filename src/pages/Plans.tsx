@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Check, X, Users, BarChart3, Crown, Headset, Palette, Code, UserPlus, Hash, Workflow, BulbIcon, CaptionsIcon, MonitorIcon } from 'lucide-react';
+import { Loader2, Check, X, Users, BarChart3, Crown, Headset, Palette, Code, UserPlus, Hash, Workflow, Lightbulb, CaptionsIcon, MonitorIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -256,7 +255,7 @@ const Plans = () => {
     if (feature.includes('API')) return <Code className="h-4 w-4" />;
     if (feature.includes('collaboration')) return <UserPlus className="h-4 w-4" />;
     if (feature.includes('caption generation')) return <CaptionsIcon className="h-4 w-4" />;
-    if (feature.includes('content recommendations')) return <BulbIcon className="h-4 w-4" />;
+    if (feature.includes('content recommendations')) return <Lightbulb className="h-4 w-4" />;
     if (feature.includes('scheduling')) return <Workflow className="h-4 w-4" />;
     if (feature.includes('engagement')) return <MonitorIcon className="h-4 w-4" />;
     return null;
