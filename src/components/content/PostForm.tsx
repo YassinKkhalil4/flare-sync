@@ -12,10 +12,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ContentPost, ContentStatus, SocialPlatform } from '@/types/content';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { ContentService } from '@/services/api';
+import { ContentAPI } from '@/services/contentService';
+
+type PostFormData = Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>;
 
 interface PostFormProps {
-  onSubmit: (data: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>, tagIds?: string[]) => Promise<void>;
+  onSubmit: (data: PostFormData, tagIds?: string[]) => Promise<void>;
   onCancel: () => void;
   initialValues?: ContentPost;
   tags: { id: string; name: string }[];
@@ -30,7 +32,7 @@ const PostForm: React.FC<PostFormProps> = ({ onSubmit, onCancel, initialValues, 
     formState: { errors },
     setValue,
     watch
-  } = useForm<Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>>({
+  } = useForm<PostFormData>({
     defaultValues: initialValues || {
       user_id: '',
       title: '',
@@ -39,7 +41,6 @@ const PostForm: React.FC<PostFormProps> = ({ onSubmit, onCancel, initialValues, 
       status: 'draft',
       scheduled_for: '',
       platform: 'instagram',
-      platform_post_id: '',
     },
     mode: 'onSubmit'
   });
@@ -87,7 +88,7 @@ const PostForm: React.FC<PostFormProps> = ({ onSubmit, onCancel, initialValues, 
     });
   };
 
-  const onSubmitHandler = async (data: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>) => {
+  const onSubmitHandler = async (data: PostFormData) => {
     try {
       await onSubmit(data, selectedTagIds);
       toast({
@@ -104,9 +105,9 @@ const PostForm: React.FC<PostFormProps> = ({ onSubmit, onCancel, initialValues, 
     }
   };
 
-  const handleScheduledSubmit = async (data: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>) => {
+  const handleScheduledSubmit = async (data: PostFormData) => {
     try {
-      await ContentService.schedulePost(data);
+      await ContentAPI.schedulePost(data);
       toast({
         title: 'Success',
         description: 'Post scheduled successfully!',

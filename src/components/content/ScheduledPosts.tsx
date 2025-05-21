@@ -6,11 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ScheduledPost } from '@/types/content';
+import { useAuth } from '@/context/AuthContext';
 
 export const ScheduledPosts = () => {
+  const { user } = useAuth();
+  const userId = user?.id || '';
+  
   const { data: posts, isLoading, error } = useQuery({
-    queryKey: ['scheduledPosts'],
-    queryFn: () => scheduledPostService.getScheduledPosts()
+    queryKey: ['scheduledPosts', userId],
+    queryFn: () => scheduledPostService.getScheduledPosts(userId),
+    enabled: !!userId
   });
 
   if (isLoading) {

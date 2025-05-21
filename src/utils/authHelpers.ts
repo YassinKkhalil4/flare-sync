@@ -23,6 +23,10 @@ export interface SignInCredentials {
 export interface SignUpCredentials {
   email: string;
   password: string;
-  full_name?: string;
-  role?: 'creator' | 'brand';
+  options?: {
+    data?: {
+      full_name?: string;
+      role?: 'creator' | 'brand';
+    }
+  }
 }

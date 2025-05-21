@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ContentPost, ContentStatus, ContentTag, ContentApproval } from '@/types/content';
 import { scheduledPostService } from './scheduledPostService';
@@ -238,8 +239,17 @@ export class ContentAPIClass {
     // First create the content post
     const contentPost = await this.createPost(post);
     
-    // Then schedule it
-    await scheduledPostService.schedulePost(post);
+    // Then create a scheduled post entry
+    if (post.scheduled_for && contentPost.id) {
+      await scheduledPostService.createScheduledPost({
+        user_id: post.user_id,
+        content: post.body,
+        platform: post.platform,
+        scheduled_for: post.scheduled_for,
+        status: 'scheduled',
+        media_urls: post.media_urls
+      });
+    }
     
     return contentPost;
   }

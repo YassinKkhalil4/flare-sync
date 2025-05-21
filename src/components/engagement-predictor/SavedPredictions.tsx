@@ -48,17 +48,17 @@ export function SavedPredictions({ predictions, isLoading }: SavedPredictionsPro
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-center">
                   <CardTitle className="text-sm">
-                    <span className="capitalize">{prediction.platform}</span> {prediction.post_type}
+                    <span className="capitalize">{prediction.platform}</span> {prediction.post_type || 'Post'}
                   </CardTitle>
                   <CardDescription className="flex items-center text-xs">
                     <Clock className="h-3 w-3 mr-1" />
-                    {formatDistanceToNow(new Date(prediction.created_at), { addSuffix: true })}
+                    {formatDistanceToNow(new Date(prediction.createdAt), { addSuffix: true })}
                   </CardDescription>
                 </div>
                 <CardDescription className="text-xs">
-                  {prediction.caption.length > 80
+                  {prediction.caption && prediction.caption.length > 80
                     ? `${prediction.caption.slice(0, 80)}...`
-                    : prediction.caption}
+                    : prediction.caption || prediction.content || 'No caption provided'}
                 </CardDescription>
               </CardHeader>
               
@@ -66,20 +66,20 @@ export function SavedPredictions({ predictions, isLoading }: SavedPredictionsPro
                 <div className="flex justify-between items-center">
                   <div className="space-y-1">
                     <div className="text-xs text-muted-foreground">Engagement Score</div>
-                    <div className="text-lg font-semibold">{prediction.overall_score}</div>
+                    <div className="text-lg font-semibold">{prediction.overall_score || Math.round(prediction.confidence * 100)}</div>
                   </div>
                   
                   <div className="flex space-x-3 text-xs">
                     <div className="text-center">
-                      <div className="font-medium">{prediction.metrics.likes.estimated_count}</div>
+                      <div className="font-medium">{prediction.metrics.likes.estimatedCount}</div>
                       <div className="text-muted-foreground">Likes</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-medium">{prediction.metrics.comments.estimated_count}</div>
+                      <div className="font-medium">{prediction.metrics.comments.estimatedCount}</div>
                       <div className="text-muted-foreground">Comments</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-medium">{prediction.metrics.shares.estimated_count}</div>
+                      <div className="font-medium">{prediction.metrics.shares.estimatedCount}</div>
                       <div className="text-muted-foreground">Shares</div>
                     </div>
                   </div>

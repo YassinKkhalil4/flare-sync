@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { EngagementPredictionResult } from '@/types/engagement';
+import { EngagementPrediction, EngagementPredictionResult } from '@/types/engagement';
 import { 
   BarChart, BarChart2, ThumbsUp, MessageCircle, 
   Share2, Bookmark, Clock, ArrowUpRight, 
@@ -85,8 +85,7 @@ export function PredictionResults({ prediction, isLoading }: PredictionResultsPr
       
       <Progress 
         value={prediction.overallScore} 
-        className="h-2"
-        indicatorClassName={`${prediction.overallScore >= 80 ? 'bg-green-500' : 
+        className={`h-2 ${prediction.overallScore >= 80 ? 'bg-green-500' : 
           prediction.overallScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
       />
       

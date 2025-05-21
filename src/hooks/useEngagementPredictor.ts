@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { EngagementPredictionRequest, EngagementPredictionResult, EngagementPrediction } from '@/types/engagement';
+import { EngagementPrediction, EngagementPredictionRequest, EngagementPredictionResult } from '@/types/engagement';
 
 export const useEngagementPredictor = () => {
   const { user, session } = useAuth();
@@ -74,13 +74,43 @@ export const useEngagementPredictor = () => {
       const { data, error } = await supabase
         .from('engagement_predictions')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       
       if (error) {
         throw error;
       }
       
-      return data as EngagementPrediction[];
+      // Transform database data to match our client-side type
+      return data.map(item => ({
+        id: item.id,
+        platform: item.platform,
+        createdAt: item.created_at,
+        caption: item.content,
+        post_type: item.platform === 'instagram' ? 'photo' : 'video',
+        overall_score: Math.round((item.confidence_score || 0) * 100),
+        confidence: item.confidence_score || 0.5,
+        metrics: {
+          likes: {
+            type: 'likes',
+            label: 'Likes',
+            estimatedCount: item.predicted_likes || 0,
+            confidenceScore: item.confidence_score || 0
+          },
+          comments: {
+            type: 'comments',
+            label: 'Comments',
+            estimatedCount: item.predicted_comments || 0,
+            confidenceScore: item.confidence_score || 0
+          },
+          shares: {
+            type: 'shares',
+            label: 'Shares',
+            estimatedCount: item.predicted_shares || 0,
+            confidenceScore: item.confidence_score || 0
+          }
+        }
+      })) as EngagementPrediction[];
     },
     enabled: !!user,
   });

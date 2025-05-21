@@ -1,15 +1,60 @@
-
-// This is a helper file that ScheduledPosts.tsx can use
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { ScheduledPost } from '@/types/database';
+import { useToast } from '@/hooks/use-toast';
 
+// Export the useScheduler hook directly
+export const useScheduler = (userId: string) => {
+  const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  const fetchScheduledPosts = async () => {
+    if (!userId) return;
+    
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_posts')
+        .select('*')
+        .eq('user_id', userId)
+        .order('scheduled_for', { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      setScheduledPosts(data || []);
+    } catch (error) {
+      console.error('Error fetching scheduled posts:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load scheduled posts',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchScheduledPosts();
+  }, [userId]);
+
+  return {
+    scheduledPosts,
+    isLoading,
+    refreshPosts: fetchScheduledPosts,
+  };
+};
+
+// We don't need this anymore since we're exporting useScheduler directly
+// but keeping for backward compatibility
 export const createScheduledPostsHelper = () => {
   const useSchedulerFixed = (userId: string) => {
-    // Implementation that accepts the userId parameter
     return useScheduler(userId);
   };
   
   return { useSchedulerFixed };
 };
-
-// This is a workaround since we cannot directly edit the read-only files
-// Ensure the useScheduler hook is called with the userId parameter in ScheduledPosts.tsx

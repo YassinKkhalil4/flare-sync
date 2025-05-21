@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -132,7 +133,7 @@ const ContentScheduler: React.FC = () => {
                       </p>
                     </div>
                     <Badge variant={
-                      post.status === 'published' ? 'success' :
+                      post.status === 'published' ? 'default' :
                       post.status === 'failed' ? 'destructive' :
                       'outline'
                     }>
