@@ -41,9 +41,7 @@ import SmartPostSchedulerPage from '../pages/Content/SmartPostSchedulerPage';
 import { useAuth } from '../context/AuthContext';
 import Landing from '../pages/Landing';
 // Admin pages
-import AdminLogin from '../pages/AdminLogin';
 import AdminDashboard from '../pages/AdminDashboard';
-import CreateAdminUser from '../pages/CreateAdminUser';
 
 // Route guard that redirects authenticated users away from auth pages
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
@@ -78,15 +76,9 @@ const AppRoutes = () => {
       } />
       
       {/* Admin routes */}
-      <Route path="/admin-login" element={<AdminLogin />} />
       <Route path="/admin" element={
         <ProtectedRoute requireAdmin={true}>
           <AdminDashboard />
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/create-user" element={
-        <ProtectedRoute requireAdmin={true} requireAdminTier="owner">
-          <CreateAdminUser />
         </ProtectedRoute>
       } />
       
