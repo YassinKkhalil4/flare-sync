@@ -17,21 +17,24 @@ const Login = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, userRole, isLoading: roleLoading } = useUserRole();
   
   // Get redirect path from location state or default to dashboard
   const from = location.state?.from || '/dashboard';
 
-  // If user is already logged in, redirect them
+  // If user is already logged in, redirect them based on role
   useEffect(() => {
-    if (user) {
+    if (user && !roleLoading) {
+      // Redirect based on user role
       if (isAdmin) {
         navigate('/admin');
+      } else if (userRole === 'brand') {
+        navigate('/creators'); // Brand users go to creator discovery
       } else {
-        navigate(from);
+        navigate(from); // Creators go to dashboard or requested page
       }
     }
-  }, [user, isAdmin, navigate, from]);
+  }, [user, isAdmin, userRole, roleLoading, navigate, from]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

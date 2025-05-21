@@ -143,9 +143,9 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
 
-      {/* Analytics Route */}
+      {/* Analytics Route - requires advanced_analytics feature */}
       <Route path="/analytics" element={
-        <ProtectedRoute>
+        <ProtectedRoute requireFeature="advanced_analytics">
           <Analytics />
         </ProtectedRoute>
       } />
@@ -187,33 +187,33 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
       
-      {/* AI Feature Routes */}
+      {/* AI Feature Routes - all require content_generation feature */}
       <Route path="/content/caption-generator" element={
-        <ProtectedRoute>
+        <ProtectedRoute requireFeature="content_generation">
           <CaptionGeneratorPage />
         </ProtectedRoute>
       } />
       
       <Route path="/content/engagement-predictor" element={
-        <ProtectedRoute>
+        <ProtectedRoute requireFeature="content_generation">
           <EngagementPredictorPage />
         </ProtectedRoute>
       } />
       
       <Route path="/content/content-plan" element={
-        <ProtectedRoute>
+        <ProtectedRoute requireFeature="content_generation">
           <ContentPlanGeneratorPage />
         </ProtectedRoute>
       } />
       
       <Route path="/content/smart-assistant" element={
-        <ProtectedRoute>
+        <ProtectedRoute requireFeature="content_generation">
           <SmartAssistantPage />
         </ProtectedRoute>
       } />
       
       <Route path="/content/smart-scheduler" element={
-        <ProtectedRoute>
+        <ProtectedRoute requireFeature="automated_scheduling">
           <SmartPostSchedulerPage />
         </ProtectedRoute>
       } />
@@ -227,13 +227,13 @@ const AppRoutes = () => {
       
       {/* Brand-specific routes */}
       <Route path="/creators" element={
-        <ProtectedRoute>
+        <ProtectedRoute requireRole="brand">
           <CreatorDiscovery />
         </ProtectedRoute>
       } />
       
       <Route path="/campaigns" element={
-        <ProtectedRoute>
+        <ProtectedRoute requireRole="brand">
           <CampaignManagement />
         </ProtectedRoute>
       } />

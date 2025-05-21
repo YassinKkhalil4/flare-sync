@@ -3,22 +3,29 @@ import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useUserRole } from '../hooks/useUserRole';
+import { FeatureKey, useFeatureAccess } from '../hooks/useFeatureAccess';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
   requireAdminTier?: 'owner' | 'manager' | 'support' | 'standard';
+  requireFeature?: FeatureKey;
+  requireRole?: 'creator' | 'brand' | null;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
   requireAdmin = false,
-  requireAdminTier = 'standard'
+  requireAdminTier = 'standard',
+  requireFeature,
+  requireRole
 }) => {
   const { user, loading } = useAuth();
-  const { isAdmin, adminTier, isLoading: roleLoading } = useUserRole();
+  const { isAdmin, adminTier, userRole, isLoading: roleLoading } = useUserRole();
+  const { checkFeatureAccess } = useFeatureAccess();
   const location = useLocation();
+  const [hasFeatureAccess, setHasFeatureAccess] = React.useState<boolean | null>(null);
 
   useEffect(() => {
     // Log route access for debugging
@@ -28,11 +35,22 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       isAdmin,
       adminTier,
       requireAdmin,
-      requireAdminTier
+      requireAdminTier,
+      requireFeature,
+      requireRole
     });
-  }, [location, user, isAdmin, adminTier, requireAdmin, requireAdminTier]);
 
-  const isLoading = loading || roleLoading;
+    // Check for feature access if needed
+    if (requireFeature && user) {
+      checkFeatureAccess(requireFeature).then(hasAccess => {
+        setHasFeatureAccess(hasAccess);
+      });
+    } else {
+      setHasFeatureAccess(null); // No feature requirement
+    }
+  }, [location, user, isAdmin, adminTier, requireAdmin, requireAdminTier, requireFeature, requireRole, checkFeatureAccess]);
+
+  const isLoading = loading || roleLoading || (requireFeature && hasFeatureAccess === null);
 
   if (isLoading) {
     return (
@@ -50,6 +68,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
+  // Check for role requirement first
+  if (requireRole && userRole !== requireRole) {
+    console.log(`Access denied: Role ${requireRole} required, but user is ${userRole}`);
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Check for admin requirement
   if (requireAdmin && !isAdmin) {
     console.log('Access denied: Admin access required for', location.pathname);
     return <Navigate to="/dashboard" replace />;
@@ -78,6 +103,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       console.log(`Access denied: Admin tier '${requireAdminTier}' required for ${location.pathname}, but user has '${adminTier}'`);
       return <Navigate to="/admin" replace />;
     }
+  }
+
+  // Check for feature access requirement
+  if (requireFeature && hasFeatureAccess === false) {
+    console.log(`Access denied: Feature ${requireFeature} required for ${location.pathname}, but not available in user's plan`);
+    return <Navigate to="/plans" state={{ requiredFeature: requireFeature }} replace />;
   }
 
   return <>{children}</>;

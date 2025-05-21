@@ -73,6 +73,42 @@ export type Database = {
           },
         ]
       }
+      admin_roles: {
+        Row: {
+          can_access_billing: boolean
+          can_manage_content: boolean
+          can_manage_plans: boolean
+          can_manage_users: boolean
+          created_at: string | null
+          id: string
+          tier: Database["public"]["Enums"]["admin_tier"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          can_access_billing?: boolean
+          can_manage_content?: boolean
+          can_manage_plans?: boolean
+          can_manage_users?: boolean
+          created_at?: string | null
+          id?: string
+          tier?: Database["public"]["Enums"]["admin_tier"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          can_access_billing?: boolean
+          can_manage_content?: boolean
+          can_manage_plans?: boolean
+          can_manage_users?: boolean
+          created_at?: string | null
+          id?: string
+          tier?: Database["public"]["Enums"]["admin_tier"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_captions: {
         Row: {
           captions: string[] | null
@@ -802,6 +838,57 @@ export type Database = {
           },
         ]
       }
+      plan_features: {
+        Row: {
+          advanced_analytics: boolean
+          api_access: boolean
+          automated_scheduling: boolean
+          content_generation: boolean
+          created_at: string | null
+          custom_branding: boolean
+          id: string
+          max_posts: number
+          max_social_accounts: number
+          max_users: number
+          plan_id: string
+          priority_support: boolean
+          team_collaboration: boolean
+          updated_at: string | null
+        }
+        Insert: {
+          advanced_analytics?: boolean
+          api_access?: boolean
+          automated_scheduling?: boolean
+          content_generation?: boolean
+          created_at?: string | null
+          custom_branding?: boolean
+          id?: string
+          max_posts?: number
+          max_social_accounts?: number
+          max_users?: number
+          plan_id: string
+          priority_support?: boolean
+          team_collaboration?: boolean
+          updated_at?: string | null
+        }
+        Update: {
+          advanced_analytics?: boolean
+          api_access?: boolean
+          automated_scheduling?: boolean
+          content_generation?: boolean
+          created_at?: string | null
+          custom_branding?: boolean
+          id?: string
+          max_posts?: number
+          max_social_accounts?: number
+          max_users?: number
+          plan_id?: string
+          priority_support?: boolean
+          team_collaboration?: boolean
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1108,13 +1195,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_plan_limit: {
+        Args: { resource_name: string }
+        Returns: number
+      }
       has_role: {
         Args: { required_role: string }
         Returns: boolean
       }
+      user_has_feature_access: {
+        Args: { feature_name: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      admin_tier: "owner" | "manager" | "support" | "standard"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1229,6 +1324,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      admin_tier: ["owner", "manager", "support", "standard"],
+    },
   },
 } as const

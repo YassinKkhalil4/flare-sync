@@ -52,6 +52,18 @@ export const useUserRole = () => {
             else if (role === 'admin-manager') setAdminTier('manager');
             else if (role === 'admin-support') setAdminTier('support');
             else setAdminTier('standard');
+            
+            // Also check the admin_roles table for more detailed permissions
+            const { data: adminRoleData } = await supabase
+              .from('admin_roles')
+              .select('*')
+              .eq('user_id', user.id)
+              .maybeSingle();
+              
+            if (adminRoleData) {
+              // If we have more specific tier information from admin_roles table, use that
+              setAdminTier(adminRoleData.tier);
+            }
           } else {
             setAdminTier(null);
           }
