@@ -31,8 +31,8 @@ export default function BrandMatchmakerPage() {
   };
 
   const handleContactBrand = (brandId: string) => {
-    // Implement this function to navigate to the messaging page with the brand ID
-    console.log("Contacting brand with ID:", brandId);
+    // Navigate to messaging with this brand selected
+    window.location.href = `/messaging?brandId=${brandId}`;
   };
 
   if (!user?.id) {

@@ -2,12 +2,13 @@
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { BrandMatchRequest, BrandMatchResult, CreatorProfile, BrandProfile } from '@/types/brandMatchmaking';
 import { useAuth } from '@/context/AuthContext';
 
 export const useBrandMatchmaker = () => {
   const { user, session } = useAuth();
+  const { toast } = useToast();
   const [isMatching, setIsMatching] = useState(false);
 
   // Get creator profile

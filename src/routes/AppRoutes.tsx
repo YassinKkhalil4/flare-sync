@@ -20,6 +20,7 @@ import TermsAndConditions from '../pages/TermsAndConditions';
 import Login from '../pages/Login';
 import Signup from '../pages/Signup';
 import SocialConnectCallback from '../components/social/SocialConnectCallback';
+import Analytics from '../pages/Analytics'; // New Analytics page
 // Content pages
 import ContentCalendarPage from '../pages/Content/ContentCalendarPage';
 import ContentListPage from '../pages/Content/ContentListPage';
@@ -30,6 +31,7 @@ import ContentApprovalPage from '../pages/Content/ContentApprovalPage';
 // Brand pages
 import CreatorDiscovery from '../pages/Brand/CreatorDiscovery';
 import CampaignManagement from '../pages/Brand/CampaignManagement';
+import BrandMatchmakerPage from '../pages/Content/BrandMatchmakerPage'; // New Brand Matchmaker page
 // AI Feature Pages
 import CaptionGeneratorPage from '../pages/Content/CaptionGeneratorPage';
 import EngagementPredictorPage from '../pages/Content/EngagementPredictorPage';
@@ -144,6 +146,13 @@ const AppRoutes = () => {
           <Settings />
         </ProtectedRoute>
       } />
+
+      {/* Analytics Route */}
+      <Route path="/analytics" element={
+        <ProtectedRoute>
+          <Analytics />
+        </ProtectedRoute>
+      } />
       
       {/* Content Management Routes */}
       <Route path="/content" element={
@@ -212,6 +221,13 @@ const AppRoutes = () => {
           <SmartPostSchedulerPage />
         </ProtectedRoute>
       } />
+
+      {/* Brand Matchmaker page */}
+      <Route path="/content/brand-matchmaker" element={
+        <ProtectedRoute>
+          <BrandMatchmakerPage />
+        </ProtectedRoute>
+      } />
       
       {/* Brand-specific routes */}
       <Route path="/creators" element={
@@ -232,13 +248,7 @@ const AppRoutes = () => {
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms-conditions" element={<TermsAndConditions />} />
       
-      {/* Placeholder routes for other features mentioned in plans but not implemented yet */}
-      <Route path="/content/brand-matchmaker" element={
-        <ProtectedRoute>
-          <CaptionGeneratorPage />
-        </ProtectedRoute>
-      } />
-      
+      {/* Social profiles shortcut */}
       <Route path="/social-profiles" element={
         <ProtectedRoute>
           <SocialConnect />

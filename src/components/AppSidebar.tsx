@@ -5,12 +5,30 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useAuth } from '@/context/AuthContext';
-import { ChevronRight, ChevronLeft, Home, Calendar, Inbox, BarChart3, Settings, CircleDollarSign, ImageIcon, UsersRound, Sparkles, Zap, LineChart, Bot, Clock } from 'lucide-react';
+import { 
+  ChevronRight, 
+  ChevronLeft, 
+  Home, 
+  Calendar, 
+  Inbox, 
+  BarChart3,
+  LineChart,
+  Settings, 
+  CircleDollarSign, 
+  ImageIcon, 
+  UsersRound, 
+  Sparkles, 
+  Zap, 
+  Bot, 
+  Clock, 
+  Target,
+  PieChart
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
-import FlareSync from './FlareSync';
 import { useUserRole } from '@/hooks/useUserRole';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import AIFeaturesBadge from './AIFeaturesBadge';
+import FlareSync from './FlareSync';
 
 interface SidebarLinkProps {
   to: string;
@@ -78,7 +96,8 @@ const AppSidebar = () => {
     (location.pathname.includes('caption-generator') || 
      location.pathname.includes('engagement-predictor') || 
      location.pathname.includes('content-plan') || 
-     location.pathname.includes('smart-assistant') || 
+     location.pathname.includes('smart-assistant') ||
+     location.pathname.includes('brand-matchmaker') ||
      location.pathname.includes('smart-scheduler'));
   
   useEffect(() => {
@@ -136,6 +155,13 @@ const AppSidebar = () => {
             label="Dashboard" 
             active={isActive('/dashboard')} 
           />
+
+          <SidebarLink 
+            to="/analytics" 
+            icon={<PieChart className="h-5 w-5" />} 
+            label="Analytics" 
+            active={isActive('/analytics')} 
+          />
           
           {!isBrand && (
             <>
@@ -190,6 +216,11 @@ const AppSidebar = () => {
                             to="/content/smart-scheduler" 
                             label="Smart Scheduler" 
                             active={isActive('/content/smart-scheduler')} 
+                          />
+                          <SubLink 
+                            to="/content/brand-matchmaker" 
+                            label="Brand Matchmaker" 
+                            active={isActive('/content/brand-matchmaker')} 
                           />
                         </div>
                       )}
@@ -275,6 +306,13 @@ const AppSidebar = () => {
             icon={<Clock className="h-5 w-5" />} 
             label="Smart Scheduler" 
             active={isActive('/content/smart-scheduler')} 
+          />
+
+          <SidebarLink 
+            to="/content/brand-matchmaker" 
+            icon={<Target className="h-5 w-5" />} 
+            label="Brand Matchmaker" 
+            active={isActive('/content/brand-matchmaker')} 
           />
           
           <div className="mt-2 mb-2">
