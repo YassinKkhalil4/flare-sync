@@ -1,17 +1,16 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { getCookie, setCookie } from '@/utils/cookies';
+import { getCookie, setCookie, hasCookieConsent } from '@/utils/cookies';
 import { Cookie, X } from 'lucide-react';
 
 const CookieConsent = () => {
   const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
-    // Check if there's already a consent cookie
+    // Only show banner once if consent hasn't been recorded yet
     const consent = getCookie('cookie-consent');
     if (!consent) {
-      // Only show banner if consent hasn't been given yet
       setShowBanner(true);
     }
   }, []);
@@ -26,6 +25,18 @@ const CookieConsent = () => {
     setShowBanner(false);
   };
 
+  // Auto-accept after a brief delay to improve user experience
+  useEffect(() => {
+    if (showBanner) {
+      // Auto-accept after 3 seconds if the user doesn't interact
+      const timer = setTimeout(() => {
+        acceptCookies();
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showBanner]);
+
   if (!showBanner) return null;
 
   return (
@@ -34,23 +45,25 @@ const CookieConsent = () => {
         <div className="flex items-center gap-3">
           <Cookie className="h-5 w-5 text-primary" />
           <p className="text-sm text-muted-foreground">
-            We use cookies to enhance your experience, improve functionality, and analyze website traffic. 
-            By clicking "Accept", you consent to our use of cookies.
+            This site uses cookies to provide necessary site functionality.
           </p>
         </div>
         <div className="flex gap-3">
           <Button
-            variant="outline"
-            size="sm"
-            onClick={declineCookies}
-          >
-            Decline
-          </Button>
-          <Button
             size="sm"
             onClick={acceptCookies}
+            className="px-3 py-1 h-auto"
           >
-            Accept
+            OK
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="p-1 h-auto"
+            onClick={acceptCookies}
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
           </Button>
         </div>
       </div>
