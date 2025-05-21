@@ -266,6 +266,12 @@ const Plans = () => {
     return billingCycle === 'monthly' ? pricing.monthly : pricing.yearly;
   };
 
+  // Calculate monthly equivalent price for yearly plan
+  const getMonthlyEquivalent = (planName: UserPlan) => {
+    const pricing = PLAN_DETAILS[planName].pricing;
+    return Math.round(pricing.yearly / 12);
+  };
+
   const savingsPercentage = (planName: UserPlan) => {
     const pricing = PLAN_DETAILS[planName].pricing;
     if (pricing.monthly === 0) return 0;
@@ -343,6 +349,7 @@ const Plans = () => {
                 const isCurrentPlan = plan === planName;
                 const price = getPlanPrice(planName);
                 const savings = savingsPercentage(planName);
+                const monthlyEquivalent = getMonthlyEquivalent(planName);
                 
                 return (
                   <Card key={planName} className={`relative ${planInfo.highlight ? 'border-primary shadow-lg' : ''} h-full`}>
@@ -360,7 +367,10 @@ const Plans = () => {
                         <span className="text-4xl font-bold">${price}</span>
                         <span className="text-muted-foreground">/{billingCycle === 'monthly' ? 'month' : 'year'}</span>
                         {billingCycle === 'yearly' && price > 0 && (
-                          <div className="text-sm text-muted-foreground mt-1">Save {savings}% with annual billing</div>
+                          <div>
+                            <div className="text-sm text-muted-foreground mt-1">${monthlyEquivalent}/month when billed annually</div>
+                            <div className="text-sm text-muted-foreground">Save {savings}% with annual billing</div>
+                          </div>
                         )}
                       </div>
                       
@@ -435,6 +445,7 @@ const Plans = () => {
                 const price = getPlanPrice(planName);
                 const savings = savingsPercentage(planName);
                 const setupFee = PLAN_DETAILS[planName].pricing.setupFee;
+                const monthlyEquivalent = getMonthlyEquivalent(planName);
                 
                 return (
                   <Card key={planName} className="relative h-full">
@@ -452,7 +463,10 @@ const Plans = () => {
                           </div>
                         )}
                         {billingCycle === 'yearly' && (
-                          <div className="text-sm text-muted-foreground mt-1">Save {savings}% with annual billing</div>
+                          <div>
+                            <div className="text-sm text-muted-foreground mt-1">${monthlyEquivalent}/month when billed annually</div>
+                            <div className="text-sm text-muted-foreground">Save {savings}% with annual billing</div>
+                          </div>
                         )}
                       </div>
                       
