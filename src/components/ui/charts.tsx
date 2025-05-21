@@ -46,13 +46,19 @@ export function AreaChart({ data, height = 300, showLegend = true, options }: Ch
     return entry;
   });
 
-  const chartConfig = data.datasets.reduce((acc, dataset) => {
-    acc[dataset.label] = {
+  // Create a valid chartConfig that matches the required ChartConfig type
+  const chartConfig: Record<string, { 
+    label?: React.ReactNode;
+    icon?: React.ComponentType;
+    color?: string;
+  }> = {};
+  
+  data.datasets.forEach((dataset) => {
+    chartConfig[dataset.label] = {
       label: dataset.label,
-      color: dataset.borderColor || dataset.backgroundColor,
+      color: dataset.borderColor || (Array.isArray(dataset.backgroundColor) ? dataset.backgroundColor[0] : dataset.backgroundColor),
     };
-    return acc;
-  }, {} as Record<string, { label: string; color?: string | string[] }>);
+  });
 
   return (
     <ChartContainer config={chartConfig} className="h-full w-full">
@@ -97,13 +103,19 @@ export function BarChart({ data, height = 300, showLegend = true, options }: Cha
     return entry;
   });
 
-  const chartConfig = data.datasets.reduce((acc, dataset) => {
-    acc[dataset.label] = {
+  // Create a valid chartConfig that matches the required ChartConfig type
+  const chartConfig: Record<string, { 
+    label?: React.ReactNode;
+    icon?: React.ComponentType;
+    color?: string;
+  }> = {};
+  
+  data.datasets.forEach((dataset) => {
+    chartConfig[dataset.label] = {
       label: dataset.label,
-      color: dataset.backgroundColor,
+      color: Array.isArray(dataset.backgroundColor) ? dataset.backgroundColor[0] : dataset.backgroundColor,
     };
-    return acc;
-  }, {} as Record<string, { label: string; color?: string | string[] }>);
+  });
 
   return (
     <ChartContainer config={chartConfig} className="h-full w-full">
@@ -137,13 +149,19 @@ export function LineChart({ data, height = 300, showLegend = true, options }: Ch
     return entry;
   });
 
-  const chartConfig = data.datasets.reduce((acc, dataset) => {
-    acc[dataset.label] = {
+  // Create a valid chartConfig that matches the required ChartConfig type
+  const chartConfig: Record<string, { 
+    label?: React.ReactNode;
+    icon?: React.ComponentType;
+    color?: string;
+  }> = {};
+  
+  data.datasets.forEach((dataset) => {
+    chartConfig[dataset.label] = {
       label: dataset.label,
       color: dataset.borderColor,
     };
-    return acc;
-  }, {} as Record<string, { label: string; color?: string | string[] }>);
+  });
 
   return (
     <ChartContainer config={chartConfig} className="h-full w-full">
@@ -181,15 +199,20 @@ export function PieChart({ data, height = 300, showLegend = true }: ChartProps) 
       : data.datasets[0].backgroundColor,
   }));
 
-  const chartConfig = data.datasets.reduce((acc, dataset, index) => {
-    data.labels.forEach((label, i) => {
-      acc[label] = {
-        label,
-        color: Array.isArray(dataset.backgroundColor) ? dataset.backgroundColor[i] : dataset.backgroundColor,
-      };
-    });
-    return acc;
-  }, {} as Record<string, { label: string; color?: string | string[] }>);
+  // Create a valid chartConfig that matches the required ChartConfig type
+  const chartConfig: Record<string, { 
+    label?: React.ReactNode;
+    icon?: React.ComponentType;
+    color?: string;
+  }> = {};
+  
+  data.labels.forEach((label, i) => {
+    const dataset = data.datasets[0];
+    chartConfig[label] = {
+      label,
+      color: Array.isArray(dataset.backgroundColor) ? dataset.backgroundColor[i] : dataset.backgroundColor,
+    };
+  });
 
   return (
     <ChartContainer config={chartConfig} className="h-full w-full">

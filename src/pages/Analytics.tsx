@@ -166,6 +166,14 @@ export default function Analytics() {
     );
   }
 
+  // Ensure we have data to display - use empty arrays if not
+  const safeData = analyticsData || {
+    followers: { labels: [], data: [] },
+    engagement: { labels: [], data: [] },
+    postPerformance: { labels: [], likes: [], comments: [], shares: [] },
+    platformBreakdown: { labels: [], data: [] }
+  };
+
   return (
     <div className="container py-8">
       <div className="flex items-center mb-8">
@@ -193,14 +201,14 @@ export default function Analytics() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {analyticsData ? (
+                {safeData.followers.labels.length > 0 ? (
                   <LineChart
                     data={{
-                      labels: analyticsData.followers.labels,
+                      labels: safeData.followers.labels,
                       datasets: [
                         {
                           label: 'Total Followers',
-                          data: analyticsData.followers.data,
+                          data: safeData.followers.data,
                           borderColor: 'rgb(99, 102, 241)',
                           backgroundColor: 'rgba(99, 102, 241, 0.1)',
                           tension: 0.3,
@@ -210,6 +218,13 @@ export default function Analytics() {
                     }}
                     showLegend={false}
                     height={300}
+                    options={{
+                      scales: {
+                        y: {
+                          ticks: []  // This will ensure axis.ticks is an array
+                        }
+                      }
+                    }}
                   />
                 ) : (
                   <div className="h-[300px] flex items-center justify-center">
@@ -227,14 +242,14 @@ export default function Analytics() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {analyticsData ? (
+                {safeData.engagement.labels.length > 0 ? (
                   <AreaChart
                     data={{
-                      labels: analyticsData.engagement.labels,
+                      labels: safeData.engagement.labels,
                       datasets: [
                         {
                           label: 'Engagement Rate',
-                          data: analyticsData.engagement.data.map(rate => rate * 100), // Convert to percentage
+                          data: safeData.engagement.data.map(rate => rate * 100), // Convert to percentage
                           borderColor: 'rgb(59, 130, 246)',
                           backgroundColor: 'rgba(59, 130, 246, 0.1)',
                           tension: 0.4,
@@ -248,11 +263,7 @@ export default function Analytics() {
                       scales: {
                         y: {
                           beginAtZero: true,
-                          ticks: {
-                            callback: function(value) {
-                              return value + '%';
-                            }
-                          }
+                          ticks: []  // This will ensure axis.ticks is an array
                         }
                       }
                     }}
@@ -270,14 +281,14 @@ export default function Analytics() {
                 <CardTitle>Platform Distribution</CardTitle>
               </CardHeader>
               <CardContent>
-                {analyticsData && analyticsData.platformBreakdown.labels.length > 0 ? (
+                {safeData.platformBreakdown.labels.length > 0 ? (
                   <PieChart
                     data={{
-                      labels: analyticsData.platformBreakdown.labels,
+                      labels: safeData.platformBreakdown.labels,
                       datasets: [
                         {
                           label: 'Followers',
-                          data: analyticsData.platformBreakdown.data,
+                          data: safeData.platformBreakdown.data,
                           backgroundColor: [
                             'rgba(255, 99, 132, 0.7)',
                             'rgba(54, 162, 235, 0.7)',
@@ -285,7 +296,6 @@ export default function Analytics() {
                             'rgba(75, 192, 192, 0.7)',
                             'rgba(153, 102, 255, 0.7)',
                           ],
-                          borderWidth: 1,
                         },
                       ],
                     }}
@@ -304,29 +314,36 @@ export default function Analytics() {
                 <CardTitle>Recent Post Performance</CardTitle>
               </CardHeader>
               <CardContent>
-                {analyticsData && analyticsData.postPerformance.labels.length > 0 ? (
+                {safeData.postPerformance.labels.length > 0 ? (
                   <BarChart
                     data={{
-                      labels: analyticsData.postPerformance.labels,
+                      labels: safeData.postPerformance.labels,
                       datasets: [
                         {
                           label: 'Likes',
-                          data: analyticsData.postPerformance.likes,
+                          data: safeData.postPerformance.likes,
                           backgroundColor: 'rgba(255, 99, 132, 0.7)',
                         },
                         {
                           label: 'Comments',
-                          data: analyticsData.postPerformance.comments,
+                          data: safeData.postPerformance.comments,
                           backgroundColor: 'rgba(54, 162, 235, 0.7)',
                         },
                         {
                           label: 'Shares',
-                          data: analyticsData.postPerformance.shares,
+                          data: safeData.postPerformance.shares,
                           backgroundColor: 'rgba(75, 192, 192, 0.7)',
                         },
                       ],
                     }}
                     height={300}
+                    options={{
+                      scales: {
+                        y: {
+                          ticks: []  // This will ensure axis.ticks is an array
+                        }
+                      }
+                    }}
                   />
                 ) : (
                   <div className="h-[300px] flex items-center justify-center">
@@ -345,15 +362,15 @@ export default function Analytics() {
                 <CardTitle>Platform-specific Analytics</CardTitle>
               </CardHeader>
               <CardContent>
-                {analyticsData && analyticsData.platformBreakdown.labels.length > 0 ? (
-                  analyticsData.platformBreakdown.labels.map((platform, index) => (
+                {safeData.platformBreakdown.labels.length > 0 ? (
+                  safeData.platformBreakdown.labels.map((platform, index) => (
                     <div key={platform} className="mb-6 border-b pb-6 last:border-0">
                       <h3 className="text-xl font-semibold mb-2 capitalize">{platform}</h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="bg-muted/30 p-4 rounded-lg">
                           <p className="text-muted-foreground text-sm">Followers</p>
                           <p className="text-2xl font-bold mt-1">
-                            {analyticsData.platformBreakdown.data[index].toLocaleString()}
+                            {safeData.platformBreakdown.data[index].toLocaleString()}
                           </p>
                         </div>
                         <div className="bg-muted/30 p-4 rounded-lg">
@@ -465,6 +482,13 @@ export default function Analytics() {
                       }}
                       height={250}
                       showLegend={false}
+                      options={{
+                        scales: {
+                          y: {
+                            ticks: []  // This will ensure axis.ticks is an array
+                          }
+                        }
+                      }}
                     />
                   </div>
                   
@@ -482,7 +506,6 @@ export default function Analytics() {
                               'rgba(236, 72, 153, 0.7)',
                               'rgba(16, 185, 129, 0.7)',
                             ],
-                            borderWidth: 1,
                           },
                         ],
                       }}
