@@ -7,6 +7,7 @@ import { Calendar, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ScheduledPost } from '@/types/content';
 import { useAuth } from '@/context/AuthContext';
+import { generateMockScheduledPosts } from '@/utils/mockScheduledPostsData';
 
 export const ScheduledPosts = () => {
   const { user } = useAuth();
@@ -22,35 +23,8 @@ export const ScheduledPosts = () => {
 
   // Generate fallback posts if needed
   const generateFallbackPosts = () => {
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    
-    const dayAfter = new Date(today);
-    dayAfter.setDate(today.getDate() + 2);
-    
-    return [
-      {
-        id: 'mock-1',
-        platform: 'instagram',
-        content: 'Check out our latest product launch! #newproduct #launch',
-        status: 'scheduled',
-        scheduled_for: tomorrow.toISOString(),
-        user_id: userId,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: 'mock-2',
-        platform: 'twitter',
-        content: 'Exciting news coming soon! Stay tuned for our announcement tomorrow.',
-        status: 'scheduled',
-        scheduled_for: dayAfter.toISOString(),
-        user_id: userId,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ] as ScheduledPost[];
+    // Use the mock data generation function for consistent data
+    return generateMockScheduledPosts(userId, 5);
   };
 
   if (isLoading) {

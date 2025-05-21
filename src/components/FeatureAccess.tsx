@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, AlertTriangle } from 'lucide-react';
-import { FeatureKey, useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { FeatureKey, ResourceKey, useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
