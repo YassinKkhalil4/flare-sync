@@ -71,6 +71,16 @@ export const useNotifications = (limit?: number) => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     }
   });
+
+  // Delete notification mutation
+  const deleteNotificationMutation = useMutation({
+    mutationFn: (notificationId: string) => 
+      notificationsService.deleteNotification(notificationId),
+    onSuccess: () => {
+      // Invalidate notifications query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    }
+  });
   
   const markAsRead = (notificationId: string) => {
     markAsReadMutation.mutate(notificationId);
@@ -78,6 +88,10 @@ export const useNotifications = (limit?: number) => {
   
   const markAllAsRead = () => {
     markAllAsReadMutation.mutate();
+  };
+
+  const deleteNotification = (notificationId: string) => {
+    deleteNotificationMutation.mutate(notificationId);
   };
   
   return {
@@ -87,6 +101,7 @@ export const useNotifications = (limit?: number) => {
     unreadCount,
     markAsRead,
     markAllAsRead,
+    deleteNotification,
     refresh: refetch,
   };
 };

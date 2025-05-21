@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
-import { generateMockNotifications, Notification } from '@/utils/mockNotificationsData';
+import { generateMockNotifications } from '@/utils/mockNotificationsData';
+import { Notification } from '@/types/notification';
 
 export const notificationsService = {
   // Get notifications for a user
@@ -31,18 +32,7 @@ export const notificationsService = {
       
       if (error) throw error;
       
-      // Convert to our frontend notification format
-      return data.map(notif => ({
-        id: notif.id,
-        title: notif.title,
-        message: notif.message,
-        type: notif.type as any,
-        isRead: notif.is_read,
-        timestamp: notif.created_at,
-        relatedEntityType: notif.related_entity_type,
-        relatedEntityId: notif.related_entity_id,
-        imageUrl: notif.image_url
-      }));
+      return data as Notification[];
     } catch (error) {
       console.error('Error fetching notifications, using mock data:', error);
       return generateMockNotifications(limit || 10);
@@ -76,6 +66,21 @@ export const notificationsService = {
       if (error) throw error;
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
+      // No need to do anything with mock data
+    }
+  },
+  
+  // Delete a notification
+  deleteNotification: async (notificationId: string): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+        
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error deleting notification:', error);
       // No need to do anything with mock data
     }
   },

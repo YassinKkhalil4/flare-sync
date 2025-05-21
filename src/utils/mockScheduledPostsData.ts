@@ -14,7 +14,7 @@ const getFutureDate = (daysAhead: number, hoursAhead: number = 0) => {
 // Generate random scheduled posts
 export const generateMockScheduledPosts = (count: number = 10, userId: string): ScheduledPost[] => {
   const platforms = ['instagram', 'twitter', 'facebook', 'tiktok', 'youtube'];
-  const statuses = ['scheduled', 'published', 'failed', 'cancelled'];
+  const statuses: Array<'scheduled' | 'published' | 'failed' | 'cancelled'> = ['scheduled', 'published', 'failed', 'cancelled'];
   const contentTemplates = [
     "Check out our new {product} that just launched! #excited #newproduct",
     "We're thrilled to announce our collaboration with {brand}! Stay tuned for more details. #partnership",
@@ -82,4 +82,3 @@ export const generateMockScheduledPosts = (count: number = 10, userId: string): 
   // Sort by scheduled_for date
   return posts.sort((a, b) => new Date(a.scheduled_for).getTime() - new Date(b.scheduled_for).getTime());
 };
-

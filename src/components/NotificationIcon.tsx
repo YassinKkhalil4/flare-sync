@@ -48,7 +48,7 @@ export const NotificationIcon: React.FC = () => {
               No notifications
             </div>
           ) : (
-            notifications.map((notification: Notification) => (
+            notifications.map((notification) => (
               <DropdownMenuItem
                 key={notification.id}
                 className={`p-4 border-b hover:bg-accent cursor-default ${!notification.is_read ? 'bg-muted' : ''}`}

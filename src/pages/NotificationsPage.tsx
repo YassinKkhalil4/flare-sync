@@ -22,8 +22,8 @@ const NotificationsPage: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('all');
   
-  const unreadNotifications = notifications.filter((n: Notification) => !n.is_read);
-  const readNotifications = notifications.filter((n: Notification) => n.is_read);
+  const unreadNotifications = notifications.filter((n) => !n.is_read);
+  const readNotifications = notifications.filter((n) => n.is_read);
   
   const displayNotifications = activeTab === 'all' 
     ? notifications 
@@ -73,7 +73,7 @@ const NotificationsPage: React.FC = () => {
                 </div>
               ) : (
                 <ul className="divide-y">
-                  {displayNotifications.map((notification: Notification) => (
+                  {displayNotifications.map((notification) => (
                     <li 
                       key={notification.id} 
                       className={`p-4 flex items-start gap-4 ${!notification.is_read ? 'bg-muted' : ''}`}
