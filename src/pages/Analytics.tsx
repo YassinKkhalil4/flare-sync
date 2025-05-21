@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AreaChart, BarChart, LineChart, PieChart } from '@/components/ui/chart';
+import { AreaChart, BarChart, LineChart, PieChart } from '@/components/ui/charts';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, BarChart3, Calendar, TrendingUp } from 'lucide-react';
 
