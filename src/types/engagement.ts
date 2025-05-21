@@ -1,4 +1,5 @@
 
+
 export interface EngagementMetric {
   type: 'likes' | 'comments' | 'shares';
   label: string;
@@ -49,3 +50,4 @@ export interface EngagementPredictionResult {
   insights: string[];
   recommendedTimes?: string[];
 }
+

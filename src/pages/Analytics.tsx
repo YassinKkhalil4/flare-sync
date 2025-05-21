@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,6 +6,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AreaChart, BarChart, LineChart, PieChart } from '@/components/ui/charts';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, BarChart3, Calendar, TrendingUp } from 'lucide-react';
+import { 
+  generateFollowerGrowthData, 
+  generateEngagementData,
+  generatePostPerformanceData,
+  generatePlatformData,
+  generateAudienceDemographics,
+  generatePostingTimesHeatmap
+} from '@/utils/mockAnalyticsData';
 
 interface AnalyticsData {
   followers: {
@@ -42,7 +51,7 @@ export default function Analytics() {
       setError(null);
 
       try {
-        // Fetch social profiles for the user
+        // Try to fetch real data from Supabase
         const { data: socialProfiles, error: profilesError } = await supabase
           .from('social_profiles')
           .select('platform, followers, engagement, stats, last_synced')
@@ -61,96 +70,67 @@ export default function Analytics() {
 
         if (postsError) throw postsError;
 
-        // Process follower growth data (use last 7 days)
-        const now = new Date();
-        const dateLabels = Array.from({ length: 7 }, (_, i) => {
-          const date = new Date();
-          date.setDate(now.getDate() - (6 - i));
-          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        });
-
-        // Process data for charts
-        const followerData: number[] = dateLabels.map((_, i) => {
-          // Generate realistic follower progression based on current total
-          const totalFollowers = socialProfiles?.reduce((sum, profile) => sum + (profile.followers || 0), 0) || 1000;
-          const baseValue = totalFollowers - (totalFollowers * 0.05 * (6 - i) / 10);
-          return Math.floor(baseValue);
-        });
-
-        // Extract platform names and follower counts for pie chart
-        const platformLabels = socialProfiles?.map(profile => profile.platform) || ['Instagram'];
-        const platformFollowers = socialProfiles?.map(profile => profile.followers || 0) || [1000];
-
-        // Extract post data for performance chart
-        const postLabels = posts?.slice(0, 5).map(post => {
-          const title = post.title || 'Untitled';
-          return title.length > 12 ? title.substring(0, 12) + '...' : title;
-        }) || ['Post 1', 'Post 2', 'Post 3'];
-
-        const postLikes = posts?.slice(0, 5).map(post => {
-          return (post.metrics?.likes || post.metrics?.like_count || 0) as number;
-        }) || [45, 32, 67];
-
-        const postComments = posts?.slice(0, 5).map(post => {
-          return (post.metrics?.comments || post.metrics?.comment_count || 0) as number;
-        }) || [12, 8, 15];
-
-        const postShares = posts?.slice(0, 5).map(post => {
-          return (post.metrics?.shares || post.metrics?.share_count || 0) as number;
-        }) || [5, 3, 8];
-
-        // Calculate average engagement rates over time
-        const engagementRates = dateLabels.map((_, i) => {
-          // Generate realistic engagement data with slight upward trend
-          const baseRate = 0.025 + (i * 0.002);  // 2.5% engagement with slight increase
-          const variation = Math.random() * 0.01 - 0.005; // +/- 0.5% random variation
-          return Number((baseRate + variation).toFixed(3));
-        });
-
+        // Generate follower growth data
+        const followerData = generateFollowerGrowthData(7);
+        
+        // Generate platform distribution data
+        const platformData = generatePlatformData();
+        
+        // Generate engagement rate data
+        const engagementData = generateEngagementData(7);
+        
+        // Generate post performance data
+        const performanceData = generatePostPerformanceData(5);
+        
+        // Set analytics data using our mock data generators
         setAnalyticsData({
           followers: {
-            labels: dateLabels,
-            data: followerData,
+            labels: followerData.map(item => item.date),
+            data: followerData.map(item => item.followers),
           },
           engagement: {
-            labels: dateLabels,
-            data: engagementRates,
+            labels: engagementData.map(item => item.date),
+            data: engagementData.map(item => item.rate),
           },
           postPerformance: {
-            labels: postLabels,
-            likes: postLikes,
-            comments: postComments,
-            shares: postShares,
+            labels: performanceData.map(post => post.title),
+            likes: performanceData.map(post => post.likes),
+            comments: performanceData.map(post => post.comments),
+            shares: performanceData.map(post => post.shares),
           },
           platformBreakdown: {
-            labels: platformLabels,
-            data: platformFollowers,
+            labels: platformData.map(platform => platform.platform),
+            data: platformData.map(platform => platform.followers),
           },
         });
       } catch (err) {
         console.error('Error fetching analytics data:', err);
         setError('Failed to load analytics data. Please try again later.');
         
-        // Set fallback data for development
-        const dateLabels = ['May 15', 'May 16', 'May 17', 'May 18', 'May 19', 'May 20', 'May 21'];
+        // Set fallback mock data for development
+        const followerData = generateFollowerGrowthData(7);
+        const engagementData = generateEngagementData(7);
+        const performanceData = generatePostPerformanceData(5);
+        const platformData = generatePlatformData();
+        
         setAnalyticsData({
           followers: {
-            labels: dateLabels,
-            data: [1245, 1267, 1290, 1321, 1359, 1370, 1405],
+            labels: followerData.map(item => item.date),
+            data: followerData.map(item => item.followers),
           },
           engagement: {
-            labels: dateLabels,
-            data: [0.025, 0.026, 0.028, 0.027, 0.029, 0.031, 0.033],
+            labels: engagementData.map(item => item.date),
+            data: engagementData.map(item => item.rate),
           },
           postPerformance: {
-            labels: ['Beach Day', 'Product', 'Travel', 'Food', 'Fashion'],
-            likes: [124, 98, 156, 87, 112],
-            comments: [32, 24, 45, 18, 29],
-            shares: [12, 8, 18, 6, 14],
+            labels: performanceData.map(post => post.title),
+            likes: performanceData.map(post => post.likes),
+            comments: performanceData.map(post => post.comments),
+            shares: performanceData.map(post => post.shares),
           },
           platformBreakdown: {
-            labels: ['Instagram', 'TikTok', 'YouTube', 'Twitter'],
-            data: [950, 560, 320, 280],
+            labels: platformData.map(platform => platform.platform),
+            data: platformData.map(platform => platform.followers),
           },
         });
       } finally {
