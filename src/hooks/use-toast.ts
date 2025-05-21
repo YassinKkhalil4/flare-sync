@@ -6,24 +6,26 @@ export type ToastProps = {
   title?: string;
   description?: ReactNode;
   variant?: "default" | "destructive" | "success";
+  duration?: number;
+  id?: string;
 };
 
 export function toast(props: ToastProps) {
-  const { title, description, variant = "default" } = props;
+  const { title, description, variant = "default", duration, id } = props;
+  
+  const options = {
+    description,
+    duration,
+    id,
+  };
   
   switch (variant) {
     case "destructive":
-      return sonnerToast.error(title, {
-        description,
-      });
+      return sonnerToast.error(title, options);
     case "success":
-      return sonnerToast.success(title, {
-        description,
-      });
+      return sonnerToast.success(title, options);
     default:
-      return sonnerToast(title, {
-        description,
-      });
+      return sonnerToast(title, options);
   }
 }
 

@@ -100,7 +100,7 @@ export const notificationsService = {
       console.error('Error fetching unread count, using mock data:', error);
       // Generate a random unread count for mock data
       const mockNotifications = generateMockNotifications(15);
-      return mockNotifications.filter(n => !n.isRead).length;
+      return mockNotifications.filter(n => !n.is_read).length;
     }
   }
 };

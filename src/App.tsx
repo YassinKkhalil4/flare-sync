@@ -29,6 +29,18 @@ function App() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [demoNotificationShown, setDemoNotificationShown] = useState(false);
+
+  const showDemoNotification = () => {
+    toast({
+      title: "Creator Dashboard (Demo Data)",
+      description: "FlareSync helps creators plan, predict, and profit.",
+      variant: "success",
+      duration: Infinity, // Make it stay forever
+      id: "demo-notification" // Add an ID to prevent duplicates
+    });
+    setDemoNotificationShown(true);
+  };
 
   const initialize = async () => {
     try {
@@ -46,12 +58,8 @@ function App() {
         
         // Show demo data notification after a short delay
         setTimeout(() => {
-          toast({
-            title: "Creator Dashboard (Demo Data)",
-            description: "FlareSync helps creators plan, predict, and profit.",
-            variant: "success",
-          });
-        }, 1500);
+          showDemoNotification();
+        }, 1000);
       }
     } catch (error) {
       console.error('Error initializing app:', error);
@@ -63,6 +71,15 @@ function App() {
 
   useEffect(() => {
     initialize();
+    
+    // Display demo notification when navigating if we haven't shown it yet
+    if (!demoNotificationShown) {
+      showDemoNotification();
+    }
+    
+    return () => {
+      // Cleanup (if needed)
+    };
   }, [retryCount]);
 
   const handleRetry = () => {

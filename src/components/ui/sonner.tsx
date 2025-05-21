@@ -22,6 +22,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           cancelButton:
             "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
         },
+        duration: Infinity, // Default to infinite duration
       }}
       {...props}
     />
