@@ -11,7 +11,7 @@ import { ScheduledPost } from '@/types/database';
 import { LoadingSpinner } from '@/components/social/LoadingSpinner';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Clock, Image as ImageIcon, Video, Users } from 'lucide-react';
 import PostScheduleForm from '@/components/content/PostScheduleForm';
 
 const InteractiveCalendar: React.FC = () => {
@@ -58,6 +58,21 @@ const InteractiveCalendar: React.FC = () => {
     return scheduledPosts.filter(post => 
       isSameDay(parseISO(post.scheduled_for), date)
     );
+  };
+
+  // Group posts by content and time (for multi-platform posts)
+  const groupPostsByContent = (posts: ScheduledPost[]) => {
+    const groups: { [key: string]: ScheduledPost[] } = {};
+    
+    posts.forEach(post => {
+      const key = `${post.content}_${format(parseISO(post.scheduled_for), 'HH:mm')}`;
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(post);
+    });
+    
+    return Object.values(groups);
   };
 
   // Handle drag start
@@ -109,6 +124,22 @@ const InteractiveCalendar: React.FC = () => {
   };
 
   const postsForSelectedDate = getPostsForDate(selectedDate);
+  const groupedPosts = groupPostsByContent(postsForSelectedDate);
+
+  const getPlatformIcon = (platform: string) => {
+    switch (platform) {
+      case 'instagram': return '📷';
+      case 'twitter': return '🐦';
+      case 'tiktok': return '🎵';
+      case 'youtube': return '📺';
+      case 'facebook': return '👥';
+      default: return '📱';
+    }
+  };
+
+  const isVideoFile = (url: string) => {
+    return url && (url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('video'));
+  };
 
   if (isLoading) {
     return (
@@ -134,7 +165,7 @@ const InteractiveCalendar: React.FC = () => {
                 Schedule Post
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Schedule New Post</DialogTitle>
               </DialogHeader>
@@ -166,15 +197,6 @@ const InteractiveCalendar: React.FC = () => {
                 },
               }}
             />
-            
-            {/* Calendar Grid with Drop Zones */}
-            <div className="grid grid-cols-7 gap-1 text-sm">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} className="p-2 text-center font-medium text-muted-foreground">
-                  {day}
-                </div>
-              ))}
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -188,48 +210,96 @@ const InteractiveCalendar: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {postsForSelectedDate.length > 0 ? (
-            <div className="space-y-3">
-              {postsForSelectedDate.map((post) => (
-                <div
-                  key={post.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, post)}
-                  className="border rounded-lg p-3 cursor-move hover:shadow-md transition-shadow bg-card"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">
-                        {post.content?.substring(0, 40)}
-                        {post.content && post.content.length > 40 ? '...' : ''}
-                      </h4>
-                      <p className="text-xs text-muted-foreground">
-                        {format(parseISO(post.scheduled_for), 'h:mm a')}
-                      </p>
-                    </div>
-                    <Badge 
-                      variant={
-                        post.status === 'published' ? 'default' :
-                        post.status === 'failed' ? 'destructive' :
-                        'secondary'
-                      }
-                      className="ml-2 text-xs"
-                    >
-                      {post.status}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">
-                      {post.platform}
-                    </Badge>
-                    {post.media_urls && post.media_urls.length > 0 && (
-                      <Badge variant="outline" className="text-xs">
-                        {post.media_urls.length} media
-                      </Badge>
+          {groupedPosts.length > 0 ? (
+            <div className="space-y-4">
+              {groupedPosts.map((postGroup, groupIndex) => {
+                const firstPost = postGroup[0];
+                const hasMedia = firstPost.media_urls && firstPost.media_urls.length > 0;
+                const firstMediaUrl = hasMedia ? firstPost.media_urls![0] : null;
+                
+                return (
+                  <div
+                    key={`group-${groupIndex}`}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, firstPost)}
+                    className="border rounded-lg p-4 cursor-move hover:shadow-md transition-shadow bg-card space-y-3"
+                  >
+                    {/* Media Preview */}
+                    {firstMediaUrl && (
+                      <div className="relative">
+                        {isVideoFile(firstMediaUrl) ? (
+                          <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
+                            <video
+                              src={firstMediaUrl}
+                              className="w-full h-full object-cover"
+                              preload="metadata"
+                            />
+                            <div className="absolute top-2 left-2 bg-black/50 rounded px-2 py-1">
+                              <Video className="h-3 w-3 text-white" />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="relative rounded-lg overflow-hidden aspect-video">
+                            <img
+                              src={firstMediaUrl}
+                              alt="Post media"
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute top-2 left-2 bg-black/50 rounded px-2 py-1">
+                              <ImageIcon className="h-3 w-3 text-white" />
+                            </div>
+                          </div>
+                        )}
+                        {firstPost.media_urls && firstPost.media_urls.length > 1 && (
+                          <div className="absolute bottom-2 right-2 bg-black/50 rounded px-2 py-1">
+                            <span className="text-white text-xs">+{firstPost.media_urls.length - 1}</span>
+                          </div>
+                        )}
+                      </div>
                     )}
+                    
+                    {/* Content */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium line-clamp-2">
+                            {firstPost.content?.substring(0, 100)}
+                            {firstPost.content && firstPost.content.length > 100 ? '...' : ''}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {format(parseISO(firstPost.scheduled_for), 'h:mm a')}
+                          </p>
+                        </div>
+                        <Badge 
+                          variant={
+                            firstPost.status === 'published' ? 'default' :
+                            firstPost.status === 'failed' ? 'destructive' :
+                            'secondary'
+                          }
+                          className="ml-2 text-xs"
+                        >
+                          {firstPost.status}
+                        </Badge>
+                      </div>
+                      
+                      {/* Platforms */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {postGroup.length > 1 && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Users className="h-3 w-3" />
+                            <span>{postGroup.length} platforms</span>
+                          </div>
+                        )}
+                        {postGroup.map((post) => (
+                          <Badge key={post.id} variant="outline" className="text-xs">
+                            {getPlatformIcon(post.platform)} {post.platform}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
