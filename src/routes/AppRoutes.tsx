@@ -1,263 +1,66 @@
-
 import React from 'react';
-import { Route, Routes, Navigate, useLocation } from 'react-router-dom';
-import NotFound from '../pages/NotFound';
-import Index from '../pages/Index';
-import Legal from '../pages/Legal';
-import Privacy from '../pages/Privacy';
-import ProtectedRoute from '../components/ProtectedRoute';
-import Dashboard from '../pages/Dashboard';
-import SocialConnect from '../pages/SocialConnect';
-import CreatorProfile from '../pages/CreatorProfile';
-import Messaging from '../pages/Messaging';
-import BrandDeals from '../pages/BrandDeals';
-import Plans from '../pages/Plans';
-import PaymentHistory from '../pages/PaymentHistory';
-import Settings from '../pages/Settings';
-import NotificationsPage from '../pages/NotificationsPage';
-import TermsOfUse from '../pages/TermsOfUse';
-import TermsAndConditions from '../pages/TermsAndConditions';
-import Login from '../pages/Login';
-import Signup from '../pages/Signup';
-import SocialConnectCallback from '../components/social/SocialConnectCallback';
-import Analytics from '../pages/Analytics';
-// Content pages
-import ContentCalendarPage from '../pages/Content/ContentCalendarPage';
-import ContentListPage from '../pages/Content/ContentListPage';
-import ContentCreatePage from '../pages/Content/ContentCreatePage';
-import ContentEditPage from '../pages/Content/ContentEditPage';
-import ContentDetailPage from '../pages/Content/ContentDetailPage';
-import ContentApprovalPage from '../pages/Content/ContentApprovalPage';
-// Brand pages
-import CreatorDiscovery from '../pages/Brand/CreatorDiscovery';
-import CampaignManagement from '../pages/Brand/CampaignManagement';
-import BrandMatchmakerPage from '../pages/Content/BrandMatchmakerPage';
-// AI Feature Pages
-import CaptionGeneratorPage from '../pages/Content/CaptionGeneratorPage';
-import EngagementPredictorPage from '../pages/Content/EngagementPredictorPage';
-import ContentPlanGeneratorPage from '../pages/Content/ContentPlanGeneratorPage';
-import SmartAssistantPage from '../pages/Content/SmartAssistantPage';
-import SmartPostSchedulerPage from '../pages/Content/SmartPostSchedulerPage';
-import { useAuth } from '../context/AuthContext';
-import Landing from '../pages/Landing';
-// Admin pages
-import AdminDashboard from '../pages/AdminDashboard';
-
-// Route guard that redirects authenticated users away from auth pages
-const AuthRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useAuth();
-  const location = useLocation();
-  
-  if (user) {
-    // If user is coming from a specific path and trying to access auth pages
-    const from = location.state?.from || '/dashboard';
-    return <Navigate to={from} replace />;
-  }
-  
-  return <>{children}</>;
-};
+import { Routes, Route } from 'react-router-dom';
+import { MainLayout } from '@/components/layouts/MainLayout';
+import { OnboardingWrapper } from '@/components/layouts/OnboardingWrapper';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import Home from '@/pages/Home';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
+import Profile from '@/pages/Profile';
+import Settings from '@/pages/Settings';
+import SocialConnect from '@/pages/SocialConnect';
+import SocialConnectCallback from '@/components/social/SocialConnectCallback';
+import Notifications from '@/pages/Notifications';
+import Analytics from '@/pages/Analytics';
+import Pricing from '@/pages/Pricing';
+import Upgrade from '@/pages/Upgrade';
+import NotFound from '@/pages/NotFound';
+import OnboardingPage from '@/pages/OnboardingPage';
+import Logout from '@/pages/Logout';
+import Deals from '@/pages/Deals';
+import ContentCalendar from '@/pages/ContentCalendar';
+import Messaging from '@/pages/Messaging';
+import SocialCallbackHandler from '@/components/social/SocialCallbackHandler';
+import ApiKeysSetup from '@/pages/ApiKeysSetup';
 
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<Index />} />
+      <Route path="/" element={<ProtectedRoute><MainLayout><Home /></MainLayout></ProtectedRoute>} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/profile" element={<ProtectedRoute><MainLayout><Profile /></MainLayout></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><MainLayout><Settings /></MainLayout></ProtectedRoute>} />
+      <Route path="/social-connect" element={<ProtectedRoute><MainLayout><OnboardingWrapper><SocialConnect /></OnboardingWrapper></MainLayout></ProtectedRoute>} />
+      <Route path="/social-connect/callback" element={<SocialConnectCallback />} />
+      <Route path="/social-callback" element={<SocialCallbackHandler />} />
+      <Route path="/notifications" element={<ProtectedRoute><MainLayout><Notifications /></MainLayout></ProtectedRoute>} />
+      <Route path="/analytics" element={<ProtectedRoute><MainLayout><Analytics /></MainLayout></ProtectedRoute>} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/upgrade" element={<ProtectedRoute><MainLayout><Upgrade /></MainLayout></ProtectedRoute>} />
+      <Route path="/onboarding" element={<ProtectedRoute><MainLayout><OnboardingWrapper><OnboardingPage /></OnboardingWrapper></MainLayout></ProtectedRoute>} />
+      <Route path="/logout" element={<Logout />} />
+      <Route path="/deals" element={<ProtectedRoute><MainLayout><Deals /></MainLayout></ProtectedRoute>} />
+      <Route path="/content-calendar" element={<ProtectedRoute><MainLayout><ContentCalendar /></MainLayout></ProtectedRoute>} />
+      <Route path="/messaging" element={<ProtectedRoute><MainLayout><Messaging /></MainLayout></ProtectedRoute>} />
       
-      {/* Auth routes - redirect to dashboard if already logged in */}
-      <Route path="/login" element={
-        <AuthRoute>
-          <Login />
-        </AuthRoute>
-      } />
+      <Route 
+        path="/api-keys-setup" 
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <OnboardingWrapper>
+                <ApiKeysSetup />
+              </OnboardingWrapper>
+            </MainLayout>
+          </ProtectedRoute>
+        } 
+      />
       
-      <Route path="/signup" element={
-        <AuthRoute>
-          <Signup />
-        </AuthRoute>
-      } />
-      
-      {/* Admin routes */}
-      <Route path="/admin" element={
-        <ProtectedRoute requireAdmin={true}>
-          <AdminDashboard />
-        </ProtectedRoute>
-      } />
-      
-      {/* Protected routes */}
-      <Route path="/dashboard" element={
-        <ProtectedRoute>
-          <Dashboard />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/social-connect" element={
-        <ProtectedRoute>
-          <SocialConnect />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/social-callback" element={
-        <ProtectedRoute>
-          <SocialConnectCallback />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/profile" element={
-        <ProtectedRoute>
-          <CreatorProfile />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/messaging" element={
-        <ProtectedRoute>
-          <Messaging />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/deals" element={
-        <ProtectedRoute>
-          <BrandDeals />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/notifications" element={
-        <ProtectedRoute>
-          <NotificationsPage />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/plans" element={
-        <ProtectedRoute>
-          <Plans />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/payment-history" element={
-        <ProtectedRoute>
-          <PaymentHistory />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/settings" element={
-        <ProtectedRoute>
-          <Settings />
-        </ProtectedRoute>
-      } />
-
-      {/* Analytics Route - requires advanced_analytics feature */}
-      <Route path="/analytics" element={
-        <ProtectedRoute requireFeature="advanced_analytics">
-          <Analytics />
-        </ProtectedRoute>
-      } />
-      
-      {/* Content Management Routes */}
-      <Route path="/content" element={
-        <ProtectedRoute>
-          <ContentListPage />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/content/calendar" element={
-        <ProtectedRoute>
-          <ContentCalendarPage />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/content/create" element={
-        <ProtectedRoute>
-          <ContentCreatePage />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/content/edit/:id" element={
-        <ProtectedRoute>
-          <ContentEditPage />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/content/:id" element={
-        <ProtectedRoute>
-          <ContentDetailPage />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/content/approval" element={
-        <ProtectedRoute>
-          <ContentApprovalPage />
-        </ProtectedRoute>
-      } />
-      
-      {/* AI Feature Routes - all require content_generation feature */}
-      <Route path="/content/caption-generator" element={
-        <ProtectedRoute requireFeature="content_generation">
-          <CaptionGeneratorPage />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/content/engagement-predictor" element={
-        <ProtectedRoute requireFeature="content_generation">
-          <EngagementPredictorPage />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/content/content-plan" element={
-        <ProtectedRoute requireFeature="content_generation">
-          <ContentPlanGeneratorPage />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/content/smart-assistant" element={
-        <ProtectedRoute requireFeature="content_generation">
-          <SmartAssistantPage />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/content/smart-scheduler" element={
-        <ProtectedRoute requireFeature="automated_scheduling">
-          <SmartPostSchedulerPage />
-        </ProtectedRoute>
-      } />
-
-      {/* Brand Matchmaker page */}
-      <Route path="/content/brand-matchmaker" element={
-        <ProtectedRoute>
-          <BrandMatchmakerPage />
-        </ProtectedRoute>
-      } />
-      
-      {/* Brand-specific routes */}
-      <Route path="/creators" element={
-        <ProtectedRoute requireRole="brand">
-          <CreatorDiscovery />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/campaigns" element={
-        <ProtectedRoute requireRole="brand">
-          <CampaignManagement />
-        </ProtectedRoute>
-      } />
-      
-      {/* Public pages */}
-      <Route path="/legal" element={<Legal />} />
-      <Route path="/terms" element={<TermsOfUse />} />
-      <Route path="/privacy" element={<Privacy />} />
-      <Route path="/terms-conditions" element={<TermsAndConditions />} />
-      
-      {/* Social profiles shortcut */}
-      <Route path="/social-profiles" element={
-        <ProtectedRoute>
-          <SocialConnect />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/scheduler" element={
-        <ProtectedRoute>
-          <ContentCalendarPage />
-        </ProtectedRoute>
-      } />
-      
-      {/* Catch-all route */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
