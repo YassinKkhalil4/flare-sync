@@ -6,14 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AreaChart, BarChart, LineChart, PieChart } from '@/components/ui/charts';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, BarChart3, Calendar, TrendingUp } from 'lucide-react';
-import { 
-  generateFollowerGrowthData, 
-  generateEngagementData,
-  generatePostPerformanceData,
-  generatePlatformData,
-  generateAudienceDemographics,
-  generatePostingTimesHeatmap
-} from '@/utils/mockAnalyticsData';
 
 interface AnalyticsData {
   followers: {
@@ -70,67 +62,50 @@ export default function Analytics() {
 
         if (postsError) throw postsError;
 
-        // Generate follower growth data
-        const followerData = generateFollowerGrowthData(7);
-        
-        // Generate platform distribution data
-        const platformData = generatePlatformData();
-        
-        // Generate engagement rate data
-        const engagementData = generateEngagementData(7);
-        
-        // Generate post performance data
-        const performanceData = generatePostPerformanceData(5);
-        
-        // Set analytics data using our mock data generators
+        // If no real data, set empty data
         setAnalyticsData({
           followers: {
-            labels: followerData.map(item => item.date),
-            data: followerData.map(item => item.followers),
+            labels: [],
+            data: [],
           },
           engagement: {
-            labels: engagementData.map(item => item.date),
-            data: engagementData.map(item => item.rate),
+            labels: [],
+            data: [],
           },
           postPerformance: {
-            labels: performanceData.map(post => post.title),
-            likes: performanceData.map(post => post.likes),
-            comments: performanceData.map(post => post.comments),
-            shares: performanceData.map(post => post.shares),
+            labels: [],
+            likes: [],
+            comments: [],
+            shares: [],
           },
           platformBreakdown: {
-            labels: platformData.map(platform => platform.platform),
-            data: platformData.map(platform => platform.followers),
+            labels: [],
+            data: [],
           },
         });
       } catch (err) {
         console.error('Error fetching analytics data:', err);
         setError('Failed to load analytics data. Please try again later.');
         
-        // Set fallback mock data for development
-        const followerData = generateFollowerGrowthData(7);
-        const engagementData = generateEngagementData(7);
-        const performanceData = generatePostPerformanceData(5);
-        const platformData = generatePlatformData();
-        
+        // Set empty data for development
         setAnalyticsData({
           followers: {
-            labels: followerData.map(item => item.date),
-            data: followerData.map(item => item.followers),
+            labels: [],
+            data: [],
           },
           engagement: {
-            labels: engagementData.map(item => item.date),
-            data: engagementData.map(item => item.rate),
+            labels: [],
+            data: [],
           },
           postPerformance: {
-            labels: performanceData.map(post => post.title),
-            likes: performanceData.map(post => post.likes),
-            comments: performanceData.map(post => post.comments),
-            shares: performanceData.map(post => post.shares),
+            labels: [],
+            likes: [],
+            comments: [],
+            shares: [],
           },
           platformBreakdown: {
-            labels: platformData.map(platform => platform.platform),
-            data: platformData.map(platform => platform.followers),
+            labels: [],
+            data: [],
           },
         });
       } finally {
@@ -193,36 +168,9 @@ export default function Analytics() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {safeData.followers.labels.length > 0 ? (
-                  <LineChart
-                    data={{
-                      labels: safeData.followers.labels,
-                      datasets: [
-                        {
-                          label: 'Total Followers',
-                          data: safeData.followers.data,
-                          borderColor: 'rgb(99, 102, 241)',
-                          backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                          tension: 0.3,
-                          fill: true,
-                        },
-                      ],
-                    }}
-                    showLegend={false}
-                    height={300}
-                    options={{
-                      scales: {
-                        y: {
-                          ticks: [] // Ensure it's an array
-                        }
-                      }
-                    }}
-                  />
-                ) : (
-                  <div className="h-[300px] flex items-center justify-center">
-                    <p className="text-muted-foreground">No follower data available</p>
-                  </div>
-                )}
+                <div className="h-[300px] flex items-center justify-center">
+                  <p className="text-muted-foreground">No follower data available</p>
+                </div>
               </CardContent>
             </Card>
             
@@ -234,37 +182,9 @@ export default function Analytics() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {safeData.engagement.labels.length > 0 ? (
-                  <AreaChart
-                    data={{
-                      labels: safeData.engagement.labels,
-                      datasets: [
-                        {
-                          label: 'Engagement Rate',
-                          data: safeData.engagement.data.map(rate => rate * 100), // Convert to percentage
-                          borderColor: 'rgb(59, 130, 246)',
-                          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                          tension: 0.4,
-                          fill: true,
-                        },
-                      ],
-                    }}
-                    showLegend={false}
-                    height={300}
-                    options={{
-                      scales: {
-                        y: {
-                          beginAtZero: true,
-                          ticks: [] // Ensure it's an array
-                        }
-                      }
-                    }}
-                  />
-                ) : (
-                  <div className="h-[300px] flex items-center justify-center">
-                    <p className="text-muted-foreground">No engagement data available</p>
-                  </div>
-                )}
+                <div className="h-[300px] flex items-center justify-center">
+                  <p className="text-muted-foreground">No engagement data available</p>
+                </div>
               </CardContent>
             </Card>
             
@@ -273,31 +193,9 @@ export default function Analytics() {
                 <CardTitle>Platform Distribution</CardTitle>
               </CardHeader>
               <CardContent>
-                {safeData.platformBreakdown.labels.length > 0 ? (
-                  <PieChart
-                    data={{
-                      labels: safeData.platformBreakdown.labels,
-                      datasets: [
-                        {
-                          label: 'Followers',
-                          data: safeData.platformBreakdown.data,
-                          backgroundColor: [
-                            'rgba(255, 99, 132, 0.7)',
-                            'rgba(54, 162, 235, 0.7)',
-                            'rgba(255, 206, 86, 0.7)',
-                            'rgba(75, 192, 192, 0.7)',
-                            'rgba(153, 102, 255, 0.7)',
-                          ],
-                        },
-                      ],
-                    }}
-                    height={300}
-                  />
-                ) : (
-                  <div className="h-[300px] flex items-center justify-center">
-                    <p className="text-muted-foreground">No platform data available</p>
-                  </div>
-                )}
+                <div className="h-[300px] flex items-center justify-center">
+                  <p className="text-muted-foreground">No platform data available</p>
+                </div>
               </CardContent>
             </Card>
             
@@ -306,42 +204,9 @@ export default function Analytics() {
                 <CardTitle>Recent Post Performance</CardTitle>
               </CardHeader>
               <CardContent>
-                {safeData.postPerformance.labels.length > 0 ? (
-                  <BarChart
-                    data={{
-                      labels: safeData.postPerformance.labels,
-                      datasets: [
-                        {
-                          label: 'Likes',
-                          data: safeData.postPerformance.likes,
-                          backgroundColor: 'rgba(255, 99, 132, 0.7)',
-                        },
-                        {
-                          label: 'Comments',
-                          data: safeData.postPerformance.comments,
-                          backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                        },
-                        {
-                          label: 'Shares',
-                          data: safeData.postPerformance.shares,
-                          backgroundColor: 'rgba(75, 192, 192, 0.7)',
-                        },
-                      ],
-                    }}
-                    height={300}
-                    options={{
-                      scales: {
-                        y: {
-                          ticks: [] // Ensure it's an array
-                        }
-                      }
-                    }}
-                  />
-                ) : (
-                  <div className="h-[300px] flex items-center justify-center">
-                    <p className="text-muted-foreground">No post data available</p>
-                  </div>
-                )}
+                <div className="h-[300px] flex items-center justify-center">
+                  <p className="text-muted-foreground">No post data available</p>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -354,37 +219,9 @@ export default function Analytics() {
                 <CardTitle>Platform-specific Analytics</CardTitle>
               </CardHeader>
               <CardContent>
-                {safeData.platformBreakdown.labels.length > 0 ? (
-                  safeData.platformBreakdown.labels.map((platform, index) => (
-                    <div key={platform} className="mb-6 border-b pb-6 last:border-0">
-                      <h3 className="text-xl font-semibold mb-2 capitalize">{platform}</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-muted/30 p-4 rounded-lg">
-                          <p className="text-muted-foreground text-sm">Followers</p>
-                          <p className="text-2xl font-bold mt-1">
-                            {safeData.platformBreakdown.data[index].toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="bg-muted/30 p-4 rounded-lg">
-                          <p className="text-muted-foreground text-sm">Engagement Rate</p>
-                          <p className="text-2xl font-bold mt-1">
-                            {(Math.random() * 3 + 1.5).toFixed(1)}%
-                          </p>
-                        </div>
-                        <div className="bg-muted/30 p-4 rounded-lg">
-                          <p className="text-muted-foreground text-sm">Posts</p>
-                          <p className="text-2xl font-bold mt-1">
-                            {Math.floor(Math.random() * 50 + 10)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="py-8 text-center">
-                    <p className="text-muted-foreground">No platform data available</p>
-                  </div>
-                )}
+                <div className="py-8 text-center">
+                  <p className="text-muted-foreground">No platform data available</p>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -397,54 +234,8 @@ export default function Analytics() {
                 <CardTitle>Content Performance Analysis</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-8">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Top Performing Content Types</h3>
-                    <div className="space-y-2">
-                      {['Video', 'Image', 'Carousel', 'Text'].map((type, index) => (
-                        <div key={type} className="flex items-center">
-                          <div className="w-24">{type}</div>
-                          <div className="flex-1 mx-2">
-                            <div className="h-2 bg-muted rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-primary" 
-                                style={{ 
-                                  width: `${80 - (index * 15)}%`, 
-                                  backgroundColor: index === 0 ? 'rgb(99, 102, 241)' : 
-                                                 index === 1 ? 'rgb(59, 130, 246)' : 
-                                                 index === 2 ? 'rgb(16, 185, 129)' : 'rgb(245, 158, 11)'
-                                }}
-                              ></div>
-                            </div>
-                          </div>
-                          <div className="w-12 text-right">{80 - (index * 15)}%</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Best Posting Times</h3>
-                    <div className="grid grid-cols-7 gap-2 text-center">
-                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-                        <div key={day} className="text-sm font-medium">{day}</div>
-                      ))}
-                      {Array.from({ length: 7 }).map((_, dayIndex) => (
-                        <div key={`heatmap-${dayIndex}`} className="h-8 bg-primary/10 rounded relative">
-                          <div 
-                            className="absolute bottom-0 left-0 right-0 bg-primary"
-                            style={{ 
-                              height: `${Math.floor(Math.random() * 70 + 20)}%`,
-                              opacity: 0.7 + (Math.random() * 0.3)
-                            }}
-                          ></div>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2 text-center">
-                      Optimal posting times shown by fill level. Higher = better engagement.
-                    </p>
-                  </div>
+                <div className="py-8 text-center">
+                  <p className="text-muted-foreground">No content data available</p>
                 </div>
               </CardContent>
             </Card>
@@ -458,107 +249,8 @@ export default function Analytics() {
                 <CardTitle>Audience Demographics</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Age Distribution</h3>
-                    <BarChart
-                      data={{
-                        labels: ['13-17', '18-24', '25-34', '35-44', '45-54', '55+'],
-                        datasets: [
-                          {
-                            label: 'Percentage',
-                            data: [5, 28, 35, 18, 10, 4],
-                            backgroundColor: 'rgba(99, 102, 241, 0.7)',
-                          },
-                        ],
-                      }}
-                      height={250}
-                      showLegend={false}
-                      options={{
-                        scales: {
-                          y: {
-                            ticks: [] // Ensure it's an array
-                          }
-                        }
-                      }}
-                    />
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Gender Distribution</h3>
-                    <PieChart
-                      data={{
-                        labels: ['Male', 'Female', 'Other'],
-                        datasets: [
-                          {
-                            label: 'Percentage',
-                            data: [42, 55, 3],
-                            backgroundColor: [
-                              'rgba(59, 130, 246, 0.7)',
-                              'rgba(236, 72, 153, 0.7)',
-                              'rgba(16, 185, 129, 0.7)',
-                            ],
-                          },
-                        ],
-                      }}
-                      height={250}
-                    />
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Top Locations</h3>
-                    <table className="w-full">
-                      <thead>
-                        <tr className="text-left text-sm text-muted-foreground">
-                          <th className="pb-2">Country</th>
-                          <th className="pb-2">Percentage</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[
-                          { country: 'United States', percentage: 38 },
-                          { country: 'United Kingdom', percentage: 15 },
-                          { country: 'Canada', percentage: 12 },
-                          { country: 'Australia', percentage: 8 },
-                          { country: 'Germany', percentage: 6 },
-                        ].map((location) => (
-                          <tr key={location.country}>
-                            <td className="py-2">{location.country}</td>
-                            <td className="py-2">{location.percentage}%</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Interests</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        { tag: 'Technology', weight: 85 },
-                        { tag: 'Fashion', weight: 72 },
-                        { tag: 'Travel', weight: 68 },
-                        { tag: 'Food', weight: 65 },
-                        { tag: 'Fitness', weight: 59 },
-                        { tag: 'Music', weight: 54 },
-                        { tag: 'Gaming', weight: 52 },
-                        { tag: 'Movies', weight: 48 },
-                        { tag: 'Books', weight: 42 },
-                        { tag: 'Art', weight: 38 },
-                      ].map((interest) => (
-                        <span 
-                          key={interest.tag}
-                          className="px-3 py-1 rounded-full text-sm"
-                          style={{
-                            backgroundColor: `rgba(99, 102, 241, ${interest.weight / 100})`,
-                            fontSize: `${0.8 + (interest.weight / 100) * 0.4}rem`,
-                          }}
-                        >
-                          {interest.tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                <div className="py-8 text-center">
+                  <p className="text-muted-foreground">No audience data available</p>
                 </div>
               </CardContent>
             </Card>

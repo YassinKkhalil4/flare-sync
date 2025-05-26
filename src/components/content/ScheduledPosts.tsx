@@ -7,7 +7,6 @@ import { Calendar, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ScheduledPost } from '@/types/content';
 import { useAuth } from '@/context/AuthContext';
-import { generateMockScheduledPosts } from '@/utils/mockScheduledPostsData';
 
 export const ScheduledPosts = () => {
   const { user } = useAuth();
@@ -17,15 +16,7 @@ export const ScheduledPosts = () => {
     queryKey: ['scheduledPosts', userId],
     queryFn: () => scheduledPostService.getScheduledPosts(userId),
     enabled: !!userId,
-    // Always give us at least some posts for better UI
-    select: (data) => data && data.length > 0 ? data : generateFallbackPosts()
   });
-
-  // Generate fallback posts if needed
-  const generateFallbackPosts = () => {
-    // Use the mock data generation function for consistent data
-    return generateMockScheduledPosts(userId, 5);
-  };
 
   if (isLoading) {
     return (

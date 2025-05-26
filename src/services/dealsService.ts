@@ -1,5 +1,5 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import { generateMockBrandDeals } from '@/utils/mockBrandDealsData';
 
 export interface Deal {
   id: string;
@@ -17,29 +17,17 @@ export interface Deal {
 
 class DealsService {
   async getDeals() {
-    // Check if we should use mock data (no actual table or development)
     try {
-      const { count, error } = await supabase
-        .from('deals')
-        .select('*', { count: 'exact', head: true })
-        .limit(1);
-        
-      if (error || count === 0) {
-        // If there's an error or no data, use mock data
-        return generateMockBrandDeals(8);
-      }
-      
-      // Otherwise, get real data
-      const { data, error: fetchError } = await supabase
+      const { data, error } = await supabase
         .from('deals')
         .select('*, profiles:brand_id(full_name, avatar_url)')
         .order('created_at', { ascending: false });
 
-      if (fetchError) throw fetchError;
-      return data;
+      if (error) throw error;
+      return data || [];
     } catch (error) {
-      console.error('Error fetching deals, using mock data:', error);
-      return generateMockBrandDeals(8);
+      console.error('Error fetching deals:', error);
+      return [];
     }
   }
 
@@ -54,13 +42,8 @@ class DealsService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error creating deal, using mock response:', error);
-      // Return a mock response
-      return {
-        ...deal,
-        id: `new-${Date.now()}`,
-        created_at: new Date().toISOString()
-      };
+      console.error('Error creating deal:', error);
+      return null;
     }
   }
 
@@ -76,13 +59,8 @@ class DealsService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating deal status, using mock response:', error);
-      // Return a mock response
-      return {
-        id: dealId,
-        status,
-        updated_at: new Date().toISOString()
-      };
+      console.error('Error updating deal status:', error);
+      return null;
     }
   }
   
