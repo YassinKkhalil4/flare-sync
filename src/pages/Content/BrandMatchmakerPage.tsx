@@ -62,8 +62,8 @@ export default function BrandMatchmakerPage() {
 
   if (!user?.id) {
     return (
-      <div className="container py-8">
-        <Card className="max-w-md mx-auto text-center">
+      <div className="min-h-screen w-full p-4 sm:p-6 lg:p-8">
+        <Card className="w-full max-w-md mx-auto text-center">
           <CardContent className="pt-6">
             <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
@@ -75,94 +75,98 @@ export default function BrandMatchmakerPage() {
   }
 
   return (
-    <div className="container max-w-6xl py-8">
-      {/* Hero Section */}
-      <div className="text-center mb-12">
-        <div className="flex items-center justify-center mb-4">
-          <div className="p-3 rounded-full bg-primary/10 mr-4">
-            <Target className="h-8 w-8 text-primary" />
+    <div className="min-h-screen w-full p-4 sm:p-6 lg:p-8">
+      <div className="w-full max-w-7xl mx-auto">
+        {/* Hero Section */}
+        <div className="text-center mb-8 lg:mb-12">
+          <div className="flex flex-col sm:flex-row items-center justify-center mb-4">
+            <div className="p-3 rounded-full bg-primary/10 mb-4 sm:mb-0 sm:mr-4">
+              <Target className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold gradient-text">AI Brand Matchmaker</h1>
           </div>
-          <h1 className="text-4xl font-bold gradient-text">AI Brand Matchmaker</h1>
+          <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-4xl mx-auto px-4">
+            Discover perfect brand partnerships powered by AI. Match with brands that align with your audience and maximize your earning potential.
+          </p>
         </div>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Discover perfect brand partnerships powered by AI. Match with brands that align with your audience and maximize your earning potential.
-        </p>
-      </div>
 
-      {/* Features Cards */}
-      <div className="grid md:grid-cols-3 gap-6 mb-8">
-        <Card className="text-center">
-          <CardContent className="pt-6">
-            <Sparkles className="h-8 w-8 mx-auto mb-3 text-primary" />
-            <h3 className="font-semibold mb-2">AI-Powered Matching</h3>
-            <p className="text-sm text-muted-foreground">Advanced algorithms analyze your profile to find the perfect brand matches</p>
-          </CardContent>
-        </Card>
-        <Card className="text-center">
-          <CardContent className="pt-6">
-            <TrendingUp className="h-8 w-8 mx-auto mb-3 text-primary" />
-            <h3 className="font-semibold mb-2">Revenue Optimization</h3>
-            <p className="text-sm text-muted-foreground">Get estimated earnings and ROI predictions for each partnership</p>
-          </CardContent>
-        </Card>
-        <Card className="text-center">
-          <CardContent className="pt-6">
-            <Target className="h-8 w-8 mx-auto mb-3 text-primary" />
-            <h3 className="font-semibold mb-2">Perfect Alignment</h3>
-            <p className="text-sm text-muted-foreground">Match with brands that resonate with your audience and values</p>
-          </CardContent>
+        {/* Features Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8">
+          <Card className="text-center">
+            <CardContent className="pt-6">
+              <Sparkles className="h-6 w-6 lg:h-8 lg:w-8 mx-auto mb-3 text-primary" />
+              <h3 className="font-semibold mb-2 text-sm lg:text-base">AI-Powered Matching</h3>
+              <p className="text-xs lg:text-sm text-muted-foreground">Advanced algorithms analyze your profile to find the perfect brand matches</p>
+            </CardContent>
+          </Card>
+          <Card className="text-center">
+            <CardContent className="pt-6">
+              <TrendingUp className="h-6 w-6 lg:h-8 lg:w-8 mx-auto mb-3 text-primary" />
+              <h3 className="font-semibold mb-2 text-sm lg:text-base">Revenue Optimization</h3>
+              <p className="text-xs lg:text-sm text-muted-foreground">Get estimated earnings and ROI predictions for each partnership</p>
+            </CardContent>
+          </Card>
+          <Card className="text-center">
+            <CardContent className="pt-6">
+              <Target className="h-6 w-6 lg:h-8 lg:w-8 mx-auto mb-3 text-primary" />
+              <h3 className="font-semibold mb-2 text-sm lg:text-base">Perfect Alignment</h3>
+              <p className="text-xs lg:text-sm text-muted-foreground">Match with brands that resonate with your audience and values</p>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Main Content */}
+        <Card className="border-0 shadow-lg w-full">
+          <Tabs defaultValue="find" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <div className="bg-muted/30 px-4 sm:px-6 py-4 border-b">
+              <TabsList className="grid w-full max-w-md grid-cols-2 mx-auto">
+                <TabsTrigger value="find" className="flex items-center gap-2 text-xs sm:text-sm">
+                  <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Find Matches</span>
+                  <span className="sm:hidden">Find</span>
+                </TabsTrigger>
+                <TabsTrigger value="results" disabled={matchResults.length === 0} className="flex items-center gap-2 text-xs sm:text-sm">
+                  <Target className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Results ({matchResults.length})</span>
+                  <span className="sm:hidden">Results</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <TabsContent value="find" className="p-4 sm:p-6">
+              <div className="w-full max-w-4xl mx-auto">
+                <div className="mb-6">
+                  <h2 className="text-xl sm:text-2xl font-semibold mb-2">Find Your Perfect Brand Matches</h2>
+                  <p className="text-sm sm:text-base text-muted-foreground">
+                    Set your preferences and let our AI find brands that are the perfect fit for your creator profile and audience.
+                  </p>
+                </div>
+                <MatchmakerForm 
+                  onFindMatches={handleFindMatches} 
+                  isLoading={isMatching || isLoadingProfile}
+                  creatorId={user.id}
+                />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="results" className="p-4 sm:p-6">
+              <div className="w-full">
+                <div className="mb-6 text-center">
+                  <h2 className="text-xl sm:text-2xl font-semibold mb-2">Your Brand Matches</h2>
+                  <p className="text-sm sm:text-base text-muted-foreground">
+                    AI-curated partnerships designed to maximize your success
+                  </p>
+                </div>
+                <MatchResults 
+                  results={matchResults}
+                  isLoading={isMatching}
+                  onContactBrand={handleContactBrand}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
         </Card>
       </div>
-      
-      {/* Main Content */}
-      <Card className="border-0 shadow-lg">
-        <Tabs defaultValue="find" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="bg-muted/30 px-6 py-4 border-b">
-            <TabsList className="grid w-full max-w-md grid-cols-2 mx-auto">
-              <TabsTrigger value="find" className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4" />
-                Find Matches
-              </TabsTrigger>
-              <TabsTrigger value="results" disabled={matchResults.length === 0} className="flex items-center gap-2">
-                <Target className="h-4 w-4" />
-                Results ({matchResults.length})
-              </TabsTrigger>
-            </TabsList>
-          </div>
-          
-          <TabsContent value="find" className="p-6">
-            <div className="max-w-2xl mx-auto">
-              <div className="mb-6">
-                <h2 className="text-2xl font-semibold mb-2">Find Your Perfect Brand Matches</h2>
-                <p className="text-muted-foreground">
-                  Set your preferences and let our AI find brands that are the perfect fit for your creator profile and audience.
-                </p>
-              </div>
-              <MatchmakerForm 
-                onFindMatches={handleFindMatches} 
-                isLoading={isMatching || isLoadingProfile}
-                creatorId={user.id}
-              />
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="results" className="p-6">
-            <div className="max-w-4xl mx-auto">
-              <div className="mb-6 text-center">
-                <h2 className="text-2xl font-semibold mb-2">Your Brand Matches</h2>
-                <p className="text-muted-foreground">
-                  AI-curated partnerships designed to maximize your success
-                </p>
-              </div>
-              <MatchResults 
-                results={matchResults}
-                isLoading={isMatching}
-                onContactBrand={handleContactBrand}
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
-      </Card>
     </div>
   );
 }

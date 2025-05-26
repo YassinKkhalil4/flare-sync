@@ -118,17 +118,21 @@ export default function Analytics() {
 
   if (!user?.id) {
     return (
-      <div className="container py-8 text-center">
-        <p className="text-lg">Please log in to view analytics.</p>
+      <div className="min-h-screen w-full p-4 sm:p-6 lg:p-8">
+        <div className="w-full max-w-4xl mx-auto text-center">
+          <p className="text-base sm:text-lg">Please log in to view analytics.</p>
+        </div>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="container py-8 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin mr-2" />
-        <span>Loading analytics data...</span>
+      <div className="min-h-screen w-full p-4 sm:p-6 lg:p-8">
+        <div className="w-full max-w-4xl mx-auto flex items-center justify-center">
+          <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin mr-2" />
+          <span className="text-sm sm:text-base">Loading analytics data...</span>
+        </div>
       </div>
     );
   }
@@ -142,121 +146,123 @@ export default function Analytics() {
   };
 
   return (
-    <div className="container py-8">
-      <div className="flex items-center mb-8">
-        <BarChart3 className="h-8 w-8 text-primary mr-3" />
-        <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
-      </div>
-      
-      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-        <div className="mb-6">
-          <TabsList className="w-full max-w-md">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="platforms">Platforms</TabsTrigger>
-            <TabsTrigger value="content">Content</TabsTrigger>
-            <TabsTrigger value="audience">Audience</TabsTrigger>
-          </TabsList>
+    <div className="min-h-screen w-full p-4 sm:p-6 lg:p-8">
+      <div className="w-full max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center mb-6 lg:mb-8 space-y-4 sm:space-y-0">
+          <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-primary sm:mr-3" />
+          <h1 className="text-2xl sm:text-3xl font-bold">Analytics Dashboard</h1>
         </div>
         
-        <TabsContent value="overview">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <TrendingUp className="h-5 w-5 mr-2 text-green-500" />
-                  Follower Growth
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px] flex items-center justify-center">
-                  <p className="text-muted-foreground">No follower data available</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Calendar className="h-5 w-5 mr-2 text-blue-500" />
-                  Engagement Rate (%)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px] flex items-center justify-center">
-                  <p className="text-muted-foreground">No engagement data available</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Platform Distribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px] flex items-center justify-center">
-                  <p className="text-muted-foreground">No platform data available</p>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Post Performance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px] flex items-center justify-center">
-                  <p className="text-muted-foreground">No post data available</p>
-                </div>
-              </CardContent>
-            </Card>
+        <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
+          <div className="mb-6">
+            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 lg:w-auto">
+              <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+              <TabsTrigger value="platforms" className="text-xs sm:text-sm">Platforms</TabsTrigger>
+              <TabsTrigger value="content" className="text-xs sm:text-sm">Content</TabsTrigger>
+              <TabsTrigger value="audience" className="text-xs sm:text-sm">Audience</TabsTrigger>
+            </TabsList>
           </div>
-        </TabsContent>
-        
-        <TabsContent value="platforms">
-          <div className="grid gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Platform-specific Analytics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="py-8 text-center">
-                  <p className="text-muted-foreground">No platform data available</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="content">
-          <div className="grid gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Content Performance Analysis</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="py-8 text-center">
-                  <p className="text-muted-foreground">No content data available</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="audience">
-          <div className="grid gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Audience Demographics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="py-8 text-center">
-                  <p className="text-muted-foreground">No audience data available</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+          
+          <TabsContent value="overview">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+              <Card className="w-full">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-base sm:text-lg">
+                    <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-green-500" />
+                    Follower Growth
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[250px] sm:h-[300px] flex items-center justify-center">
+                    <p className="text-sm text-muted-foreground">No follower data available</p>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="w-full">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-base sm:text-lg">
+                    <Calendar className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-500" />
+                    Engagement Rate (%)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[250px] sm:h-[300px] flex items-center justify-center">
+                    <p className="text-sm text-muted-foreground">No engagement data available</p>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="w-full">
+                <CardHeader>
+                  <CardTitle className="text-base sm:text-lg">Platform Distribution</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[250px] sm:h-[300px] flex items-center justify-center">
+                    <p className="text-sm text-muted-foreground">No platform data available</p>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="w-full">
+                <CardHeader>
+                  <CardTitle className="text-base sm:text-lg">Recent Post Performance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[250px] sm:h-[300px] flex items-center justify-center">
+                    <p className="text-sm text-muted-foreground">No post data available</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="platforms">
+            <div className="grid gap-4 lg:gap-6">
+              <Card className="w-full">
+                <CardHeader>
+                  <CardTitle className="text-base sm:text-lg">Platform-specific Analytics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="py-8 text-center">
+                    <p className="text-sm text-muted-foreground">No platform data available</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="content">
+            <div className="grid gap-4 lg:gap-6">
+              <Card className="w-full">
+                <CardHeader>
+                  <CardTitle className="text-base sm:text-lg">Content Performance Analysis</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="py-8 text-center">
+                    <p className="text-sm text-muted-foreground">No content data available</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="audience">
+            <div className="grid gap-4 lg:gap-6">
+              <Card className="w-full">
+                <CardHeader>
+                  <CardTitle className="text-base sm:text-lg">Audience Demographics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="py-8 text-center">
+                    <p className="text-sm text-muted-foreground">No audience data available</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }
