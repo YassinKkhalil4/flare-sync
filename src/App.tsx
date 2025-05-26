@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import AppSidebar from '@/components/AppSidebar';
 import SocialConnectModal from '@/components/social/SocialConnectModal';
-import { toast } from '@/hooks/use-toast';
 import './App.css';
 
 // Create a client for React Query
@@ -29,18 +28,6 @@ function App() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [demoNotificationShown, setDemoNotificationShown] = useState(false);
-
-  const showDemoNotification = () => {
-    toast({
-      title: "Creator Dashboard (Demo Data)",
-      description: "FlareSync helps creators plan, predict, and profit.",
-      variant: "success",
-      duration: Infinity, // Make it stay forever
-      id: "demo-notification" // Add an ID to prevent duplicates
-    });
-    setDemoNotificationShown(true);
-  };
 
   const initialize = async () => {
     try {
@@ -55,11 +42,6 @@ function App() {
         console.error("Initialization failed:", result.error);
       } else {
         console.log("Initialization successful");
-        
-        // Show demo data notification after a short delay
-        setTimeout(() => {
-          showDemoNotification();
-        }, 1000);
       }
     } catch (error) {
       console.error('Error initializing app:', error);
@@ -71,15 +53,6 @@ function App() {
 
   useEffect(() => {
     initialize();
-    
-    // Display demo notification when navigating if we haven't shown it yet
-    if (!demoNotificationShown) {
-      showDemoNotification();
-    }
-    
-    return () => {
-      // Cleanup (if needed)
-    };
   }, [retryCount]);
 
   const handleRetry = () => {
