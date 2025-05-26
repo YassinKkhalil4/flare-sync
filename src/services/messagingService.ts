@@ -1,7 +1,6 @@
 
 import { Conversation, Message, MessageRequest } from '../types/messaging';
 import { supabase } from '../lib/supabase';
-import { mockConversations, generateMockMessages, getRecentDate } from '../utils/mockMessagingData';
 
 // For development - mock API implementation for messaging
 const useMockMessagingData = () => {
@@ -10,12 +9,12 @@ const useMockMessagingData = () => {
     getConversations: async (): Promise<Conversation[]> => {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 500));
-      return mockConversations;
+      return [];
     },
     
     getMessages: async (conversationId: string): Promise<Message[]> => {
       await new Promise(resolve => setTimeout(resolve, 500));
-      return generateMockMessages(conversationId);
+      return [];
     },
     
     sendMessage: async (data: MessageRequest): Promise<Message> => {

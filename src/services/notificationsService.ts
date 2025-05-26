@@ -1,5 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import { generateMockNotifications } from '@/utils/mockNotificationsData';
 import { Notification } from '@/types/notification';
 
 export const notificationsService = {
@@ -13,8 +12,8 @@ export const notificationsService = {
         .limit(1);
         
       if (countError || count === 0) {
-        // If there's an error or no data, use mock data
-        return generateMockNotifications(limit || 10);
+        // If there's an error or no data, return empty array
+        return [];
       }
       
       // Otherwise, get real notifications
@@ -34,8 +33,8 @@ export const notificationsService = {
       
       return data as Notification[];
     } catch (error) {
-      console.error('Error fetching notifications, using mock data:', error);
-      return generateMockNotifications(limit || 10);
+      console.error('Error fetching notifications:', error);
+      return [];
     }
   },
   
@@ -50,7 +49,6 @@ export const notificationsService = {
       if (error) throw error;
     } catch (error) {
       console.error('Error marking notification as read:', error);
-      // No need to do anything with mock data
     }
   },
   
@@ -66,7 +64,6 @@ export const notificationsService = {
       if (error) throw error;
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
-      // No need to do anything with mock data
     }
   },
   
@@ -81,7 +78,6 @@ export const notificationsService = {
       if (error) throw error;
     } catch (error) {
       console.error('Error deleting notification:', error);
-      // No need to do anything with mock data
     }
   },
   
@@ -97,10 +93,8 @@ export const notificationsService = {
       if (error) throw error;
       return count || 0;
     } catch (error) {
-      console.error('Error fetching unread count, using mock data:', error);
-      // Generate a random unread count for mock data
-      const mockNotifications = generateMockNotifications(15);
-      return mockNotifications.filter(n => !n.is_read).length;
+      console.error('Error fetching unread count:', error);
+      return 0;
     }
   }
 };
