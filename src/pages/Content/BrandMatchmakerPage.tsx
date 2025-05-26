@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MatchmakerForm } from '@/components/brand-matchmaker/MatchmakerForm';
@@ -7,10 +8,14 @@ import { MatchResults } from '@/components/brand-matchmaker/MatchResults';
 import { useBrandMatchmaker } from '@/hooks/useBrandMatchmaker';
 import { BrandMatchRequest, BrandMatchResult } from '@/types/brandMatchmaking';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { MessagingAPI } from '@/services/messagingService';
 import { Target, Sparkles, TrendingUp } from 'lucide-react';
 
 export default function BrandMatchmakerPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const { 
     findBrandMatches, 
     isMatching, 
@@ -30,9 +35,29 @@ export default function BrandMatchmakerPage() {
     });
   };
 
-  const handleContactBrand = (brandId: string) => {
-    // Navigate to messaging with this brand selected
-    window.location.href = `/messaging?brandId=${brandId}`;
+  const handleContactBrand = async (brandId: string) => {
+    try {
+      // Find the brand name from results
+      const brand = matchResults.find(result => result.brandId === brandId);
+      const brandName = brand?.brandName || 'Brand';
+      
+      // Create conversation with the brand
+      const conversationId = await MessagingAPI.createBrandConversation(brandId, brandName);
+      
+      toast({
+        title: 'Conversation Started',
+        description: `You can now message ${brandName}!`
+      });
+      
+      // Navigate to messaging with the new conversation
+      navigate(`/messaging?conversation=${conversationId}`);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to start conversation with brand'
+      });
+    }
   };
 
   if (!user?.id) {

@@ -122,11 +122,36 @@ export const MessagingAPI = {
     }
   },
   
-  // Create a new conversation
+  // Create a new conversation with a brand
   createConversation: async (partnerData: { id: string, name: string, avatar: string, type: string }): Promise<Conversation> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
+
+      // Check if conversation already exists
+      const { data: existingConversation } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('partner_id', partnerData.id)
+        .single();
+
+      if (existingConversation) {
+        return {
+          id: existingConversation.id,
+          partner: {
+            id: partnerData.id,
+            name: partnerData.name,
+            avatar: partnerData.avatar,
+            type: partnerData.type
+          },
+          lastMessage: {
+            content: existingConversation.last_message || 'Conversation exists',
+            timestamp: existingConversation.last_message_time || existingConversation.created_at,
+            read: true
+          }
+        };
+      }
 
       const conversationData = {
         user_id: user.id,
@@ -162,6 +187,23 @@ export const MessagingAPI = {
       };
     } catch (error) {
       console.error('Error creating conversation:', error);
+      throw error;
+    }
+  },
+
+  // Create conversation with brand from matchmaker
+  createBrandConversation: async (brandId: string, brandName: string): Promise<string> => {
+    try {
+      const conversation = await MessagingAPI.createConversation({
+        id: brandId,
+        name: brandName,
+        avatar: '/placeholder.svg',
+        type: 'brand'
+      });
+      
+      return conversation.id;
+    } catch (error) {
+      console.error('Error creating brand conversation:', error);
       throw error;
     }
   }
