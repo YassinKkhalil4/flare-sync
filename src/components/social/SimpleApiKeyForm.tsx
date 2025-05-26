@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,9 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const SimpleApiKeyForm = () => {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   const [showKeys, setShowKeys] = useState({
     instagram: false,
     twitter: false,
@@ -34,18 +35,74 @@ const SimpleApiKeyForm = () => {
     setApiKeys(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleSave = () => {
-    // Store in localStorage for now (in production, these would be stored securely)
-    Object.entries(apiKeys).forEach(([key, value]) => {
-      if (value.trim()) {
-        localStorage.setItem(`api_key_${key}`, value.trim());
+  const handleSave = async () => {
+    setIsLoading(true);
+    try {
+      // Get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({
+          title: 'Authentication required',
+          description: 'Please log in to save your API keys.',
+          variant: 'destructive',
+        });
+        return;
       }
-    });
-    
-    toast({
-      title: 'API Keys Saved',
-      description: 'Your API keys have been saved locally.',
-    });
+
+      // Filter out empty keys
+      const filteredKeys = Object.fromEntries(
+        Object.entries(apiKeys).filter(([_, value]) => value.trim() !== '')
+      );
+
+      if (Object.keys(filteredKeys).length === 0) {
+        toast({
+          title: 'No API keys provided',
+          description: 'Please enter at least one API key to save.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Call the edge function to store API keys securely
+      const { data, error } = await supabase.functions.invoke('store-api-keys', {
+        body: { apiKeys: filteredKeys },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Clear the form after successful save
+      setApiKeys({
+        instagram_app_id: '',
+        instagram_app_secret: '',
+        twitter_client_id: '',
+        twitter_client_secret: '',
+        tiktok_client_id: '',
+        tiktok_client_secret: '',
+        youtube_client_id: '',
+        youtube_client_secret: '',
+        twitch_client_id: '',
+        twitch_client_secret: ''
+      });
+      
+      toast({
+        title: 'API Keys Saved',
+        description: 'Your API keys have been securely stored in Supabase.',
+      });
+    } catch (error) {
+      console.error('Error saving API keys:', error);
+      toast({
+        title: 'Save failed',
+        description: 'Failed to save API keys. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const toggleShowKey = (platform: string) => {
@@ -90,7 +147,7 @@ const SimpleApiKeyForm = () => {
       <CardHeader>
         <CardTitle>API Keys Setup</CardTitle>
         <CardDescription>
-          Add your social platform API credentials to enable connections
+          Add your social platform API credentials to enable connections. Keys are stored securely in Supabase.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -125,9 +182,9 @@ const SimpleApiKeyForm = () => {
           </div>
         ))}
         
-        <Button onClick={handleSave} className="w-full">
+        <Button onClick={handleSave} className="w-full" disabled={isLoading}>
           <Save className="mr-2 h-4 w-4" />
-          Save API Keys
+          {isLoading ? 'Saving...' : 'Save API Keys Securely'}
         </Button>
       </CardContent>
     </Card>
