@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Instagram, Twitter, Youtube, ArrowRight } from 'lucide-react';
+import { Instagram, Twitter, Youtube, ArrowRight, RefreshCw, Unlink } from 'lucide-react';
 import { PlatformIcon } from './PlatformIcon';
 import { useSocialPlatforms } from '@/hooks/useSocialPlatforms';
 import { useInstagramConnect } from '@/hooks/useInstagramConnect';
@@ -18,20 +18,57 @@ interface SocialPlatform {
   icon: React.ReactNode;
   connected: boolean;
   connectHandler: () => void;
+  disconnectHandler: () => void;
+  syncHandler: () => void;
   description: string;
   isConnecting: boolean;
+  isSyncing: boolean;
 }
 
 export const SocialPlatformTabs = () => {
   const [activeTab, setActiveTab] = useState('instagram');
-  const { profiles } = useSocialPlatforms();
+  const { profiles, refreshProfiles } = useSocialPlatforms();
   
   // Platform-specific hooks
-  const { initiateInstagramConnect, isConnecting: instagramConnecting } = useInstagramConnect();
-  const { initiateTwitterConnect, isConnecting: twitterConnecting } = useTwitterConnect();
-  const { initiateTiktokConnect, isConnecting: tiktokConnecting } = useTiktokConnect();
-  const { initiateYoutubeConnect, isConnecting: youtubeConnecting } = useYoutubeConnect();
-  const { initiateTwitchConnect, isConnecting: twitchConnecting } = useTwitchConnect();
+  const { 
+    initiateInstagramConnect, 
+    disconnectInstagram,
+    syncInstagramData,
+    isConnecting: instagramConnecting,
+    isSyncing: instagramSyncing
+  } = useInstagramConnect();
+  
+  const { 
+    initiateTwitterConnect, 
+    disconnectTwitter,
+    syncTwitterData,
+    isConnecting: twitterConnecting,
+    isSyncing: twitterSyncing
+  } = useTwitterConnect();
+  
+  const { 
+    initiateTiktokConnect, 
+    disconnectTiktok,
+    syncTiktokData,
+    isConnecting: tiktokConnecting,
+    isSyncing: tiktokSyncing
+  } = useTiktokConnect();
+  
+  const { 
+    initiateYoutubeConnect, 
+    disconnectYoutube,
+    syncYoutubeData,
+    isConnecting: youtubeConnecting,
+    isSyncing: youtubeSyncing
+  } = useYoutubeConnect();
+  
+  const { 
+    initiateTwitchConnect, 
+    disconnectTwitch,
+    syncTwitchData,
+    isConnecting: twitchConnecting,
+    isSyncing: twitchSyncing
+  } = useTwitchConnect();
   
   const getProfileByPlatform = (platform: string) => {
     return profiles.find(p => p.platform === platform);
@@ -44,8 +81,11 @@ export const SocialPlatformTabs = () => {
       icon: <Instagram className="h-5 w-5" />,
       connected: getProfileByPlatform('instagram')?.connected || false,
       connectHandler: initiateInstagramConnect,
+      disconnectHandler: disconnectInstagram,
+      syncHandler: syncInstagramData,
       description: 'Connect your Instagram Business or Creator account to schedule posts and view analytics.',
-      isConnecting: instagramConnecting
+      isConnecting: instagramConnecting,
+      isSyncing: instagramSyncing
     },
     {
       id: 'twitter',
@@ -53,8 +93,11 @@ export const SocialPlatformTabs = () => {
       icon: <Twitter className="h-5 w-5" />,
       connected: getProfileByPlatform('twitter')?.connected || false,
       connectHandler: initiateTwitterConnect,
+      disconnectHandler: disconnectTwitter,
+      syncHandler: syncTwitterData,
       description: 'Schedule tweets and analyze your Twitter engagement metrics.',
-      isConnecting: twitterConnecting
+      isConnecting: twitterConnecting,
+      isSyncing: twitterSyncing
     },
     {
       id: 'tiktok',
@@ -62,8 +105,11 @@ export const SocialPlatformTabs = () => {
       icon: <PlatformIcon platform="tiktok" className="h-5 w-5" />,
       connected: getProfileByPlatform('tiktok')?.connected || false,
       connectHandler: initiateTiktokConnect,
+      disconnectHandler: disconnectTiktok,
+      syncHandler: syncTiktokData,
       description: 'Connect your TikTok account to schedule videos and track performance.',
-      isConnecting: tiktokConnecting
+      isConnecting: tiktokConnecting,
+      isSyncing: tiktokSyncing
     },
     {
       id: 'youtube',
@@ -71,8 +117,11 @@ export const SocialPlatformTabs = () => {
       icon: <Youtube className="h-5 w-5" />,
       connected: getProfileByPlatform('youtube')?.connected || false,
       connectHandler: initiateYoutubeConnect,
+      disconnectHandler: disconnectYoutube,
+      syncHandler: syncYoutubeData,
       description: 'Manage your YouTube channel, schedule videos, and track performance.',
-      isConnecting: youtubeConnecting
+      isConnecting: youtubeConnecting,
+      isSyncing: youtubeSyncing
     },
     {
       id: 'twitch',
@@ -80,8 +129,11 @@ export const SocialPlatformTabs = () => {
       icon: <PlatformIcon platform="twitch" className="h-5 w-5" />,
       connected: getProfileByPlatform('twitch')?.connected || false,
       connectHandler: initiateTwitchConnect,
+      disconnectHandler: disconnectTwitch,
+      syncHandler: syncTwitchData,
       description: 'Connect your Twitch channel to manage streams and track viewer engagement.',
-      isConnecting: twitchConnecting
+      isConnecting: twitchConnecting,
+      isSyncing: twitchSyncing
     }
   ];
   
@@ -136,7 +188,7 @@ export const SocialPlatformTabs = () => {
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      Last synced: {new Date(profile.lastSynced || '').toLocaleString()}
+                      Last synced: {profile.lastSynced ? new Date(profile.lastSynced).toLocaleString() : 'Never'}
                     </div>
                   </div>
                 ) : (
@@ -151,26 +203,55 @@ export const SocialPlatformTabs = () => {
                   </div>
                 )}
               </CardContent>
-              <CardFooter>
-                <Button 
-                  onClick={platform.connectHandler} 
-                  disabled={platform.isConnecting}
-                  className="w-full flex items-center justify-center"
-                >
-                  {platform.isConnecting ? (
-                    <>
-                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent"></div>
-                      Connecting...
-                    </>
-                  ) : platform.connected ? (
-                    "Manage Connection"
-                  ) : (
-                    <>
-                      Connect {platform.name}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </>
-                  )}
-                </Button>
+              <CardFooter className="flex gap-2">
+                {platform.connected ? (
+                  <>
+                    <Button 
+                      onClick={platform.syncHandler}
+                      disabled={platform.isSyncing}
+                      variant="outline"
+                      className="flex items-center"
+                    >
+                      {platform.isSyncing ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Syncing...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Sync Data
+                        </>
+                      )}
+                    </Button>
+                    <Button 
+                      onClick={platform.disconnectHandler}
+                      variant="destructive"
+                      className="flex items-center"
+                    >
+                      <Unlink className="mr-2 h-4 w-4" />
+                      Disconnect
+                    </Button>
+                  </>
+                ) : (
+                  <Button 
+                    onClick={platform.connectHandler} 
+                    disabled={platform.isConnecting}
+                    className="w-full flex items-center justify-center"
+                  >
+                    {platform.isConnecting ? (
+                      <>
+                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent"></div>
+                        Connecting...
+                      </>
+                    ) : (
+                      <>
+                        Connect {platform.name}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                )}
               </CardFooter>
             </Card>
           </TabsContent>

@@ -26,7 +26,7 @@ export const useSocialPlatforms = () => {
         // Get profiles from the social service
         const profilesData = await SocialAPI.getProfiles();
         setProfiles(profilesData);
-        setHasSocialAccounts(profilesData.length > 0);
+        setHasSocialAccounts(profilesData.some(p => p.connected));
       } catch (error) {
         console.error('Error checking social accounts:', error);
       } finally {
@@ -37,6 +37,19 @@ export const useSocialPlatforms = () => {
     
     checkSocialAccounts();
   }, [user]);
+
+  // Refresh profiles data
+  const refreshProfiles = async () => {
+    if (!user) return;
+    
+    try {
+      const profilesData = await SocialAPI.getProfiles();
+      setProfiles(profilesData);
+      setHasSocialAccounts(profilesData.some(p => p.connected));
+    } catch (error) {
+      console.error('Error refreshing profiles:', error);
+    }
+  };
   
   const connectPlatform = async (platform: string) => {
     try {
@@ -51,22 +64,14 @@ export const useSocialPlatforms = () => {
         return;
       }
       
-      // Instagram OAuth process would go here
-      if (platform === 'instagram') {
-        // For demo purposes, we'll just show a toast that would redirect in a real implementation
-        toast({
-          title: 'Redirecting to Instagram',
-          description: 'You will be redirected to authorize with Instagram',
-        });
-        
-        // In a real implementation, we would redirect to Instagram OAuth
-        // window.location.href = `${supabaseUrl}/auth/v1/authorize?provider=instagram&redirect_to=${redirectUrl}`;
-      } else {
-        toast({
-          title: 'Coming Soon',
-          description: `${platform} integration will be available in a future update.`,
-        });
-      }
+      // Create or update platform profile
+      await SocialAPI.connectPlatform(platform);
+      await refreshProfiles();
+      
+      toast({
+        title: 'Platform connection initiated',
+        description: `${platform} connection process started. API credentials may need configuration.`,
+      });
     } catch (error) {
       console.error('Error connecting platform:', error);
       toast({
@@ -85,6 +90,7 @@ export const useSocialPlatforms = () => {
     isLoading,
     hasSocialAccounts,
     initialLoadComplete,
-    profiles
+    profiles,
+    refreshProfiles
   };
 };

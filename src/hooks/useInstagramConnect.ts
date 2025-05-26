@@ -28,21 +28,24 @@ export const useInstagramConnect = () => {
         return;
       }
 
-      // Instagram OAuth configuration
-      const INSTAGRAM_APP_ID = "12345678"; // Replace with actual Instagram App ID once provided
-      const REDIRECT_URI = `${window.location.origin}/social-connect`;
-      const SCOPE = "user_profile,user_media";
+      // For now, show a message that Instagram connection is not fully configured
+      toast({
+        title: 'Instagram Connection',
+        description: 'Instagram API credentials need to be configured. Please contact support.',
+        variant: 'default',
+      });
 
-      // Construct Instagram OAuth URL
-      const authUrl = `https://api.instagram.com/oauth/authorize?` +
-        `client_id=${INSTAGRAM_APP_ID}` +
-        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-        `&scope=${encodeURIComponent(SCOPE)}` +
-        `&response_type=code` +
-        `&state=${encodeURIComponent(session.access_token)}`;
-
-      // Redirect to Instagram
-      window.location.href = authUrl;
+      // TODO: Once Instagram credentials are configured in Supabase secrets:
+      // const INSTAGRAM_APP_ID = "configured-in-supabase-secrets";
+      // const REDIRECT_URI = `${window.location.origin}/social-connect`;
+      // const SCOPE = "user_profile,user_media";
+      // const authUrl = `https://api.instagram.com/oauth/authorize?` +
+      //   `client_id=${INSTAGRAM_APP_ID}` +
+      //   `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+      //   `&scope=${encodeURIComponent(SCOPE)}` +
+      //   `&response_type=code` +
+      //   `&state=${encodeURIComponent(session.access_token)}`;
+      // window.location.href = authUrl;
     } catch (error) {
       console.error('Error initiating Instagram connection:', error);
       toast({
