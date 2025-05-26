@@ -1,6 +1,13 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus } from 'lucide-react';
 import ConversationList from '../components/Messaging/ConversationList';
 import MessageView from '../components/Messaging/MessageView';
 import { MessagingService } from '../services/api';
@@ -25,6 +32,11 @@ const Messaging = () => {
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [showNewConversationDialog, setShowNewConversationDialog] = useState(false);
+  const [newConversationData, setNewConversationData] = useState({
+    name: '',
+    type: 'creator' as 'creator' | 'brand'
+  });
 
   // Fetch conversations on component mount
   useEffect(() => {
@@ -134,9 +146,98 @@ const Messaging = () => {
     }
   };
 
+  const handleCreateConversation = async () => {
+    if (!newConversationData.name.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a name for the conversation',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const partnerData = {
+        id: `${newConversationData.type}-${Date.now()}`,
+        name: newConversationData.name,
+        avatar: '/placeholder.svg',
+        type: newConversationData.type
+      };
+
+      const newConversation = await MessagingService.createConversation(partnerData);
+      setConversations(prev => [newConversation, ...prev]);
+      setSelectedConversation(newConversation.id);
+      setShowNewConversationDialog(false);
+      setNewConversationData({ name: '', type: 'creator' });
+      
+      toast({
+        title: 'Success',
+        description: 'New conversation created',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to create conversation',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="container py-6 max-w-6xl">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold mb-4">Messages</h1>
+          <p className="text-muted-foreground">Please log in to access your messages.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container py-6 max-w-6xl">
-      <h1 className="text-3xl font-bold mb-6">Messages</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Messages</h1>
+        <Dialog open={showNewConversationDialog} onOpenChange={setShowNewConversationDialog}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Conversation
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Start New Conversation</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  value={newConversationData.name}
+                  onChange={(e) => setNewConversationData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter name..."
+                />
+              </div>
+              <div>
+                <Label htmlFor="type">Type</Label>
+                <Select value={newConversationData.type} onValueChange={(value: 'creator' | 'brand') => setNewConversationData(prev => ({ ...prev, type: value }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="creator">Creator</SelectItem>
+                    <SelectItem value="brand">Brand</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleCreateConversation} className="w-full">
+                Create Conversation
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
         {/* Conversation List */}
