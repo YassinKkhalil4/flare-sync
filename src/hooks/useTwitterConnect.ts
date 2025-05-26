@@ -28,21 +28,26 @@ export const useTwitterConnect = () => {
         return;
       }
 
-      // Create OAuth URL with PKCE
+      // Twitter OAuth 2.0 PKCE configuration
+      const CLIENT_ID = "twitter-client-id"; // Replace with actual Twitter Client ID
+      const REDIRECT_URI = `${window.location.origin}/social-connect`;
+      const SCOPE = "tweet.read users.read offline.access";
+      
+      // Generate PKCE challenge
       const codeVerifier = generateCodeVerifier();
       const codeChallenge = await generateCodeChallenge(codeVerifier);
       
-      // Store code verifier in localStorage for later use
+      // Store code verifier for later use
       localStorage.setItem('twitter_code_verifier', codeVerifier);
-      
-      // Construct Twitter OAuth URL with proper scopes for read/write access
+
+      // Construct Twitter OAuth URL
       const authUrl = `https://twitter.com/i/oauth2/authorize?` +
         `response_type=code` +
-        `&client_id=${encodeURIComponent(process.env.TWITTER_CLIENT_ID || '')}` +
-        `&redirect_uri=${encodeURIComponent(window.location.origin + '/social-connect')}` +
-        `&scope=tweet.read tweet.write users.read offline.access` +
+        `&client_id=${CLIENT_ID}` +
+        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+        `&scope=${encodeURIComponent(SCOPE)}` +
         `&state=${encodeURIComponent(session.access_token)}` +
-        `&code_challenge=${encodeURIComponent(codeChallenge)}` +
+        `&code_challenge=${codeChallenge}` +
         `&code_challenge_method=S256`;
 
       // Redirect to Twitter
@@ -57,31 +62,29 @@ export const useTwitterConnect = () => {
     }
   };
 
-  // Helper function to generate code verifier
+  // Helper functions for PKCE
   const generateCodeVerifier = () => {
-    const array = new Uint32Array(56);
+    const array = new Uint32Array(56/2);
     crypto.getRandomValues(array);
-    return Array.from(array, dec => ('0' + dec.toString(16)).slice(-2)).join('');
+    return Array.from(array, dec => ('0' + dec.toString(16)).substr(-2)).join('');
   };
 
-  // Helper function to generate code challenge
   const generateCodeChallenge = async (verifier: string) => {
     const encoder = new TextEncoder();
     const data = encoder.encode(verifier);
     const digest = await crypto.subtle.digest('SHA-256', data);
-    const base64Url = btoa(String.fromCharCode(...new Uint8Array(digest)))
+    return btoa(String.fromCharCode(...new Uint8Array(digest)))
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=/g, '');
-    return base64Url;
   };
 
-  // Handle OAuth callback with improved error handling
+  // Handle OAuth callback
   const handleCallback = async (code: string) => {
     try {
       const codeVerifier = localStorage.getItem('twitter_code_verifier');
       if (!codeVerifier) {
-        throw new Error('No code verifier found');
+        throw new Error('Missing code verifier');
       }
 
       // Exchange code for token using our edge function
@@ -91,13 +94,13 @@ export const useTwitterConnect = () => {
 
       if (error) throw error;
 
+      // Clean up stored verifier
+      localStorage.removeItem('twitter_code_verifier');
+
       toast({
         title: 'Twitter Connected',
         description: 'Your Twitter account has been successfully connected.',
       });
-
-      // Clear the code verifier
-      localStorage.removeItem('twitter_code_verifier');
 
       return data;
     } catch (error) {

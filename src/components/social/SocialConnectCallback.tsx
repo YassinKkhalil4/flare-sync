@@ -42,7 +42,10 @@ const SocialConnectCallback: React.FC<SocialConnectCallbackProps> = ({ platform 
       }
       
       try {
-        switch(platform) {
+        // Detect platform from URL params or default logic
+        const detectedPlatform = platform || searchParams.get('platform') || 'instagram';
+        
+        switch(detectedPlatform) {
           case 'instagram':
             await handleInstagramCallback(code);
             break;
@@ -59,11 +62,11 @@ const SocialConnectCallback: React.FC<SocialConnectCallbackProps> = ({ platform 
             await handleTwitchCallback(code);
             break;
           default:
-            throw new Error(`Unknown platform: ${platform}`);
+            throw new Error(`Unknown platform: ${detectedPlatform}`);
         }
         
         setStatus('success');
-        setMessage(`Successfully connected to ${platform || 'social account'}`);
+        setMessage(`Successfully connected to ${detectedPlatform}`);
         
         // Redirect after success
         setTimeout(() => {
@@ -77,7 +80,7 @@ const SocialConnectCallback: React.FC<SocialConnectCallbackProps> = ({ platform 
     };
     
     processCallback();
-  }, [code, error, platform, handleInstagramCallback, handleTwitterCallback, handleTiktokCallback, handleYoutubeCallback, handleTwitchCallback]);
+  }, [code, error, platform, searchParams, handleInstagramCallback, handleTwitterCallback, handleTiktokCallback, handleYoutubeCallback, handleTwitchCallback]);
   
   return (
     <div className="w-full flex justify-center items-center min-h-[400px] p-6">

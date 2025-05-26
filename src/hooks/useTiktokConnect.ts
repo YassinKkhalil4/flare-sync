@@ -11,21 +11,49 @@ export const useTiktokConnect = () => {
     isSyncing,
     profile,
     isConnected,
-    initiateConnect,
     disconnect,
     syncData,
   } = useSocialConnect('tiktok');
 
-  // TikTok OAuth configuration
-  const CLIENT_ID = "abcdefg12345";  // Replace with actual TikTok Client Key
-  const REDIRECT_URI = `${window.location.origin}/social-connect`;
-  const SCOPE = "user.info.basic,video.list";
+  const initiateTiktokConnect = async () => {
+    try {
+      // Get the current session for the state parameter
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast({
+          title: 'Authentication required',
+          description: 'Please log in to connect your TikTok account.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
-  const initiateTiktokConnect = () => {
-    initiateConnect(CLIENT_ID, REDIRECT_URI, SCOPE);
+      // TikTok OAuth configuration
+      const CLIENT_KEY = "tiktok-client-key"; // Replace with actual TikTok Client Key
+      const REDIRECT_URI = `${window.location.origin}/social-connect`;
+      const SCOPE = "user.info.basic,video.list";
+
+      // Construct TikTok OAuth URL
+      const authUrl = `https://www.tiktok.com/auth/authorize/?` +
+        `client_key=${CLIENT_KEY}` +
+        `&scope=${encodeURIComponent(SCOPE)}` +
+        `&response_type=code` +
+        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+        `&state=${encodeURIComponent(session.access_token)}`;
+
+      // Redirect to TikTok
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('Error initiating TikTok connection:', error);
+      toast({
+        title: 'Connection error',
+        description: 'Failed to connect to TikTok. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
-  // Handle OAuth callback with error handling
+  // Handle OAuth callback
   const handleCallback = async (code: string) => {
     try {
       // Exchange code for token using our edge function
