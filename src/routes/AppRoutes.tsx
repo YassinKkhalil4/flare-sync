@@ -17,6 +17,7 @@ import Messaging from '@/pages/Messaging';
 import SocialCallbackHandler from '@/components/social/SocialCallbackHandler';
 import ApiKeysSetup from '@/pages/ApiKeysSetup';
 import BrandDeals from '@/pages/BrandDeals';
+import ContentCalendarPage from '@/pages/Content/ContentCalendarPage';
 
 const AppRoutes = () => {
   return (
@@ -33,6 +34,7 @@ const AppRoutes = () => {
       <Route path="/plans" element={<Plans />} />
       <Route path="/messaging" element={<ProtectedRoute><MainLayout><Messaging /></MainLayout></ProtectedRoute>} />
       <Route path="/deals" element={<ProtectedRoute><MainLayout><BrandDeals /></MainLayout></ProtectedRoute>} />
+      <Route path="/content/calendar" element={<ProtectedRoute><MainLayout><ContentCalendarPage /></MainLayout></ProtectedRoute>} />
       
       <Route 
         path="/api-keys-setup" 
