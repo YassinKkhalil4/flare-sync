@@ -17,11 +17,11 @@ export const ContentPlanGeneratorPage: React.FC = () => {
   const [timeframe, setTimeframe] = useState('');
   const [platforms, setPlatforms] = useState<string[]>([]);
   
-  const { generatePlan, isGenerating, plan } = useContentPlanGenerator();
+  const { generateContentPlan, isGenerating, contentPlan } = useContentPlanGenerator();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await generatePlan({
+    await generateContentPlan({
       niche,
       audience,
       goals,
@@ -151,7 +151,7 @@ export const ContentPlanGeneratorPage: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Generated Plan</span>
-              {plan && (
+              {contentPlan && (
                 <Button variant="outline" size="sm">
                   <Download className="h-4 w-4 mr-2" />
                   Export
@@ -164,10 +164,10 @@ export const ContentPlanGeneratorPage: React.FC = () => {
               <div className="flex items-center justify-center py-12">
                 <LoadingSpinner />
               </div>
-            ) : plan ? (
+            ) : contentPlan ? (
               <div className="space-y-4">
                 <div className="prose prose-sm max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: plan.content }} />
+                  <div dangerouslySetInnerHTML={{ __html: contentPlan.content }} />
                 </div>
               </div>
             ) : (

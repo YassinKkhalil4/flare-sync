@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import MatchmakerForm from '@/components/brand-matchmaker/MatchmakerForm';
-import MatchResults from '@/components/brand-matchmaker/MatchResults';
+import { MatchmakerForm } from '@/components/brand-matchmaker/MatchmakerForm';
+import { MatchResults } from '@/components/brand-matchmaker/MatchResults';
 import { Target, Search, Star } from 'lucide-react';
 import { BrandMatch } from '@/types/brandMatchmaking';
 
@@ -47,9 +47,9 @@ export const BrandMatchmakerPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <MatchmakerForm 
-                onMatchesFound={handleMatchesFound}
-                isSearching={isSearching}
-                setIsSearching={setIsSearching}
+                onFindMatches={handleMatchesFound}
+                isLoading={isSearching}
+                creatorId="user-123"
               />
             </CardContent>
           </Card>
@@ -57,8 +57,9 @@ export const BrandMatchmakerPage: React.FC = () => {
 
         <TabsContent value="results">
           <MatchResults 
-            matches={matches}
+            results={matches}
             isLoading={isSearching}
+            onContactBrand={(brandId) => console.log('Contact brand:', brandId)}
           />
         </TabsContent>
       </Tabs>

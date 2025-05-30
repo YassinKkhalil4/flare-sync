@@ -14,6 +14,19 @@ export interface CaptionGenerationResponse {
   captionId: string;
 }
 
+export interface Caption {
+  id: string;
+  platform: string;
+  niche: string;
+  tone: string;
+  postType: string;
+  objective: string;
+  description: string;
+  captions: string[];
+  selectedCaption?: string;
+  createdAt: string;
+}
+
 export interface SavedCaption {
   id: string;
   user_id: string;

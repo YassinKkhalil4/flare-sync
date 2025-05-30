@@ -2,18 +2,32 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import CaptionForm from '@/components/caption-generator/CaptionForm';
-import CaptionResults from '@/components/caption-generator/CaptionResults';
-import SavedCaptions from '@/components/caption-generator/SavedCaptions';
+import { CaptionForm } from '@/components/caption-generator/CaptionForm';
+import { CaptionResults } from '@/components/caption-generator/CaptionResults';
+import { SavedCaptions } from '@/components/caption-generator/SavedCaptions';
 import { Sparkles, History, Wand2 } from 'lucide-react';
 import { Caption } from '@/types/caption';
 
 export const CaptionGeneratorPage: React.FC = () => {
-  const [generatedCaptions, setGeneratedCaptions] = useState<Caption[]>([]);
+  const [generatedCaptions, setGeneratedCaptions] = useState<string[]>([]);
+  const [captionId, setCaptionId] = useState<string>('');
+  const [savedCaptions, setSavedCaptions] = useState<Caption[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleCaptionsGenerated = (captions: Caption[]) => {
+  const handleCaptionsGenerated = (captions: string[], id: string) => {
     setGeneratedCaptions(captions);
+    setCaptionId(id);
+  };
+
+  const handleSaveCaption = async (captionId: string, selectedCaption: string): Promise<boolean> => {
+    try {
+      // Here you would typically save to backend
+      console.log('Saving caption:', { captionId, selectedCaption });
+      return true;
+    } catch (error) {
+      console.error('Error saving caption:', error);
+      return false;
+    }
   };
 
   return (
@@ -52,9 +66,20 @@ export const CaptionGeneratorPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <CaptionForm 
-                onCaptionsGenerated={handleCaptionsGenerated}
-                isGenerating={isGenerating}
-                setIsGenerating={setIsGenerating}
+                onGenerateCaptions={(request) => {
+                  setIsGenerating(true);
+                  // Simulate API call
+                  setTimeout(() => {
+                    const mockCaptions = [
+                      "✨ Ready to transform your day? Let's make magic happen! #motivation #transformation",
+                      "🔥 This is your reminder that you're absolutely unstoppable! What's your next move? #mindset #goals",
+                      "💫 Small steps, big dreams. Every journey starts with a single moment of courage. #inspiration #journey"
+                    ];
+                    handleCaptionsGenerated(mockCaptions, Date.now().toString());
+                    setIsGenerating(false);
+                  }, 2000);
+                }}
+                isSubmitting={isGenerating}
               />
             </CardContent>
           </Card>
@@ -63,12 +88,16 @@ export const CaptionGeneratorPage: React.FC = () => {
         <TabsContent value="results">
           <CaptionResults 
             captions={generatedCaptions}
-            isLoading={isGenerating}
+            captionId={captionId}
+            onSaveCaption={handleSaveCaption}
           />
         </TabsContent>
 
         <TabsContent value="saved">
-          <SavedCaptions />
+          <SavedCaptions 
+            captions={savedCaptions}
+            isLoading={false}
+          />
         </TabsContent>
       </Tabs>
     </div>

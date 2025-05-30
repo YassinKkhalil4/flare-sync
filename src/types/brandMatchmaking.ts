@@ -43,6 +43,20 @@ export interface BrandMatchResult {
   };
 }
 
+export interface BrandMatch {
+  id: string;
+  brandId: string;
+  brandName: string;
+  matchScore: number;
+  compatibility: string;
+  estimatedMetrics: {
+    cpm: number;
+    ctr: number;
+    roi: number;
+  };
+  reasonForMatch: string[];
+}
+
 export interface BrandMatchRequest {
   creatorId: string;
   filters?: {
