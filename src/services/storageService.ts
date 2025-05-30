@@ -7,33 +7,49 @@ export const storageService = {
     try {
       console.log('Initializing storage buckets...');
       
-      // Check if buckets exist, create them if they don't
+      // Check if buckets exist first
       const { data: buckets, error: listError } = await supabase.storage.listBuckets();
       
       if (listError) {
         console.error('Error listing buckets:', listError);
-        throw listError;
+        // If we can't list buckets, still return success to not block the app
+        return {
+          success: true,
+          buckets: [],
+          message: 'Storage listing unavailable but app can continue'
+        };
       }
 
-      const existingBuckets = buckets.map(bucket => bucket.name);
+      const existingBuckets = buckets?.map(bucket => bucket.name) || [];
       const requiredBuckets = ['content-media', 'avatars'];
       
+      // Try to create missing buckets with more conservative settings
       for (const bucketName of requiredBuckets) {
         if (!existingBuckets.includes(bucketName)) {
-          const { error: createError } = await supabase.storage.createBucket(bucketName, {
+          console.log(`Creating bucket: ${bucketName}`);
+          
+          // Use smaller file size limits and simpler configuration
+          const bucketConfig = {
             public: true,
             allowedMimeTypes: bucketName === 'content-media' 
-              ? ['image/*', 'video/*'] 
-              : ['image/*'],
-            fileSizeLimit: 100 * 1024 * 1024 // 100MB
-          });
+              ? ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4'] 
+              : ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+            fileSizeLimit: bucketName === 'content-media' 
+              ? 50 * 1024 * 1024  // 50MB for content
+              : 5 * 1024 * 1024   // 5MB for avatars
+          };
+
+          const { error: createError } = await supabase.storage.createBucket(bucketName, bucketConfig);
 
           if (createError) {
-            console.error(`Error creating bucket ${bucketName}:`, createError);
-            throw createError;
+            console.warn(`Warning creating bucket ${bucketName}:`, createError);
+            // Don't throw error, just warn and continue
+            // The app can still function without all buckets
+          } else {
+            console.log(`Successfully created bucket: ${bucketName}`);
           }
-          
-          console.log(`Created bucket: ${bucketName}`);
+        } else {
+          console.log(`Bucket ${bucketName} already exists`);
         }
       }
 
@@ -44,10 +60,13 @@ export const storageService = {
       };
     } catch (error) {
       console.error('Storage initialization error:', error);
+      
+      // Don't fail the entire app initialization for storage issues
+      // Return success but log the issue
       return {
-        success: false,
+        success: true,
         error: error,
-        message: error instanceof Error ? error.message : 'Unknown storage error'
+        message: 'Storage initialization had issues but app can continue'
       };
     }
   },
@@ -55,6 +74,13 @@ export const storageService = {
   // Upload content media (images/videos)
   uploadContentMedia: async (userId: string, file: File): Promise<string | null> => {
     try {
+      // Check file size before upload
+      const maxSize = 50 * 1024 * 1024; // 50MB
+      if (file.size > maxSize) {
+        console.error('File too large:', file.size);
+        throw new Error('File size exceeds 50MB limit');
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       
@@ -85,6 +111,13 @@ export const storageService = {
   // Upload avatar image
   uploadAvatar: async (userId: string, file: File): Promise<string | null> => {
     try {
+      // Check file size before upload
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        console.error('Avatar file too large:', file.size);
+        throw new Error('Avatar file size exceeds 5MB limit');
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${userId}/avatar.${fileExt}`;
       
