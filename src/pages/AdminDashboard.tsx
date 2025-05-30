@@ -1,911 +1,208 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { supabase } from '../integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { adminService, useAdmin, AdminPermission } from '@/services/adminService';
-import { useUserRole } from '@/hooks/useUserRole';
-import {
-  Users,
-  MessageSquare,
-  Instagram,
-  Search,
-  UserCheck,
-  UserX,
-  Trash2,
-  PieChart,
-  Settings,
-  AlertCircle,
-  Loader2,
-  Shield,
-  UserPlus,
-  ShieldCheck,
-} from 'lucide-react';
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+import React from 'react';
+import { useAdminPermissions } from '@/hooks/useAdminPermissions';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Users, 
+  CreditCard, 
+  FileText, 
+  Settings, 
+  Activity,
+  AlertCircle,
+  Shield
+} from 'lucide-react';
 
-// Admin user interface
-interface AdminUser {
-  id: string;
-  email?: string;
-  full_name?: string;
-  permissions: AdminPermission[];
-  role?: string;
-  adminTier?: string;
-}
+const AdminDashboard: React.FC = () => {
+  const { isAdmin, permissions, isLoading } = useAdminPermissions();
 
-// User profile interface
-interface ExtendedProfile {
-  avatar_url?: string;
-  created_at: string;
-  full_name?: string;
-  id: string;
-  updated_at?: string;
-  username?: string;
-  suspended?: boolean;
-  role?: 'creator' | 'brand' | 'admin' | 'admin-owner' | 'admin-manager' | 'admin-support';
-  plan?: 'free' | 'basic' | 'pro';
-  email?: string;
-}
-
-const AdminDashboard = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const { isAdmin, createAdminUser, getAdminPermissions, getAllAdmins } = useAdmin();
-  const { adminTier, hasAdminPermission } = useUserRole();
-  
-  const [activeTab, setActiveTab] = useState('overview');
-  const [users, setUsers] = useState<ExtendedProfile[]>([]);
-  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [userPermissions, setUserPermissions] = useState<AdminPermission[]>([]);
-
-  const [adminPermissions, setAdminPermissions] = useState<Record<string, boolean>>({
-    users_manage: false,
-    content_manage: false,
-    social_manage: false,
-    conversations_manage: false,
-    analytics_view: false,
-    admins_manage: false
-  });
-  
-  const [newAdminForm, setNewAdminForm] = useState({
-    email: '',
-    password: '',
-    full_name: '',
-    role: 'admin' as 'admin' | 'admin-manager' | 'admin-support'
-  });
-  
-  // Fetch user's admin permissions
-  useEffect(() => {
-    const fetchAdminPermissions = async () => {
-      if (!user?.id) return;
-      
-      try {
-        const permissions = await getAdminPermissions();
-        setUserPermissions(permissions);
-      } catch (error) {
-        console.error('Error fetching admin permissions:', error);
-      }
-    };
-    
-    fetchAdminPermissions();
-  }, [user, getAdminPermissions]);
-  
-  // Check if user has specific permission
-  const hasPermission = (permission: AdminPermission): boolean => {
-    return userPermissions.includes(permission);
-  };
-  
-  // Fetch admin data
-  useEffect(() => {
-    const fetchAdminData = async () => {
-      setIsLoading(true);
-      try {
-        // Check admin status first
-        const adminCheck = await isAdmin();
-        if (!adminCheck) {
-          toast({
-            title: 'Access Denied',
-            description: 'You do not have permission to view the admin dashboard.',
-            variant: 'destructive',
-          });
-          return;
-        }
-
-        // Fetch users if has permission
-        if (hasPermission('users_manage')) {
-          const { data: userData, error: userError } = await supabase
-            .from('profiles')
-            .select('*');
-            
-          if (userError) throw userError;
-          setUsers(userData as ExtendedProfile[] || []);
-        }
-        
-        // Fetch admin users if has permission
-        if (hasPermission('admins_manage')) {
-          const admins = await getAllAdmins();
-          if (admins) {
-            // Enhance admin users with role information
-            const enhancedAdmins = await Promise.all((admins as AdminUser[]).map(async (admin) => {
-              const { data: roleData } = await supabase
-                .from('user_roles')
-                .select('role')
-                .eq('user_id', admin.id)
-                .single();
-                
-              return {
-                ...admin,
-                role: roleData?.role || 'admin',
-                adminTier: getAdminTierFromRole(roleData?.role || 'admin')
-              };
-            }));
-            
-            setAdminUsers(enhancedAdmins);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching admin data:', error);
-        toast({
-          title: 'Error loading admin data',
-          description: 'Please try again or contact support.',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchAdminData();
-  }, [toast, isAdmin, hasPermission, getAllAdmins]);
-
-  // Helper to convert role to admin tier
-  const getAdminTierFromRole = (role: string): string => {
-    switch (role) {
-      case 'admin-owner':
-        return 'Owner';
-      case 'admin-manager':
-        return 'Manager';
-      case 'admin-support':
-        return 'Support';
-      default:
-        return 'Standard';
-    }
-  };
-
-  // Handle user suspension
-  const handleSuspendUser = async (userId: string) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ suspended: true })
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, suspended: true } : user
-      ));
-
-      toast({
-        title: 'User Suspended',
-        description: 'User account has been suspended.',
-      });
-    } catch (error) {
-      console.error('Error suspending user:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to suspend user.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  // Handle user restoration
-  const handleRestoreUser = async (userId: string) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ suspended: false })
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, suspended: false } : user
-      ));
-
-      toast({
-        title: 'User Restored',
-        description: 'User account has been restored.',
-      });
-    } catch (error) {
-      console.error('Error restoring user:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to restore user.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleCreateAdmin = async () => {
-    setIsLoading(true);
-    try {
-      // Validate form
-      if (!newAdminForm.email || !newAdminForm.password) {
-        throw new Error('Email and password are required');
-      }
-      
-      if (newAdminForm.password.length < 8) {
-        throw new Error('Password must be at least 8 characters');
-      }
-      
-      // Only owner can create manager admins
-      if (newAdminForm.role === 'admin-manager' && adminTier !== 'owner') {
-        throw new Error('Only Owner admins can create Manager admins');
-      }
-      
-      // Get selected permissions
-      const selectedPermissions = Object.entries(adminPermissions)
-        .filter(([_, isEnabled]) => isEnabled)
-        .map(([permission]) => permission as AdminPermission);
-      
-      // Create admin user with the specified role
-      const success = await createAdminUser(
-        newAdminForm.email,
-        newAdminForm.password,
-        newAdminForm.full_name || '',
-        selectedPermissions,
-        newAdminForm.role
-      );
-      
-      if (!success) {
-        throw new Error('Failed to create admin user');
-      }
-      
-      // Reset form
-      setNewAdminForm({
-        email: '',
-        password: '',
-        full_name: '',
-        role: 'admin'
-      });
-      
-      setAdminPermissions({
-        users_manage: false,
-        content_manage: false,
-        social_manage: false,
-        conversations_manage: false,
-        analytics_view: false,
-        admins_manage: false
-      });
-      
-      // Refresh admin users list
-      const admins = await getAllAdmins();
-      if (admins) {
-        // Enhance admin users with role information
-        const enhancedAdmins = await Promise.all((admins as AdminUser[]).map(async (admin) => {
-          const { data: roleData } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', admin.id)
-            .single();
-            
-          return {
-            ...admin,
-            role: roleData?.role || 'admin',
-            adminTier: getAdminTierFromRole(roleData?.role || 'admin')
-          };
-        }));
-        
-        setAdminUsers(enhancedAdmins);
-      }
-      
-      toast({
-        title: 'Admin Created',
-        description: `Successfully created admin user ${newAdminForm.email}`,
-      });
-    } catch (error: any) {
-      console.error('Error creating admin:', error);
-      toast({
-        title: 'Failed to create admin',
-        description: error instanceof Error ? error.message : 'An unexpected error occurred',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Loading state
   if (isLoading) {
     return (
-      <div className="container py-12 flex justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Loading Admin Dashboard</h2>
-          <p className="text-muted-foreground">Please wait while we load your data...</p>
-        </div>
+      <div className="container mx-auto py-8">
+        <div className="text-center">Loading admin dashboard...</div>
       </div>
     );
   }
 
-  return (
-    <div className="container py-6 max-w-7xl">
-      <div className="flex items-center space-x-2 mb-2">
-        <ShieldCheck className="text-primary h-6 w-6" />
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        {adminTier && (
-          <Badge className="ml-2 bg-primary/20 text-primary border-primary/30">
-            {adminTier.charAt(0).toUpperCase() + adminTier.slice(1)} Admin
-          </Badge>
-        )}
+  if (!isAdmin) {
+    return (
+      <div className="container mx-auto py-8">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+            <p className="text-muted-foreground">
+              You don't have permission to access the admin dashboard.
+            </p>
+          </CardContent>
+        </Card>
       </div>
-      <p className="text-muted-foreground mb-6">Manage users, conversations, and platform data</p>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${hasPermission('admins_manage') ? 5 : 4}, 1fr)` }}>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          {hasPermission('users_manage') && <TabsTrigger value="users">Users</TabsTrigger>}
-          {hasPermission('conversations_manage') && <TabsTrigger value="conversations">Conversations</TabsTrigger>}
-          {hasPermission('social_manage') && <TabsTrigger value="social">Social</TabsTrigger>}
-          {hasPermission('admins_manage') && <TabsTrigger value="admins">Admins</TabsTrigger>}
+    );
+  }
+
+  const stats = [
+    {
+      title: 'Total Users',
+      value: '1,234',
+      change: '+12%',
+      icon: Users,
+      color: 'text-blue-500'
+    },
+    {
+      title: 'Revenue',
+      value: '$45,231',
+      change: '+23%',
+      icon: CreditCard,
+      color: 'text-green-500'
+    },
+    {
+      title: 'Content Posts',
+      value: '5,678',
+      change: '+8%',
+      icon: FileText,
+      color: 'text-purple-500'
+    },
+    {
+      title: 'Active Sessions',
+      value: '892',
+      change: '+5%',
+      icon: Activity,
+      color: 'text-orange-500'
+    }
+  ];
+
+  return (
+    <div className="container mx-auto py-8">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Manage your FlareSync platform</p>
+        </div>
+        <Badge variant="default" className="flex items-center gap-2">
+          <Shield className="h-4 w-4" />
+          Administrator
+        </Badge>
+      </div>
+
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {stats.map((stat) => {
+          const IconComponent = stat.icon;
+          return (
+            <Card key={stat.title}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {stat.title}
+                    </p>
+                    <p className="text-2xl font-bold">{stat.value}</p>
+                    <p className="text-xs text-green-600">{stat.change} from last month</p>
+                  </div>
+                  <IconComponent className={`h-8 w-8 ${stat.color}`} />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Admin Tabs */}
+      <Tabs defaultValue="users" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="users" disabled={!permissions?.can_manage_users}>
+            Users
+          </TabsTrigger>
+          <TabsTrigger value="content" disabled={!permissions?.can_manage_content}>
+            Content
+          </TabsTrigger>
+          <TabsTrigger value="billing" disabled={!permissions?.can_access_billing}>
+            Billing
+          </TabsTrigger>
+          <TabsTrigger value="settings" disabled={!permissions?.can_manage_plans}>
+            Settings
+          </TabsTrigger>
         </TabsList>
-        
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="mt-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{users.length}</div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Creators</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {users.filter(user => user.role === 'creator').length}
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Brands</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {users.filter(user => user.role === 'brand').length}
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Admin Users</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{adminUsers.length}</div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="grid gap-6 md:grid-cols-2 mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Admin Permissions</CardTitle>
-                <CardDescription>These are the permissions assigned to your account</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {userPermissions.map(permission => (
-                    <div key={permission} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
-                      {permission.replace('_', ' ')}
-                    </div>
-                  ))}
-                  {userPermissions.length === 0 && (
-                    <p className="text-muted-foreground">No specific permissions assigned</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Admin Actions</CardTitle>
-                <CardDescription>Quick actions for platform management</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col gap-4">
-                  {hasPermission('users_manage') && (
-                    <Button variant="outline" onClick={() => setActiveTab('users')}>
-                      <Users className="w-4 h-4 mr-2" /> Manage Users
-                    </Button>
-                  )}
-                  
-                  {hasPermission('admins_manage') && (
-                    <Button variant="outline" onClick={() => setActiveTab('admins')}>
-                      <Shield className="w-4 h-4 mr-2" /> Manage Admins
-                    </Button>
-                  )}
-                  
-                  {hasPermission('social_manage') && (
-                    <Button variant="outline" onClick={() => setActiveTab('social')}>
-                      <Instagram className="w-4 h-4 mr-2" /> Social Accounts
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-        
-        {/* Users Tab */}
-        <TabsContent value="users" className="mt-6">
-          {hasPermission('users_manage') ? (
-            <>
-              <div className="flex items-center gap-2 mb-4">
-                <Search className="w-4 h-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search users by email or name..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1"
-                />
+
+        <TabsContent value="users">
+          <Card>
+            <CardHeader>
+              <CardTitle>User Management</CardTitle>
+              <CardDescription>
+                Manage user accounts and permissions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">User Management</h3>
+                <p className="text-muted-foreground">
+                  User management features will be implemented here
+                </p>
               </div>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>All Users</CardTitle>
-                  <CardDescription>Manage user accounts and permissions</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Plan</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {users
-                        .filter(user => {
-                          if (!searchQuery) return true;
-                          return (
-                            user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            user.username?.toLowerCase().includes(searchQuery.toLowerCase())
-                          );
-                        })
-                        .map(user => (
-                          <TableRow key={user.id}>
-                            <TableCell className="font-medium">
-                              <div className="flex items-center gap-2">
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage src={user.avatar_url || ''} />
-                                  <AvatarFallback>
-                                    {user.full_name?.charAt(0) || user.username?.charAt(0) || '?'}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <span>{user.full_name || user.username || 'Unknown'}</span>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>{user.email}</TableCell>
-                            <TableCell>
-                              <span className="capitalize">{user.role || 'user'}</span>
-                            </TableCell>
-                            <TableCell>
-                              <span className="capitalize">{user.plan || 'free'}</span>
-                            </TableCell>
-                            <TableCell>
-                              {user.suspended ? (
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                  Suspended
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  Active
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                {user.suspended ? (
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={() => handleRestoreUser(user.id)}
-                                  >
-                                    <UserCheck className="h-4 w-4" />
-                                  </Button>
-                                ) : (
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={() => handleSuspendUser(user.id)}
-                                  >
-                                    <UserX className="h-4 w-4" />
-                                  </Button>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <Card className="bg-amber-50 border-amber-200">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                  <CardTitle className="text-amber-800">Access Restricted</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-amber-800">You do not have permission to manage users.</p>
-              </CardContent>
-            </Card>
-          )}
+            </CardContent>
+          </Card>
         </TabsContent>
-        
-        {/* Conversations Tab */}
-        <TabsContent value="conversations" className="mt-6">
-          {hasPermission('conversations_manage') ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Conversations Management</CardTitle>
-                <CardDescription>View and manage user conversations</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Conversation management features will be implemented here.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="bg-amber-50 border-amber-200">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                  <CardTitle className="text-amber-800">Access Restricted</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-amber-800">You do not have permission to manage conversations.</p>
-              </CardContent>
-            </Card>
-          )}
+
+        <TabsContent value="content">
+          <Card>
+            <CardHeader>
+              <CardTitle>Content Management</CardTitle>
+              <CardDescription>
+                Monitor and manage platform content
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Content Overview</h3>
+                <p className="text-muted-foreground">
+                  Content management features will be implemented here
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
-        
-        {/* Social Tab */}
-        <TabsContent value="social" className="mt-6">
-          {hasPermission('social_manage') ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Social Connections</CardTitle>
-                <CardDescription>Manage social media connections and data</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Social connections management features will be implemented here.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="bg-amber-50 border-amber-200">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                  <CardTitle className="text-amber-800">Access Restricted</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-amber-800">You do not have permission to manage social connections.</p>
-              </CardContent>
-            </Card>
-          )}
+
+        <TabsContent value="billing">
+          <Card>
+            <CardHeader>
+              <CardTitle>Billing & Revenue</CardTitle>
+              <CardDescription>
+                Monitor platform revenue and subscriptions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Revenue Dashboard</h3>
+                <p className="text-muted-foreground">
+                  Billing and revenue features will be implemented here
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
-        
-        {/* Admins Tab */}
-        <TabsContent value="admins" className="mt-6">
-          {hasPermission('admins_manage') ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Show admin creation form only to owner or manager admins */}
-              {hasAdminPermission('owner') || hasAdminPermission('manager') ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Create New Admin</CardTitle>
-                    <CardDescription>Add new admin users with custom permissions</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="admin-email">Email</Label>
-                      <Input 
-                        id="admin-email" 
-                        type="email" 
-                        placeholder="admin@example.com" 
-                        value={newAdminForm.email}
-                        onChange={(e) => setNewAdminForm({...newAdminForm, email: e.target.value})}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="admin-password">Password</Label>
-                      <Input 
-                        id="admin-password" 
-                        type="password" 
-                        placeholder="••••••••" 
-                        value={newAdminForm.password}
-                        onChange={(e) => setNewAdminForm({...newAdminForm, password: e.target.value})}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="admin-fullname">Full Name</Label>
-                      <Input 
-                        id="admin-fullname" 
-                        type="text" 
-                        placeholder="John Doe" 
-                        value={newAdminForm.full_name}
-                        onChange={(e) => setNewAdminForm({...newAdminForm, full_name: e.target.value})}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="admin-role">Admin Role</Label>
-                      <Select 
-                        value={newAdminForm.role}
-                        onValueChange={(value: any) => setNewAdminForm({...newAdminForm, role: value})}
-                      >
-                        <SelectTrigger id="admin-role">
-                          <SelectValue placeholder="Select role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">Standard Admin</SelectItem>
-                          <SelectItem value="admin-support">Support Admin</SelectItem>
-                          {hasAdminPermission('owner') && (
-                            <SelectItem value="admin-manager">Manager Admin</SelectItem>
-                          )}
-                          {/* Owner admins can only be created through direct database access */}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Admin tiers determine what actions admins can perform. Only Owner admins can create Manager admins.
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <Label>Permissions</Label>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="users-manage" 
-                            checked={adminPermissions.users_manage}
-                            onCheckedChange={(checked) => {
-                              setAdminPermissions({...adminPermissions, users_manage: checked === true}); 
-                            }} 
-                          />
-                          <label 
-                            htmlFor="users-manage" 
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            Manage Users
-                          </label>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="content-manage" 
-                            checked={adminPermissions.content_manage}
-                            onCheckedChange={(checked) => {
-                              setAdminPermissions({...adminPermissions, content_manage: checked === true}); 
-                            }} 
-                          />
-                          <label 
-                            htmlFor="content-manage" 
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            Manage Content
-                          </label>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="social-manage" 
-                            checked={adminPermissions.social_manage}
-                            onCheckedChange={(checked) => {
-                              setAdminPermissions({...adminPermissions, social_manage: checked === true}); 
-                            }} 
-                          />
-                          <label 
-                            htmlFor="social-manage" 
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            Manage Social Connections
-                          </label>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="conversations-manage" 
-                            checked={adminPermissions.conversations_manage}
-                            onCheckedChange={(checked) => {
-                              setAdminPermissions({...adminPermissions, conversations_manage: checked === true}); 
-                            }} 
-                          />
-                          <label 
-                            htmlFor="conversations-manage" 
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            Manage Conversations
-                          </label>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Checkbox 
-                            id="analytics-view" 
-                            checked={adminPermissions.analytics_view}
-                            onCheckedChange={(checked) => {
-                              setAdminPermissions({...adminPermissions, analytics_view: checked === true}); 
-                            }} 
-                          />
-                          <label 
-                            htmlFor="analytics-view" 
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            View Analytics
-                          </label>
-                        </div>
-                        
-                        {hasAdminPermission('owner') && (
-                          <div className="flex items-center space-x-2">
-                            <Checkbox 
-                              id="admins-manage" 
-                              checked={adminPermissions.admins_manage}
-                              onCheckedChange={(checked) => {
-                                setAdminPermissions({...adminPermissions, admins_manage: checked === true}); 
-                              }} 
-                            />
-                            <label 
-                              htmlFor="admins-manage" 
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              Manage Admins
-                            </label>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button 
-                      className="w-full" 
-                      onClick={handleCreateAdmin}
-                      disabled={isLoading || !newAdminForm.email || !newAdminForm.password}
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating...
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus className="mr-2 h-4 w-4" />
-                          Create Admin
-                        </>
-                      )}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ) : null}
-              
-              {/* Existing Admins Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Admin Users</CardTitle>
-                  <CardDescription>View and manage admin accounts</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Admin</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Permissions</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {adminUsers.map((admin) => (
-                        <TableRow key={admin.id}>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{admin.full_name || 'Unnamed Admin'}</span>
-                              <span className="text-sm text-muted-foreground">{admin.email}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                              {admin.adminTier || 'Standard'} Admin
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {admin.permissions.map(permission => (
-                                <span 
-                                  key={permission} 
-                                  className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
-                                >
-                                  {permission.replace('_', ' ')}
-                                </span>
-                              ))}
-                              {admin.permissions.length === 0 && (
-                                <span className="text-muted-foreground text-xs">No permissions</span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              disabled={
-                                admin.id === user?.id || 
-                                (admin.adminTier === 'Owner' && adminTier !== 'owner') || 
-                                (admin.adminTier === 'Manager' && !hasAdminPermission('owner'))
-                              }
-                            >
-                              <Settings className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {adminUsers.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
-                            No admin users found
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
-            <Card className="bg-amber-50 border-amber-200">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                  <CardTitle className="text-amber-800">Access Restricted</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-amber-800">You do not have permission to manage admins.</p>
-              </CardContent>
-            </Card>
-          )}
+
+        <TabsContent value="settings">
+          <Card>
+            <CardHeader>
+              <CardTitle>Platform Settings</CardTitle>
+              <CardDescription>
+                Configure platform-wide settings
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">System Configuration</h3>
+                <p className="text-muted-foreground">
+                  Platform settings will be implemented here
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

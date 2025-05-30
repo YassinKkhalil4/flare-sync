@@ -68,14 +68,14 @@ export const useSubscription = () => {
 
   return {
     subscription,
-    plan: subscription?.plan || 'basic', // Default to basic plan
+    plan: subscription?.plan || 'basic', // Default to basic plan instead of 'free'
     subscribed: subscription?.status === 'active',
     currentPeriodEnd: subscription?.current_period_end,
     isLoading,
     error,
     startCheckout: (priceId: string, planName: UserPlan) => 
       startCheckoutMutation.mutate({ priceId, plan: planName }),
-    openCustomerPortal: () => openCustomerPortalMutation.mutate({}), // Fixed by adding empty object
+    openCustomerPortal: () => openCustomerPortalMutation.mutate({}),
     checkSubscription: () => checkSubscriptionMutation.mutate()
   };
 };

@@ -385,6 +385,104 @@ export type Database = {
           },
         ]
       }
+      content_plan_posts: {
+        Row: {
+          content_type: string
+          created_at: string
+          day: string
+          description: string
+          hashtags: string[] | null
+          id: string
+          plan_id: string
+          platform: string
+          status: string
+          suggested_caption: string | null
+          time: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content_type: string
+          created_at?: string
+          day: string
+          description: string
+          hashtags?: string[] | null
+          id?: string
+          plan_id: string
+          platform: string
+          status?: string
+          suggested_caption?: string | null
+          time: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content_type?: string
+          created_at?: string
+          day?: string
+          description?: string
+          hashtags?: string[] | null
+          id?: string
+          plan_id?: string
+          platform?: string
+          status?: string
+          suggested_caption?: string | null
+          time?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_plan_posts_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "content_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_plans: {
+        Row: {
+          content: string
+          created_at: string
+          end_date: string
+          goal: string
+          id: string
+          name: string
+          platforms: string[]
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          end_date: string
+          goal: string
+          id?: string
+          name: string
+          platforms?: string[]
+          start_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          end_date?: string
+          goal?: string
+          id?: string
+          name?: string
+          platforms?: string[]
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       content_post_tags: {
         Row: {
           post_id: string
