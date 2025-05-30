@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Copy, Check, Save, ArrowDown } from 'lucide-react';
+import { Copy, Check, Save, ArrowDown, Sparkles } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 
 interface CaptionResultsProps {
@@ -69,22 +69,32 @@ export const CaptionResults: React.FC<CaptionResultsProps> = ({
 
   if (!captions || captions.length === 0) {
     return (
-      <div className="flex items-center justify-center h-60">
-        <p className="text-muted-foreground">No captions generated yet.</p>
+      <div className="flex flex-col items-center justify-center py-16 px-8">
+        <div className="rounded-full bg-muted p-6 mb-6">
+          <Sparkles className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <h3 className="text-xl font-semibold mb-2">No captions generated yet</h3>
+        <p className="text-muted-foreground text-center max-w-md">
+          Use the generate tab to create your first set of AI-powered captions
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Generated Captions</h3>
+        <div>
+          <h3 className="text-lg font-semibold">Generated Captions</h3>
+          <p className="text-sm text-muted-foreground">
+            {captions.length} caption{captions.length !== 1 ? 's' : ''} ready for you
+          </p>
+        </div>
         {selectedIndex !== null && (
           <Button 
-            size="sm" 
             onClick={handleSave} 
             disabled={saving}
-            className="flex items-center"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
           >
             {saving ? (
               <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-t-transparent"></div>
@@ -96,42 +106,49 @@ export const CaptionResults: React.FC<CaptionResultsProps> = ({
         )}
       </div>
       
-      <ScrollArea className="h-[500px] pr-4">
-        <div className="space-y-3">
+      <ScrollArea className="h-[600px] pr-4">
+        <div className="space-y-4">
           {captions.map((caption, index) => (
             <Card 
               key={index} 
-              className={`cursor-pointer transition-all ${
+              className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
                 selectedIndex === index 
-                  ? 'border-primary ring-1 ring-primary' 
-                  : 'hover:border-primary/50'
+                  ? 'border-primary ring-2 ring-primary/20 shadow-lg bg-primary/5' 
+                  : 'hover:border-primary/50 border-border'
               }`}
               onClick={() => handleSelect(index)}
             >
-              <CardContent className="p-4 relative">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <p className="whitespace-pre-line">{caption}</p>
+              <CardContent className="p-6 relative">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                        Caption {index + 1}
+                      </span>
+                      {selectedIndex === index && (
+                        <span className="text-xs font-medium text-primary-foreground bg-primary px-2 py-1 rounded-full">
+                          Selected
+                        </span>
+                      )}
+                    </div>
+                    <p className="whitespace-pre-line leading-relaxed text-sm">{caption}</p>
                   </div>
                   <Button 
                     variant="ghost" 
-                    size="icon"
-                    className="ml-2 h-8 w-8 flex-shrink-0" 
+                    size="sm"
+                    className="flex-shrink-0 h-9 w-9 p-0 hover:bg-muted" 
                     onClick={(e) => {
                       e.stopPropagation();
                       copyToClipboard(caption, index);
                     }}
                   >
-                    {copied === index ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copied === index ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
-                {selectedIndex === index && (
-                  <div className="absolute top-2 left-2">
-                    <span className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-sm">
-                      Selected
-                    </span>
-                  </div>
-                )}
               </CardContent>
             </Card>
           ))}
@@ -139,10 +156,10 @@ export const CaptionResults: React.FC<CaptionResultsProps> = ({
       </ScrollArea>
       
       {captions.length > 4 && (
-        <div className="flex justify-center">
-          <Button variant="ghost" size="sm" className="flex items-center text-muted-foreground">
+        <div className="flex justify-center pt-4">
+          <Button variant="ghost" size="sm" className="flex items-center text-muted-foreground hover:text-foreground">
             <ArrowDown className="h-3 w-3 mr-1" />
-            Scroll for more
+            Scroll to see more captions
           </Button>
         </div>
       )}
