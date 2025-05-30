@@ -1,9 +1,10 @@
-
 import React from 'react';
 import { useAdminPermissions } from '@/hooks/useAdminPermissions';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Users, 
@@ -14,12 +15,14 @@ import {
   AlertCircle,
   Shield,
   TrendingUp,
-  Database
+  Database,
+  LogOut
 } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
   const { permissions, isLoading } = useAdminPermissions();
   const { isAdmin } = useUserRole();
+  const { signOut } = useAuth();
 
   if (isLoading) {
     return (
@@ -100,10 +103,20 @@ const AdminDashboard: React.FC = () => {
             </h1>
             <p className="text-lg text-muted-foreground mt-2">Monitor and manage your FlareSync platform</p>
           </div>
-          <Badge variant="default" className="flex items-center gap-2 px-4 py-2 text-sm">
-            <Shield className="h-4 w-4" />
-            Administrator
-          </Badge>
+          <div className="flex items-center gap-4">
+            <Badge variant="default" className="flex items-center gap-2 px-4 py-2 text-sm">
+              <Shield className="h-4 w-4" />
+              Administrator
+            </Badge>
+            <Button 
+              variant="outline" 
+              onClick={signOut}
+              className="flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         {/* Stats Overview */}
