@@ -26,9 +26,9 @@ const AdminLogin = () => {
     setError('');
 
     try {
-      const result = await signIn(email, password);
+      const result = await signIn({ email, password });
       
-      if (result?.user) {
+      if (result?.data?.user) {
         toast({
           title: 'Admin login successful',
           description: 'Welcome to the admin dashboard',
