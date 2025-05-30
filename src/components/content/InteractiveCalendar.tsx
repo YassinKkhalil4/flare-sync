@@ -74,6 +74,7 @@ const InteractiveCalendar: React.FC = () => {
   const handleDragStart = (e: React.DragEvent, post: ScheduledPost) => {
     setDraggedPost(post);
     e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', post.id);
   };
 
   // Handle drop on calendar date
@@ -166,25 +167,29 @@ const InteractiveCalendar: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => date && setSelectedDate(date)}
-              className="rounded-md border w-full"
-              modifiers={{
-                booked: (date) => getPostsForDate(date).length > 0,
-              }}
-              modifiersStyles={{
-                booked: { 
-                  fontWeight: 'bold', 
-                  backgroundColor: 'rgba(var(--primary), 0.1)',
-                  color: 'rgb(var(--primary))'
-                },
-              }}
-              onDayClick={(date) => setSelectedDate(date)}
+            <div 
               onDrop={(e) => handleDateDrop(e, selectedDate)}
               onDragOver={handleDragOver}
-            />
+              className="border rounded-md"
+            >
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && setSelectedDate(date)}
+                className="rounded-md w-full"
+                modifiers={{
+                  booked: (date) => getPostsForDate(date).length > 0,
+                }}
+                modifiersStyles={{
+                  booked: { 
+                    fontWeight: 'bold', 
+                    backgroundColor: 'rgba(var(--primary), 0.1)',
+                    color: 'rgb(var(--primary))'
+                  },
+                }}
+                onDayClick={(date) => setSelectedDate(date)}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
