@@ -1,101 +1,74 @@
 
 import React, { useState } from 'react';
-import { CaptionForm } from '@/components/caption-generator/CaptionForm';
-import { CaptionResults } from '@/components/caption-generator/CaptionResults';
-import { SavedCaptions } from '@/components/caption-generator/SavedCaptions';
-import { useCaptionGenerator } from '@/hooks/useCaptionGenerator';
-import { CaptionGenerationRequest, CaptionGenerationResponse } from '@/types/caption';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Sparkles } from 'lucide-react';
+import CaptionForm from '@/components/caption-generator/CaptionForm';
+import CaptionResults from '@/components/caption-generator/CaptionResults';
+import SavedCaptions from '@/components/caption-generator/SavedCaptions';
+import { Sparkles, History, Wand2 } from 'lucide-react';
+import { Caption } from '@/types/caption';
 
-const CaptionGeneratorPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('generate');
-  const [generationResult, setGenerationResult] = useState<CaptionGenerationResponse | null>(null);
-  
-  const { 
-    generateCaptions,
-    isGenerating,
-    savedCaptions,
-    isLoadingSavedCaptions,
-    saveSelectedCaption
-  } = useCaptionGenerator();
+export const CaptionGeneratorPage: React.FC = () => {
+  const [generatedCaptions, setGeneratedCaptions] = useState<Caption[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleSubmit = async (values: CaptionGenerationRequest) => {
-    try {
-      generateCaptions(values, {
-        onSuccess: (data) => {
-          setGenerationResult(data);
-          setActiveTab('results');
-        }
-      });
-    } catch (error) {
-      console.error('Error generating captions:', error);
-    }
-  };
-
-  const handleSaveCaption = async (captionId: string, selectedCaption: string) => {
-    try {
-      await saveSelectedCaption(captionId, selectedCaption);
-      return true;
-    } catch (error) {
-      console.error('Error saving selected caption:', error);
-      return false;
-    }
+  const handleCaptionsGenerated = (captions: Caption[]) => {
+    setGeneratedCaptions(captions);
   };
 
   return (
-    <div className="container py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold flex items-center">
-          <Sparkles className="mr-2 h-6 w-6 text-primary" />
-          AI Caption Generator
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Generate engaging captions for your social media posts using AI
+    <div className="container mx-auto py-8 space-y-8">
+      <div className="text-center space-y-4">
+        <div className="flex items-center justify-center gap-2">
+          <Sparkles className="h-8 w-8 text-primary" />
+          <h1 className="text-3xl font-bold">AI Caption Generator</h1>
+        </div>
+        <p className="text-muted-foreground max-w-2xl mx-auto">
+          Generate engaging captions for your social media posts using AI. 
+          Customize tone, style, and platform-specific requirements.
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="generate">Generate New</TabsTrigger>
-          <TabsTrigger value="results" disabled={!generationResult}>Results</TabsTrigger>
-          <TabsTrigger value="saved">Saved Captions</TabsTrigger>
+      <Tabs defaultValue="generate" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="generate" className="flex items-center gap-2">
+            <Wand2 className="h-4 w-4" />
+            Generate
+          </TabsTrigger>
+          <TabsTrigger value="results" className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            Results
+          </TabsTrigger>
+          <TabsTrigger value="saved" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Saved
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="generate" className="space-y-4">
+        <TabsContent value="generate">
           <Card>
             <CardHeader>
-              <CardTitle>Generate Captions</CardTitle>
-              <CardDescription>
-                Fill in the details below to generate AI-powered captions for your content
-              </CardDescription>
+              <CardTitle>Generate New Captions</CardTitle>
             </CardHeader>
             <CardContent>
               <CaptionForm 
-                isSubmitting={isGenerating}
-                onGenerateCaptions={handleSubmit}
+                onCaptionsGenerated={handleCaptionsGenerated}
+                isGenerating={isGenerating}
+                setIsGenerating={setIsGenerating}
               />
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="results">
-          {generationResult && (
-            <CaptionResults 
-              captions={generationResult.captions} 
-              captionId={generationResult.captionId}
-              onSaveCaption={handleSaveCaption}
-            />
-          )}
+          <CaptionResults 
+            captions={generatedCaptions}
+            isLoading={isGenerating}
+          />
         </TabsContent>
 
         <TabsContent value="saved">
-          <SavedCaptions 
-            captions={savedCaptions || []} 
-            isLoading={isLoadingSavedCaptions}
-            onSelectCaption={handleSaveCaption}
-          />
+          <SavedCaptions />
         </TabsContent>
       </Tabs>
     </div>
