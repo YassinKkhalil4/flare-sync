@@ -6,12 +6,12 @@ import { CaptionForm } from '@/components/caption-generator/CaptionForm';
 import { CaptionResults } from '@/components/caption-generator/CaptionResults';
 import { SavedCaptions } from '@/components/caption-generator/SavedCaptions';
 import { Sparkles, History, Wand2 } from 'lucide-react';
-import { Caption } from '@/types/caption';
+import { SavedCaption } from '@/types/caption';
 
 export const CaptionGeneratorPage: React.FC = () => {
   const [generatedCaptions, setGeneratedCaptions] = useState<string[]>([]);
   const [captionId, setCaptionId] = useState<string>('');
-  const [savedCaptions, setSavedCaptions] = useState<Caption[]>([]);
+  const [savedCaptions, setSavedCaptions] = useState<SavedCaption[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleCaptionsGenerated = (captions: string[], id: string) => {

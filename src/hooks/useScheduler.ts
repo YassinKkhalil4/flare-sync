@@ -27,6 +27,9 @@ interface SchedulingData {
 
 interface AnalyzeScheduleParams {
   platform: string;
+  contentType: string;
+  audienceLocation: string;
+  postCount: number;
   startDate?: string;
   endDate?: string;
 }

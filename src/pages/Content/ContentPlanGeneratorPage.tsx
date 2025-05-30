@@ -26,7 +26,8 @@ export const ContentPlanGeneratorPage: React.FC = () => {
       audience,
       goals,
       timeframe,
-      platforms
+      platforms,
+      goal: 'engagement'
     });
   };
 

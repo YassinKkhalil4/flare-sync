@@ -1,9 +1,12 @@
 
 export interface ContentPlanRequest {
-  timeCommitment: number;
+  timeCommitment?: number;
   platforms: string[];
   goal: 'growth' | 'engagement' | 'sales';
   niche: string;
+  audience: string;
+  goals: string;
+  timeframe: string;
   additionalInfo?: string;
 }
 
@@ -23,6 +26,7 @@ export interface ContentPlanPost {
 export interface ContentPlan {
   id: string;
   name: string;
+  content: string;
   startDate: string;
   endDate: string;
   goal: string;
