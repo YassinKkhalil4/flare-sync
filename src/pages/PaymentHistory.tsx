@@ -70,7 +70,7 @@ const PaymentHistory: React.FC = () => {
                           ${transaction.amount.toFixed(2)} {transaction.currency.toUpperCase()}
                         </p>
                         <Badge 
-                          variant={transaction.status === 'succeeded' ? 'default' : 'destructive'}
+                          variant={transaction.status === 'completed' ? 'default' : 'destructive'}
                         >
                           {transaction.status}
                         </Badge>
@@ -118,7 +118,7 @@ const PaymentHistory: React.FC = () => {
                       <div className="text-right flex items-center gap-4">
                         <div>
                           <p className="font-semibold">
-                            ${invoice.amount.toFixed(2)} {invoice.currency.toUpperCase()}
+                            ${invoice.amount.toFixed(2)}
                           </p>
                           <Badge 
                             variant={invoice.status === 'paid' ? 'default' : 'destructive'}

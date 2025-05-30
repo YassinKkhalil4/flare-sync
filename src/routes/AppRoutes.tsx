@@ -21,6 +21,7 @@ import NotificationsPage from '@/pages/NotificationsPage';
 import Analytics from '@/pages/Analytics';
 import SocialConnect from '@/pages/SocialConnect';
 import ApiKeysSetup from '@/pages/ApiKeysSetup';
+import ApiConfiguration from '@/pages/ApiConfiguration';
 
 // Content pages
 import ContentPage from '@/pages/Content/ContentPage';
@@ -74,13 +75,14 @@ const AppRoutes: React.FC = () => {
       <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/payment-history" element={<ProtectedRoute><PaymentHistory /></ProtectedRoute>} />
-      <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute requireAdmin={true}><AdminDashboard /></ProtectedRoute>} />
       <Route path="/deals" element={<ProtectedRoute><BrandDeals /></ProtectedRoute>} />
       <Route path="/messaging" element={<ProtectedRoute><Messaging /></ProtectedRoute>} />
       <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
       <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
       <Route path="/social-connect" element={<ProtectedRoute><SocialConnect /></ProtectedRoute>} />
       <Route path="/api-keys" element={<ProtectedRoute><ApiKeysSetup /></ProtectedRoute>} />
+      <Route path="/api-configuration" element={<ProtectedRoute><ApiConfiguration /></ProtectedRoute>} />
 
       {/* Content routes */}
       <Route path="/content" element={<ProtectedRoute><ContentPage /></ProtectedRoute>} />

@@ -1,9 +1,13 @@
+
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useAuth } from '@/context/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 import { 
   ChevronRight, 
   ChevronLeft, 
@@ -21,11 +25,11 @@ import {
   Bot, 
   Clock, 
   Target,
-  PieChart
+  PieChart,
+  Shield,
+  CreditCard,
+  FileText
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useUserRole } from '@/hooks/useUserRole';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import AIFeaturesBadge from './AIFeaturesBadge';
 import Logo from './Logo';
 
@@ -85,7 +89,7 @@ const AppSidebar = () => {
   const { user } = useAuth();
   const { collapsed, toggleCollapsed } = useSidebar();
   const location = useLocation();
-  const { userRole, isLoading } = useUserRole();
+  const { userRole, isAdmin, isLoading } = useUserRole();
   const [contentExpanded, setContentExpanded] = useState(false);
   const [aiToolsExpanded, setAiToolsExpanded] = useState(false);
   
@@ -109,9 +113,10 @@ const AppSidebar = () => {
     }
   }, [isContentSection, isAIToolSection, collapsed]);
   
-  if (!user) return null;
+  if (!user || isLoading) return null;
   
   const isBrand = userRole === 'brand';
+  const isCreator = userRole === 'creator';
   
   return (
     <aside className={cn(
@@ -165,7 +170,8 @@ const AppSidebar = () => {
             active={isActive('/analytics')} 
           />
           
-          {!isBrand && (
+          {/* Creator-specific navigation */}
+          {isCreator && (
             <>
               <SidebarLink
                 to="#"
@@ -240,24 +246,26 @@ const AppSidebar = () => {
             </>
           )}
           
+          {/* Brand-specific navigation */}
           {isBrand && (
             <>
               <SidebarLink 
-                to="/creators" 
+                to="/brand/discovery" 
                 icon={<UsersRound className="h-5 w-5" />} 
                 label="Find Creators" 
-                active={isActive('/creators')} 
+                active={isActive('/brand/discovery')} 
               />
               
               <SidebarLink 
-                to="/campaigns" 
+                to="/brand/campaigns" 
                 icon={<BarChart3 className="h-5 w-5" />} 
                 label="Campaigns" 
-                active={isActive('/campaigns')} 
+                active={isActive('/brand/campaigns')} 
               />
             </>
           )}
           
+          {/* Common navigation for all users */}
           <SidebarLink 
             to="/messaging" 
             icon={<Inbox className="h-5 w-5" />} 
@@ -276,50 +284,84 @@ const AppSidebar = () => {
             <Separator />
           </div>
           
-          {/* AI Feature Standalone Links */}
-          <div className={cn("mb-2", collapsed ? "px-0" : "px-3")}>
-            {!collapsed && <h4 className="text-xs font-medium mb-2 text-muted-foreground">AI FEATURES</h4>}
-          </div>
-          
-          <SidebarLink 
-            to="/content/caption-generator" 
-            icon={<Sparkles className="h-5 w-5" />} 
-            label="Caption Generator" 
-            active={isActive('/content/caption-generator')}
-            badge={!collapsed && <AIFeaturesBadge />}
-          />
-          
-          <SidebarLink 
-            to="/content/engagement-predictor" 
-            icon={<LineChart className="h-5 w-5" />} 
-            label="Engagement Predictor" 
-            active={isActive('/content/engagement-predictor')} 
-          />
-          
-          <SidebarLink 
-            to="/content/smart-assistant" 
-            icon={<Bot className="h-5 w-5" />} 
-            label="Smart Assistant" 
-            active={isActive('/content/smart-assistant')} 
-          />
-          
-          <SidebarLink 
-            to="/content/smart-scheduler" 
-            icon={<Clock className="h-5 w-5" />} 
-            label="Smart Scheduler" 
-            active={isActive('/content/smart-scheduler')} 
-          />
+          {/* AI Feature Standalone Links for Creators */}
+          {isCreator && (
+            <>
+              <div className={cn("mb-2", collapsed ? "px-0" : "px-3")}>
+                {!collapsed && <h4 className="text-xs font-medium mb-2 text-muted-foreground">AI FEATURES</h4>}
+              </div>
+              
+              <SidebarLink 
+                to="/content/caption-generator" 
+                icon={<Sparkles className="h-5 w-5" />} 
+                label="Caption Generator" 
+                active={isActive('/content/caption-generator')}
+                badge={!collapsed && <AIFeaturesBadge />}
+              />
+              
+              <SidebarLink 
+                to="/content/engagement-predictor" 
+                icon={<LineChart className="h-5 w-5" />} 
+                label="Engagement Predictor" 
+                active={isActive('/content/engagement-predictor')} 
+              />
+              
+              <SidebarLink 
+                to="/content/smart-assistant" 
+                icon={<Bot className="h-5 w-5" />} 
+                label="Smart Assistant" 
+                active={isActive('/content/smart-assistant')} 
+              />
+              
+              <SidebarLink 
+                to="/content/smart-scheduler" 
+                icon={<Clock className="h-5 w-5" />} 
+                label="Smart Scheduler" 
+                active={isActive('/content/smart-scheduler')} 
+              />
 
+              <SidebarLink 
+                to="/content/brand-matchmaker" 
+                icon={<Target className="h-5 w-5" />} 
+                label="Brand Matchmaker" 
+                active={isActive('/content/brand-matchmaker')} 
+              />
+              
+              <div className="mt-2 mb-2">
+                <Separator />
+              </div>
+            </>
+          )}
+          
+          {/* Admin navigation */}
+          {isAdmin && (
+            <>
+              <SidebarLink 
+                to="/admin" 
+                icon={<Shield className="h-5 w-5" />} 
+                label="Admin Dashboard" 
+                active={isActive('/admin')} 
+              />
+              <div className="mt-2 mb-2">
+                <Separator />
+              </div>
+            </>
+          )}
+          
+          {/* Account & Settings */}
           <SidebarLink 
-            to="/content/brand-matchmaker" 
-            icon={<Target className="h-5 w-5" />} 
-            label="Brand Matchmaker" 
-            active={isActive('/content/brand-matchmaker')} 
+            to="/plans" 
+            icon={<CreditCard className="h-5 w-5" />} 
+            label="Plans & Billing" 
+            active={isActive('/plans')} 
           />
           
-          <div className="mt-2 mb-2">
-            <Separator />
-          </div>
+          <SidebarLink 
+            to="/payment-history" 
+            icon={<FileText className="h-5 w-5" />} 
+            label="Payment History" 
+            active={isActive('/payment-history')} 
+          />
           
           <SidebarLink 
             to="/settings" 
