@@ -34,15 +34,44 @@ export const useAdminPermissions = () => {
     queryFn: async () => {
       if (!user || !isAdmin) return null;
       
+      // If user is admin-owner, they have all permissions automatically
+      if (adminTier === 'owner') {
+        return {
+          id: 'auto-generated-owner',
+          user_id: user.id,
+          tier: 'owner' as const,
+          can_manage_users: true,
+          can_manage_content: true,
+          can_manage_plans: true,
+          can_access_billing: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        } as AdminRole;
+      }
+      
       const { data, error } = await supabase
         .from('admin_roles')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
         
       if (error) {
         console.error('Error fetching admin permissions:', error);
-        return null;
+        
+        // Create default permissions based on admin tier
+        const defaultPermissions = {
+          id: 'auto-generated',
+          user_id: user.id,
+          tier: adminTier as 'owner' | 'manager' | 'support' | 'standard',
+          can_manage_users: adminTier === 'manager' || adminTier === 'owner',
+          can_manage_content: true, // All admins can manage content
+          can_manage_plans: adminTier === 'owner',
+          can_access_billing: adminTier === 'manager' || adminTier === 'owner',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        } as AdminRole;
+        
+        return defaultPermissions;
       }
       
       return data as AdminRole;
@@ -77,6 +106,10 @@ export const useAdminPermissions = () => {
   // Check if the current admin has a specific permission
   const hasPermission = (permissionName: AdminPermission): boolean => {
     if (!permissions || !isAdmin) return false;
+    
+    // Admin-owner always has all permissions
+    if (adminTier === 'owner') return true;
+    
     return !!permissions[permissionName];
   };
 
