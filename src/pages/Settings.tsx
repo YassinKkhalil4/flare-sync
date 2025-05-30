@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { NotificationPreferences } from '@/components/NotificationPreferences';
@@ -26,11 +25,12 @@ import {
   UserCircle,
   Palette,
   Globe,
-  Clock
+  Clock,
+  LogOut
 } from 'lucide-react';
 
 const Settings = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, signOut } = useAuth();
   const { toast } = useToast();
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -456,6 +456,36 @@ const Settings = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Sign Out Section */}
+            <Card className="border-0 shadow-lg bg-gradient-to-r from-card to-card/80 backdrop-blur">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500/10 rounded-lg">
+                    <LogOut className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl">Account Actions</CardTitle>
+                    <CardDescription>Sign out of your account</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    You will be signed out of all devices and redirected to the login page.
+                  </p>
+                  <Button 
+                    onClick={signOut}
+                    variant="outline"
+                    className="bg-gradient-to-r from-blue-500/10 to-blue-600/10 hover:from-blue-500/20 hover:to-blue-600/20 border-blue-500/20"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </Button>
                 </div>
               </CardContent>
             </Card>
