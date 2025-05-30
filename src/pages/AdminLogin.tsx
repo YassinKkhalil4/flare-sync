@@ -26,25 +26,14 @@ const AdminLogin = () => {
     setError('');
 
     try {
-      const { user } = await signIn(email, password);
+      const result = await signIn(email, password);
       
-      if (user) {
-        // Check if user has admin role
-        const response = await fetch('/api/check-admin-role', {
-          headers: {
-            'Authorization': `Bearer ${user.session?.access_token}`
-          }
+      if (result?.user) {
+        toast({
+          title: 'Admin login successful',
+          description: 'Welcome to the admin dashboard',
         });
-        
-        if (response.ok) {
-          toast({
-            title: 'Admin login successful',
-            description: 'Welcome to the admin dashboard',
-          });
-          navigate('/admin');
-        } else {
-          setError('Access denied. Admin privileges required.');
-        }
+        navigate('/admin');
       }
     } catch (error: any) {
       setError(error.message || 'Login failed');

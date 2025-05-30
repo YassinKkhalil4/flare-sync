@@ -1,7 +1,8 @@
+
 import React, { Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { OnboardingWrapper } from '@/components/layouts/OnboardingWrapper';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import OnboardingWrapper from '@/components/layouts/OnboardingWrapper';
 import ErrorBoundary from '@/components/error/ErrorBoundary';
 import PageLoading from '@/components/ui/page-loading';
 
@@ -14,12 +15,10 @@ const AdminLogin = React.lazy(() => import('@/pages/AdminLogin'));
 const Dashboard = React.lazy(() => import('@/pages/Dashboard'));
 const AdminDashboard = React.lazy(() => import('@/pages/AdminDashboard'));
 const ApiKeysSetup = React.lazy(() => import('@/pages/ApiKeysSetup'));
-const ProfilePage = React.lazy(() => import('@/pages/ProfilePage'));
-const ContentCalendar = React.lazy(() => import('@/pages/ContentCalendar'));
-const AnalyticsDashboard = React.lazy(() => import('@/pages/AnalyticsDashboard'));
-const SettingsPage = React.lazy(() => import('@/pages/SettingsPage'));
-const SocialAccounts = React.lazy(() => import('@/pages/SocialAccounts'));
-const CaptionGenerator = React.lazy(() => import('@/pages/CaptionGenerator'));
+const CreatorProfile = React.lazy(() => import('@/pages/CreatorProfile'));
+const Analytics = React.lazy(() => import('@/pages/Analytics'));
+const Settings = React.lazy(() => import('@/pages/Settings'));
+const SocialConnect = React.lazy(() => import('@/pages/SocialConnect'));
 
 const AppRoutes = () => {
   return (
@@ -59,18 +58,7 @@ const AppRoutes = () => {
             element={
               <ProtectedRoute>
                 <OnboardingWrapper>
-                  <ProfilePage />
-                </OnboardingWrapper>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/calendar"
-            element={
-              <ProtectedRoute>
-                <OnboardingWrapper>
-                  <ContentCalendar />
+                  <CreatorProfile />
                 </OnboardingWrapper>
               </ProtectedRoute>
             }
@@ -81,7 +69,7 @@ const AppRoutes = () => {
             element={
               <ProtectedRoute>
                 <OnboardingWrapper>
-                  <AnalyticsDashboard />
+                  <Analytics />
                 </OnboardingWrapper>
               </ProtectedRoute>
             }
@@ -92,7 +80,7 @@ const AppRoutes = () => {
             element={
               <ProtectedRoute>
                 <OnboardingWrapper>
-                  <SettingsPage />
+                  <Settings />
                 </OnboardingWrapper>
               </ProtectedRoute>
             }
@@ -103,18 +91,7 @@ const AppRoutes = () => {
             element={
               <ProtectedRoute>
                 <OnboardingWrapper>
-                  <SocialAccounts />
-                </OnboardingWrapper>
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/caption-generator"
-            element={
-              <ProtectedRoute>
-                <OnboardingWrapper>
-                  <CaptionGenerator />
+                  <SocialConnect />
                 </OnboardingWrapper>
               </ProtectedRoute>
             }

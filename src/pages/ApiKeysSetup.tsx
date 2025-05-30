@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { MainLayout } from '@/components/layouts/MainLayout';
+import MainLayout from '@/components/layouts/MainLayout';
 import ApiKeySetup from '@/components/setup/ApiKeySetup';
 
 const ApiKeysSetup = () => {
