@@ -1,195 +1,92 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { v4 as uuidv4 } from 'uuid';
 
-const BUCKETS = {
-  AVATARS: 'avatars',
-  CONTENT: 'content',
-  MEDIA: 'media',
-};
-
-class StorageService {
-  /**
-   * Initialize storage buckets
-   */
-  async initializeStorage() {
+export const storageService = {
+  // Upload content media (images/videos)
+  uploadContentMedia: async (userId: string, file: File): Promise<string | null> => {
     try {
-      console.log('Initializing storage buckets...');
-      const { data, error } = await supabase.functions.invoke('create-storage-bucket', {
-        body: { bucketName: BUCKETS.AVATARS }
-      });
-      
-      if (error) {
-        console.error('Error initializing avatars bucket:', error);
-        throw error;
-      }
-      
-      console.log('Avatar bucket status:', data);
-      
-      // Initialize content bucket
-      const { data: contentData, error: contentError } = await supabase.functions.invoke('create-storage-bucket', {
-        body: { bucketName: BUCKETS.CONTENT }
-      });
-      
-      if (contentError) {
-        console.error('Error initializing content bucket:', contentError);
-        throw contentError;
-      }
-      
-      console.log('Content bucket status:', contentData);
-      
-      // Initialize media bucket
-      const { data: mediaData, error: mediaError } = await supabase.functions.invoke('create-storage-bucket', {
-        body: { bucketName: BUCKETS.MEDIA }
-      });
-      
-      if (mediaError) {
-        console.error('Error initializing media bucket:', mediaError);
-        throw mediaError;
-      }
-      
-      console.log('Media bucket status:', mediaData);
-      
-      return {
-        success: true,
-        message: 'Storage buckets initialized successfully',
-        buckets: [BUCKETS.AVATARS, BUCKETS.CONTENT, BUCKETS.MEDIA]
-      };
-    } catch (error) {
-      console.error('Storage initialization error:', error);
-      return {
-        success: false,
-        message: error.message || 'Failed to initialize storage buckets',
-        error
-      };
-    }
-  }
-
-  /**
-   * Upload avatar image
-   */
-  async uploadAvatar(userId: string, file: File): Promise<string | null> {
-    try {
-      if (!file) return null;
-      
       const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}-${Date.now()}.${fileExt}`;
-      const filePath = `${userId}/${fileName}`;
+      const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       
       const { data, error } = await supabase.storage
-        .from(BUCKETS.AVATARS)
-        .upload(filePath, file, {
+        .from('content-media')
+        .upload(fileName, file, {
           cacheControl: '3600',
-          upsert: true
+          upsert: false
         });
+
+      if (error) {
+        console.error('Upload error:', error);
+        throw error;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('content-media')
+        .getPublicUrl(fileName);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      return null;
+    }
+  },
+
+  // Upload avatar image
+  uploadAvatar: async (userId: string, file: File): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}/avatar.${fileExt}`;
       
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true // Replace existing avatar
+        });
+
       if (error) {
         console.error('Avatar upload error:', error);
         throw error;
       }
-      
+
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from(BUCKETS.AVATARS)
-        .getPublicUrl(data.path);
-      
-      return publicUrl;
+      const { data: urlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      return urlData.publicUrl;
     } catch (error) {
       console.error('Error uploading avatar:', error);
       return null;
     }
-  }
+  },
 
-  /**
-   * Upload content media (for posts)
-   */
-  async uploadContentMedia(userId: string, file: File): Promise<string | null> {
-    try {
-      if (!file) return null;
-      
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${uuidv4()}.${fileExt}`;
-      const filePath = `${userId}/${fileName}`;
-      
-      const { data, error } = await supabase.storage
-        .from(BUCKETS.CONTENT)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
-      
-      if (error) {
-        console.error('Content media upload error:', error);
-        throw error;
-      }
-      
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from(BUCKETS.CONTENT)
-        .getPublicUrl(data.path);
-      
-      return publicUrl;
-    } catch (error) {
-      console.error('Error uploading content media:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Upload general media files
-   */
-  async uploadMedia(userId: string, file: File, folder: string = 'general'): Promise<string | null> {
-    try {
-      if (!file) return null;
-      
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${uuidv4()}.${fileExt}`;
-      const filePath = `${userId}/${folder}/${fileName}`;
-      
-      const { data, error } = await supabase.storage
-        .from(BUCKETS.MEDIA)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
-      
-      if (error) {
-        console.error('Media upload error:', error);
-        throw error;
-      }
-      
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from(BUCKETS.MEDIA)
-        .getPublicUrl(data.path);
-      
-      return publicUrl;
-    } catch (error) {
-      console.error('Error uploading media:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Delete a file from storage
-   */
-  async deleteFile(bucket: string, path: string): Promise<boolean> {
+  // Delete file from storage
+  deleteFile: async (bucket: string, filePath: string): Promise<boolean> => {
     try {
       const { error } = await supabase.storage
         .from(bucket)
-        .remove([path]);
-      
+        .remove([filePath]);
+
       if (error) {
-        console.error('File deletion error:', error);
-        return false;
+        console.error('Delete error:', error);
+        throw error;
       }
-      
+
       return true;
     } catch (error) {
       console.error('Error deleting file:', error);
       return false;
     }
-  }
-}
+  },
 
-export const storageService = new StorageService();
+  // Get file URL
+  getFileUrl: (bucket: string, filePath: string): string => {
+    const { data } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  }
+};

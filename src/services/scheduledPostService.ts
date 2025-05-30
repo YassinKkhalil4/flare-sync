@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ScheduledPost } from '@/types/database';
 
@@ -5,18 +6,6 @@ export const scheduledPostService = {
   // Get all scheduled posts for a user
   getScheduledPosts: async (userId: string) => {
     try {
-      const { count, error: countError } = await supabase
-        .from('scheduled_posts')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .limit(1);
-        
-      if (countError || count === 0) {
-        // If there's an error or no data, return empty array
-        return [];
-      }
-      
-      // Otherwise, get real data
       const { data, error } = await supabase
         .from('scheduled_posts')
         .select('*')
@@ -27,7 +16,7 @@ export const scheduledPostService = {
       return data as ScheduledPost[];
     } catch (error) {
       console.error('Error fetching scheduled posts:', error);
-      return [];
+      throw error;
     }
   },
   
@@ -44,7 +33,7 @@ export const scheduledPostService = {
       return data as ScheduledPost;
     } catch (error) {
       console.error('Error fetching scheduled post:', error);
-      return null;
+      throw error;
     }
   },
   
@@ -54,13 +43,14 @@ export const scheduledPostService = {
       const { data, error } = await supabase
         .from('scheduled_posts')
         .insert(post)
-        .select();
+        .select()
+        .single();
       
       if (error) throw error;
-      return data[0] as ScheduledPost;
+      return data as ScheduledPost;
     } catch (error) {
       console.error('Error creating scheduled post:', error);
-      return null;
+      throw error;
     }
   },
   
@@ -71,13 +61,14 @@ export const scheduledPostService = {
         .from('scheduled_posts')
         .update(updates)
         .eq('id', postId)
-        .select();
+        .select()
+        .single();
       
       if (error) throw error;
-      return data[0] as ScheduledPost;
+      return data as ScheduledPost;
     } catch (error) {
       console.error('Error updating scheduled post:', error);
-      return null;
+      throw error;
     }
   },
   
@@ -93,7 +84,7 @@ export const scheduledPostService = {
       return true;
     } catch (error) {
       console.error('Error deleting scheduled post:', error);
-      return false;
+      throw error;
     }
   },
   
@@ -104,13 +95,14 @@ export const scheduledPostService = {
         .from('scheduled_posts')
         .update({ status: 'cancelled' })
         .eq('id', postId)
-        .select();
+        .select()
+        .single();
       
       if (error) throw error;
-      return data[0] as ScheduledPost;
+      return data as ScheduledPost;
     } catch (error) {
       console.error('Error cancelling scheduled post:', error);
-      return null;
+      throw error;
     }
   },
   
@@ -124,13 +116,51 @@ export const scheduledPostService = {
           status: 'scheduled'
         })
         .eq('id', postId)
-        .select();
+        .select()
+        .single();
       
       if (error) throw error;
-      return data[0] as ScheduledPost;
+      return data as ScheduledPost;
     } catch (error) {
       console.error('Error rescheduling post:', error);
-      return null;
+      throw error;
+    }
+  },
+
+  // Get posts for a specific date range
+  getPostsForDateRange: async (userId: string, startDate: Date, endDate: Date) => {
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_posts')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('scheduled_for', startDate.toISOString())
+        .lte('scheduled_for', endDate.toISOString())
+        .order('scheduled_for', { ascending: true });
+      
+      if (error) throw error;
+      return data as ScheduledPost[];
+    } catch (error) {
+      console.error('Error fetching posts for date range:', error);
+      throw error;
+    }
+  },
+
+  // Get posts by status
+  getPostsByStatus: async (userId: string, status: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_posts')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('status', status)
+        .order('scheduled_for', { ascending: true });
+      
+      if (error) throw error;
+      return data as ScheduledPost[];
+    } catch (error) {
+      console.error('Error fetching posts by status:', error);
+      throw error;
     }
   }
 };

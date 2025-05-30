@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { scheduledPostService } from '@/services/scheduledPostService';
 import { ScheduledPost } from '@/types/database';
 import { LoadingSpinner } from '@/components/social/LoadingSpinner';
-import { format, isSameDay, parseISO } from 'date-fns';
+import { format, isSameDay, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Calendar as CalendarIcon, Clock, Image as ImageIcon, Video, Users } from 'lucide-react';
 import PostScheduleForm from '@/components/content/PostScheduleForm';
+import MediaPreview from '@/components/content/MediaPreview';
 
 const InteractiveCalendar: React.FC = () => {
   const { user } = useAuth();
@@ -29,14 +30,8 @@ const InteractiveCalendar: React.FC = () => {
     
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('scheduled_posts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('scheduled_for', { ascending: true });
-
-      if (error) throw error;
-      setScheduledPosts(data || []);
+      const posts = await scheduledPostService.getScheduledPosts(user.id);
+      setScheduledPosts(posts);
     } catch (error) {
       console.error('Error fetching scheduled posts:', error);
       toast({
@@ -88,15 +83,9 @@ const InteractiveCalendar: React.FC = () => {
     if (!draggedPost) return;
 
     try {
-      // Update the post's scheduled date
       const newScheduledTime = format(targetDate, 'yyyy-MM-dd') + 'T' + format(parseISO(draggedPost.scheduled_for), 'HH:mm:ss');
       
-      const { error } = await supabase
-        .from('scheduled_posts')
-        .update({ scheduled_for: newScheduledTime })
-        .eq('id', draggedPost.id);
-
-      if (error) throw error;
+      await scheduledPostService.reschedulePost(draggedPost.id, newScheduledTime);
 
       toast({
         title: 'Post Rescheduled',
@@ -135,10 +124,6 @@ const InteractiveCalendar: React.FC = () => {
       case 'facebook': return '👥';
       default: return '📱';
     }
-  };
-
-  const isVideoFile = (url: string) => {
-    return url && (url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('video'));
   };
 
   if (isLoading) {
@@ -196,6 +181,9 @@ const InteractiveCalendar: React.FC = () => {
                   color: 'rgb(var(--primary))'
                 },
               }}
+              onDayClick={(date) => setSelectedDate(date)}
+              onDrop={(e) => handleDateDrop(e, selectedDate)}
+              onDragOver={handleDragOver}
             />
           </div>
         </CardContent>
@@ -227,29 +215,12 @@ const InteractiveCalendar: React.FC = () => {
                     {/* Media Preview */}
                     {firstMediaUrl && (
                       <div className="relative">
-                        {isVideoFile(firstMediaUrl) ? (
-                          <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
-                            <video
-                              src={firstMediaUrl}
-                              className="w-full h-full object-cover"
-                              preload="metadata"
-                            />
-                            <div className="absolute top-2 left-2 bg-black/50 rounded px-2 py-1">
-                              <Video className="h-3 w-3 text-white" />
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="relative rounded-lg overflow-hidden aspect-video">
-                            <img
-                              src={firstMediaUrl}
-                              alt="Post media"
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute top-2 left-2 bg-black/50 rounded px-2 py-1">
-                              <ImageIcon className="h-3 w-3 text-white" />
-                            </div>
-                          </div>
-                        )}
+                        <MediaPreview 
+                          url={firstMediaUrl}
+                          className="aspect-video"
+                          showControls={false}
+                          showIcon={true}
+                        />
                         {firstPost.media_urls && firstPost.media_urls.length > 1 && (
                           <div className="absolute bottom-2 right-2 bg-black/50 rounded px-2 py-1">
                             <span className="text-white text-xs">+{firstPost.media_urls.length - 1}</span>
