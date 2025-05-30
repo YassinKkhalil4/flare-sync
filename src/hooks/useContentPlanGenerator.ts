@@ -63,6 +63,7 @@ export const useContentPlanGenerator = () => {
         plan = {
           id: `plan-${Date.now()}`,
           name: `${params.niche} Content Plan`,
+          content: `<h2>Content Plan for ${params.niche}</h2><p>This is a comprehensive content plan tailored to your ${params.niche} niche and ${params.audience} audience.</p><ul><li>Week 1: Introduction posts to establish your presence</li><li>Week 2: Educational content to provide value</li><li>Week 3: Behind-the-scenes content to build connection</li><li>Week 4: User-generated content and engagement</li></ul>`,
           startDate: new Date().toISOString(),
           endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           goal: params.goal,

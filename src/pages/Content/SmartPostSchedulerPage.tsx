@@ -27,7 +27,12 @@ const SmartPostSchedulerPage: React.FC = () => {
   } = useScheduler();
   
   const handleAnalyze = () => {
-    analyzeSchedule({ platform: selectedPlatform });
+    analyzeSchedule({ 
+      platform: selectedPlatform,
+      contentType: 'mixed',
+      audienceLocation: 'US',
+      postCount: 10
+    });
   };
 
   const handleRefresh = () => {
