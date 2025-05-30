@@ -41,7 +41,8 @@ export const initializeAppEnvironment = async () => {
     
     return {
       success: true,
-      message: "App environment initialized successfully"
+      message: "App environment initialized successfully",
+      error: null
     };
   } catch (error) {
     console.error("App initialization error:", error);
@@ -50,7 +51,8 @@ export const initializeAppEnvironment = async () => {
     // Most functionality can work without perfect initialization
     return {
       success: true,
-      message: "App initialization completed with warnings"
+      message: "App initialization completed with warnings",
+      error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 };

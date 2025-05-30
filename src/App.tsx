@@ -38,8 +38,8 @@ function App() {
       const result = await initializeAppEnvironment();
       
       if (!result.success) {
-        setInitError(result.error || 'Failed to initialize application');
-        console.error("Initialization failed:", result.error);
+        setInitError(result.error || result.message || 'Failed to initialize application');
+        console.error("Initialization failed:", result.error || result.message);
       } else {
         console.log("Initialization successful");
       }
