@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,9 +17,17 @@ const AdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { signIn } = useAuth();
+  const { signIn, user } = useAuth();
+  const { isAdmin, isLoading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Redirect if already logged in as admin
+  useEffect(() => {
+    if (user && !roleLoading && isAdmin) {
+      navigate('/admin');
+    }
+  }, [user, isAdmin, roleLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,12 +37,16 @@ const AdminLogin = () => {
     try {
       const result = await signIn({ email, password });
       
+      if (result?.error) {
+        throw new Error(result.error.message);
+      }
+      
       if (result?.data?.user) {
         toast({
           title: 'Admin login successful',
           description: 'Welcome to the admin dashboard',
         });
-        navigate('/admin');
+        // Navigation will be handled by useEffect after role is determined
       }
     } catch (error: any) {
       setError(error.message || 'Login failed');
