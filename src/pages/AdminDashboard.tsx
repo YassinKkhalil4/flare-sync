@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAdminPermissions } from '@/hooks/useAdminPermissions';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useAuth } from '@/context/AuthContext';
@@ -20,9 +20,25 @@ import {
 } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
-  const { permissions, isLoading } = useAdminPermissions();
-  const { isAdmin } = useUserRole();
-  const { signOut } = useAuth();
+  const { permissions, isLoading: permissionsLoading } = useAdminPermissions();
+  const { isAdmin, adminTier, userRole, isLoading: roleLoading } = useUserRole();
+  const { user, signOut } = useAuth();
+
+  // Debug logging
+  useEffect(() => {
+    console.log('AdminDashboard - Debug Info:', {
+      user: user?.id,
+      userEmail: user?.email,
+      isAdmin,
+      adminTier,
+      userRole,
+      permissions,
+      permissionsLoading,
+      roleLoading
+    });
+  }, [user, isAdmin, adminTier, userRole, permissions, permissionsLoading, roleLoading]);
+
+  const isLoading = permissionsLoading || roleLoading;
 
   if (isLoading) {
     return (
@@ -32,6 +48,13 @@ const AdminDashboard: React.FC = () => {
             <div className="text-center space-y-4">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto"></div>
               <p className="text-muted-foreground">Loading admin dashboard...</p>
+              {process.env.NODE_ENV === 'development' && (
+                <div className="text-xs text-gray-500">
+                  <p>User: {user?.email}</p>
+                  <p>Role loading: {roleLoading ? 'Yes' : 'No'}</p>
+                  <p>Permissions loading: {permissionsLoading ? 'Yes' : 'No'}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -39,7 +62,10 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
-  if (!isAdmin) {
+  // Check if user exists but is not admin
+  if (user && !isAdmin) {
+    console.log('Access denied - User is not admin:', { user: user.email, userRole, isAdmin });
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
         <div className="container mx-auto py-12">
@@ -47,9 +73,51 @@ const AdminDashboard: React.FC = () => {
             <CardContent className="p-8 text-center">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
               <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground mb-4">
                 You don't have permission to access the admin dashboard.
               </p>
+              
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-4 p-3 bg-gray-100 rounded text-xs text-left">
+                  <p className="font-semibold mb-2">Debug Info:</p>
+                  <p>Email: {user?.email}</p>
+                  <p>User ID: {user?.id}</p>
+                  <p>User Role: {userRole || 'null'}</p>
+                  <p>Is Admin: {isAdmin ? 'Yes' : 'No'}</p>
+                  <p>Admin Tier: {adminTier || 'null'}</p>
+                </div>
+              )}
+              
+              <div className="flex gap-2 justify-center mt-4">
+                <Button variant="outline" onClick={() => window.location.href = '/dashboard'}>
+                  Go to Dashboard
+                </Button>
+                <Button variant="outline" onClick={signOut}>
+                  Sign Out
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // If no user at all
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        <div className="container mx-auto py-12">
+          <Card className="max-w-md mx-auto">
+            <CardContent className="p-8 text-center">
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
+              <p className="text-muted-foreground mb-4">
+                Please log in to access the admin dashboard.
+              </p>
+              <Button onClick={() => window.location.href = '/admin-login'}>
+                Admin Login
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -102,6 +170,11 @@ const AdminDashboard: React.FC = () => {
               Admin Dashboard
             </h1>
             <p className="text-lg text-muted-foreground mt-2">Monitor and manage your FlareSync platform</p>
+            {process.env.NODE_ENV === 'development' && (
+              <p className="text-xs text-gray-500 mt-1">
+                Logged in as: {user?.email} | Role: {userRole} | Admin Tier: {adminTier}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-4">
             <Badge variant="default" className="flex items-center gap-2 px-4 py-2 text-sm">
@@ -187,6 +260,7 @@ const AdminDashboard: React.FC = () => {
               </TabsList>
             </div>
 
+            
             <TabsContent value="users" className="p-8 m-0">
               <div className="space-y-6">
                 <div>

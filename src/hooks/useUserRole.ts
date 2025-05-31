@@ -16,6 +16,7 @@ export const useUserRole = () => {
   useEffect(() => {
     const fetchUserRole = async () => {
       if (!user?.id) {
+        console.log('useUserRole: No user ID, resetting state');
         setUserRole(null);
         setIsAdmin(false);
         setAdminTier(null);
@@ -24,6 +25,7 @@ export const useUserRole = () => {
       }
 
       try {
+        console.log('useUserRole: Fetching role for user:', user.id);
         setIsLoading(true);
         setError(null);
 
@@ -34,8 +36,11 @@ export const useUserRole = () => {
           .eq('user_id', user.id)
           .single();
 
+        console.log('useUserRole: user_roles query result:', { roleData, roleError });
+
         if (roleData && !roleError) {
           const role = roleData.role as UserRole;
+          console.log('useUserRole: Found role in user_roles:', role);
           setUserRole(role);
           
           // Check if this is an admin role
@@ -44,24 +49,31 @@ export const useUserRole = () => {
                               role === 'admin-manager' || 
                               role === 'admin-support';
           
+          console.log('useUserRole: Is admin role?', isAdminRole);
           setIsAdmin(isAdminRole);
           
           if (isAdminRole) {
             // Determine admin tier based on role
-            if (role === 'admin-owner') setAdminTier('owner');
-            else if (role === 'admin-manager') setAdminTier('manager');
-            else if (role === 'admin-support') setAdminTier('support');
-            else setAdminTier('standard');
+            let tier = 'standard';
+            if (role === 'admin-owner') tier = 'owner';
+            else if (role === 'admin-manager') tier = 'manager';
+            else if (role === 'admin-support') tier = 'support';
+            
+            console.log('useUserRole: Admin tier determined:', tier);
+            setAdminTier(tier);
             
             // Also check the admin_roles table for more detailed permissions
-            const { data: adminRoleData } = await supabase
+            const { data: adminRoleData, error: adminRoleError } = await supabase
               .from('admin_roles')
               .select('*')
               .eq('user_id', user.id)
               .maybeSingle();
               
-            if (adminRoleData) {
+            console.log('useUserRole: admin_roles query result:', { adminRoleData, adminRoleError });
+              
+            if (adminRoleData && !adminRoleError) {
               // If we have more specific tier information from admin_roles table, use that
+              console.log('useUserRole: Using tier from admin_roles:', adminRoleData.tier);
               setAdminTier(adminRoleData.tier);
             }
           } else {
@@ -73,18 +85,23 @@ export const useUserRole = () => {
         }
 
         // If not found in user_roles, check in profiles table
+        console.log('useUserRole: Role not found in user_roles, checking profiles table');
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', user.id)
           .single();
 
+        console.log('useUserRole: profiles query result:', { profileData, profileError });
+
         if (profileError) {
+          console.error('useUserRole: Profile error:', profileError);
           throw profileError;
         }
 
         if (profileData && profileData.role) {
           const role = profileData.role as UserRole;
+          console.log('useUserRole: Found role in profiles:', role);
           setUserRole(role);
           
           // Check if this is an admin role in profile
@@ -93,25 +110,30 @@ export const useUserRole = () => {
                               role === 'admin-manager' || 
                               role === 'admin-support';
           
+          console.log('useUserRole: Is admin role from profile?', isAdminRole);
           setIsAdmin(isAdminRole);
           
           if (isAdminRole) {
             // Determine admin tier based on role
-            if (role === 'admin-owner') setAdminTier('owner');
-            else if (role === 'admin-manager') setAdminTier('manager');
-            else if (role === 'admin-support') setAdminTier('support');
-            else setAdminTier('standard');
+            let tier = 'standard';
+            if (role === 'admin-owner') tier = 'owner';
+            else if (role === 'admin-manager') tier = 'manager';
+            else if (role === 'admin-support') tier = 'support';
+            
+            console.log('useUserRole: Admin tier from profile:', tier);
+            setAdminTier(tier);
           } else {
             setAdminTier(null);
           }
         } else {
           // Default to creator if not found
+          console.log('useUserRole: No role found, defaulting to creator');
           setUserRole('creator');
           setIsAdmin(false);
           setAdminTier(null);
         }
       } catch (err) {
-        console.error('Error fetching user role:', err);
+        console.error('useUserRole: Error fetching user role:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch user role');
         // Default to creator on error
         setUserRole('creator');
@@ -119,6 +141,11 @@ export const useUserRole = () => {
         setAdminTier(null);
       } finally {
         setIsLoading(false);
+        console.log('useUserRole: Final state:', { 
+          userRole: userRole, 
+          isAdmin: isAdmin, 
+          adminTier: adminTier 
+        });
       }
     };
 
