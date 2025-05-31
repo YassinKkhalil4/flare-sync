@@ -24,16 +24,12 @@ export const useUserRole = () => {
         return;
       }
 
-      // Declare variables outside try block for proper scope
-      let foundAdminRole = false;
-      let primaryRole: UserRole = null;
-
       try {
         console.log('useUserRole: Fetching role for user:', user.id);
         setIsLoading(true);
         setError(null);
 
-        // First check if the user has a role in user_roles table
+        // Check user_roles table first for admin roles
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
           .select('role')
@@ -42,7 +38,7 @@ export const useUserRole = () => {
         console.log('useUserRole: user_roles query result:', { roleData, roleError });
 
         if (roleData && !roleError && roleData.length > 0) {
-          // Check if any of the roles is an admin role
+          // Look for admin roles first
           const adminRole = roleData.find(r => 
             r.role === 'admin-owner' || 
             r.role === 'admin-manager' || 
@@ -51,103 +47,79 @@ export const useUserRole = () => {
           );
           
           if (adminRole) {
-            foundAdminRole = true;
-            primaryRole = adminRole.role as UserRole;
             console.log('useUserRole: Found admin role:', adminRole.role);
-            
-            // Set admin state immediately
-            setUserRole(primaryRole);
+            setUserRole(adminRole.role as UserRole);
             setIsAdmin(true);
             
-            // Determine admin tier based on role
+            // Set admin tier
             let tier = 'standard';
-            if (primaryRole === 'admin-owner') tier = 'owner';
-            else if (primaryRole === 'admin-manager') tier = 'manager';
-            else if (primaryRole === 'admin-support') tier = 'support';
+            if (adminRole.role === 'admin-owner') tier = 'owner';
+            else if (adminRole.role === 'admin-manager') tier = 'manager';
+            else if (adminRole.role === 'admin-support') tier = 'support';
             
-            console.log('useUserRole: Admin tier determined:', tier);
             setAdminTier(tier);
-
-            // Also check the admin_roles table for more detailed permissions
-            const { data: adminRoleData, error: adminRoleError } = await supabase
-              .from('admin_roles')
-              .select('*')
-              .eq('user_id', user.id)
-              .maybeSingle();
-              
-            console.log('useUserRole: admin_roles query result:', { adminRoleData, adminRoleError });
-              
-            if (adminRoleData && !adminRoleError) {
-              console.log('useUserRole: Using tier from admin_roles:', adminRoleData.tier);
-              setAdminTier(adminRoleData.tier);
-            }
-            
             setIsLoading(false);
             return;
-          } else {
-            // Use the first non-admin role
-            primaryRole = roleData[0].role as UserRole;
-            console.log('useUserRole: Found regular role:', primaryRole);
           }
+          
+          // If no admin role, use the first regular role
+          const regularRole = roleData[0].role as UserRole;
+          console.log('useUserRole: Found regular role:', regularRole);
+          setUserRole(regularRole);
+          setIsAdmin(false);
+          setAdminTier(null);
+          setIsLoading(false);
+          return;
         }
 
-        // If no admin role found in user_roles, check profiles table as fallback
-        if (!foundAdminRole) {
-          console.log('useUserRole: No admin role in user_roles, checking profiles table');
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .maybeSingle();
+        // Fallback to profiles table
+        console.log('useUserRole: No roles in user_roles, checking profiles table');
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
 
-          console.log('useUserRole: profiles query result:', { profileData, profileError });
+        console.log('useUserRole: profiles query result:', { profileData, profileError });
 
-          if (profileData && profileData.role) {
-            primaryRole = profileData.role as UserRole;
-            console.log('useUserRole: Found role in profiles:', primaryRole);
-          } else {
-            // Default to creator if not found anywhere
-            console.log('useUserRole: No role found anywhere, defaulting to creator');
-            primaryRole = 'creator';
-          }
+        if (profileData && profileData.role) {
+          const role = profileData.role as UserRole;
+          setUserRole(role);
+          setIsAdmin(false);
+          setAdminTier(null);
+        } else {
+          // Default to creator
+          console.log('useUserRole: No role found, defaulting to creator');
+          setUserRole('creator');
+          setIsAdmin(false);
+          setAdminTier(null);
         }
-
-        setUserRole(primaryRole);
-        setIsAdmin(false);
-        setAdminTier(null);
 
       } catch (err) {
         console.error('useUserRole: Error fetching user role:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch user role');
-        // Default to creator on error
         setUserRole('creator');
         setIsAdmin(false);
         setAdminTier(null);
       } finally {
         setIsLoading(false);
-        console.log('useUserRole: Final state - userRole:', primaryRole, 'isAdmin:', foundAdminRole, 'adminTier:', adminTier);
       }
     };
 
     fetchUserRole();
   }, [user?.id]);
 
-  // Check if user has specific admin permissions
   const hasAdminPermission = (requiredTier: 'owner' | 'manager' | 'support' | 'standard'): boolean => {
     if (!isAdmin || !adminTier) return false;
     
     switch (requiredTier) {
       case 'standard':
-        // All admin tiers have standard permissions
         return true;
       case 'support':
-        // Only support, manager and owner have support permissions
         return ['support', 'manager', 'owner'].includes(adminTier);
       case 'manager':
-        // Only manager and owner have manager permissions
         return ['manager', 'owner'].includes(adminTier);
       case 'owner':
-        // Only owner has owner permissions
         return adminTier === 'owner';
       default:
         return false;

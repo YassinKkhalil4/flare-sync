@@ -1,11 +1,12 @@
+
 import React, { useEffect } from 'react';
 import { useAdminPermissions } from '@/hooks/useAdminPermissions';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { 
   Users, 
   CreditCard, 
@@ -13,18 +14,17 @@ import {
   Settings, 
   Activity,
   AlertCircle,
-  Shield,
   TrendingUp,
-  Database,
-  LogOut
+  UserCheck,
+  DollarSign,
+  MessageSquare
 } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
   const { permissions, isLoading: permissionsLoading } = useAdminPermissions();
   const { isAdmin, adminTier, userRole, isLoading: roleLoading } = useUserRole();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
 
-  // Debug logging
   useEffect(() => {
     console.log('AdminDashboard - Debug Info:', {
       user: user?.id,
@@ -42,33 +42,21 @@ const AdminDashboard: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-        <div className="container mx-auto py-12">
-          <div className="flex items-center justify-center">
-            <div className="text-center space-y-4">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto"></div>
-              <p className="text-muted-foreground">Loading admin dashboard...</p>
-              {process.env.NODE_ENV === 'development' && (
-                <div className="text-xs text-gray-500">
-                  <p>User: {user?.email}</p>
-                  <p>Role loading: {roleLoading ? 'Yes' : 'No'}</p>
-                  <p>Permissions loading: {permissionsLoading ? 'Yes' : 'No'}</p>
-                </div>
-              )}
-            </div>
+      <AdminLayout>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center space-y-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto"></div>
+            <p className="text-muted-foreground">Loading admin dashboard...</p>
           </div>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
-  // Check if user exists but is not admin
-  if (user && !isAdmin) {
-    console.log('Access denied - User is not admin:', { user: user.email, userRole, isAdmin });
-    
+  if (!user || !isAdmin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-        <div className="container mx-auto py-12">
+      <AdminLayout>
+        <div className="flex items-center justify-center h-full">
           <Card className="max-w-md mx-auto">
             <CardContent className="p-8 text-center">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
@@ -76,7 +64,6 @@ const AdminDashboard: React.FC = () => {
               <p className="text-muted-foreground mb-4">
                 You don't have permission to access the admin dashboard.
               </p>
-              
               {process.env.NODE_ENV === 'development' && (
                 <div className="mt-4 p-3 bg-gray-100 rounded text-xs text-left">
                   <p className="font-semibold mb-2">Debug Info:</p>
@@ -87,41 +74,10 @@ const AdminDashboard: React.FC = () => {
                   <p>Admin Tier: {adminTier || 'null'}</p>
                 </div>
               )}
-              
-              <div className="flex gap-2 justify-center mt-4">
-                <Button variant="outline" onClick={() => window.location.href = '/dashboard'}>
-                  Go to Dashboard
-                </Button>
-                <Button variant="outline" onClick={signOut}>
-                  Sign Out
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </div>
-      </div>
-    );
-  }
-
-  // If no user at all
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-        <div className="container mx-auto py-12">
-          <Card className="max-w-md mx-auto">
-            <CardContent className="p-8 text-center">
-              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
-              <p className="text-muted-foreground mb-4">
-                Please log in to access the admin dashboard.
-              </p>
-              <Button onClick={() => window.location.href = '/admin-login'}>
-                Admin Login
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      </AdminLayout>
     );
   }
 
@@ -131,88 +87,66 @@ const AdminDashboard: React.FC = () => {
       value: '1,234',
       change: '+12%',
       icon: Users,
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-50'
+      color: 'text-blue-600'
+    },
+    {
+      title: 'Active Users',
+      value: '892',
+      change: '+5%',
+      icon: UserCheck,
+      color: 'text-green-600'
     },
     {
       title: 'Revenue',
       value: '$45,231',
       change: '+23%',
-      icon: CreditCard,
-      color: 'text-green-500',
-      bgColor: 'bg-green-50'
+      icon: DollarSign,
+      color: 'text-emerald-600'
     },
     {
       title: 'Content Posts',
       value: '5,678',
       change: '+8%',
       icon: FileText,
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-50'
-    },
-    {
-      title: 'Active Sessions',
-      value: '892',
-      change: '+5%',
-      icon: Activity,
-      color: 'text-orange-500',
-      bgColor: 'bg-orange-50'
+      color: 'text-purple-600'
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="container mx-auto py-12 px-4">
+    <AdminLayout>
+      <div className="p-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-12">
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Admin Dashboard
-            </h1>
-            <p className="text-lg text-muted-foreground mt-2">Monitor and manage your FlareSync platform</p>
-            {process.env.NODE_ENV === 'development' && (
-              <p className="text-xs text-gray-500 mt-1">
-                Logged in as: {user?.email} | Role: {userRole} | Admin Tier: {adminTier}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-4">
-            <Badge variant="default" className="flex items-center gap-2 px-4 py-2 text-sm">
-              <Shield className="h-4 w-4" />
-              Administrator
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+              <p className="text-muted-foreground">Monitor and manage your FlareSync platform</p>
+            </div>
+            <Badge variant="secondary" className="px-4 py-2">
+              {adminTier?.charAt(0).toUpperCase() + adminTier?.slice(1)} Admin
             </Badge>
-            <Button 
-              variant="outline" 
-              onClick={signOut}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </Button>
           </div>
         </div>
 
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {stats.map((stat) => {
             const IconComponent = stat.icon;
             return (
-              <Card key={stat.title} className="relative overflow-hidden hover:shadow-lg transition-shadow">
+              <Card key={stat.title}>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
-                    <div className="space-y-2">
+                    <div>
                       <p className="text-sm font-medium text-muted-foreground">
                         {stat.title}
                       </p>
-                      <p className="text-3xl font-bold">{stat.value}</p>
-                      <div className="flex items-center gap-1">
+                      <p className="text-2xl font-bold">{stat.value}</p>
+                      <div className="flex items-center gap-1 mt-1">
                         <TrendingUp className="h-3 w-3 text-green-600" />
-                        <p className="text-xs text-green-600 font-medium">{stat.change} from last month</p>
+                        <p className="text-xs text-green-600">{stat.change}</p>
                       </div>
                     </div>
-                    <div className={`p-3 rounded-full ${stat.bgColor}`}>
-                      <IconComponent className={`h-6 w-6 ${stat.color}`} />
-                    </div>
+                    <IconComponent className={`h-8 w-8 ${stat.color}`} />
                   </div>
                 </CardContent>
               </Card>
@@ -220,15 +154,19 @@ const AdminDashboard: React.FC = () => {
           })}
         </div>
 
-        {/* Admin Tabs */}
-        <Card className="overflow-hidden">
-          <Tabs defaultValue="users" className="w-full">
-            <div className="border-b bg-muted/30">
-              <TabsList className="grid w-full grid-cols-4 bg-transparent h-16 p-2">
+        {/* Management Tabs */}
+        <Card>
+          <Tabs defaultValue="overview" className="w-full">
+            <div className="border-b">
+              <TabsList className="grid w-full grid-cols-4 bg-transparent h-14">
+                <TabsTrigger value="overview" className="h-12">
+                  <Activity className="h-4 w-4 mr-2" />
+                  Overview
+                </TabsTrigger>
                 <TabsTrigger 
                   value="users" 
                   disabled={!permissions?.can_manage_users}
-                  className="h-12 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg"
+                  className="h-12"
                 >
                   <Users className="h-4 w-4 mr-2" />
                   Users
@@ -236,7 +174,7 @@ const AdminDashboard: React.FC = () => {
                 <TabsTrigger 
                   value="content" 
                   disabled={!permissions?.can_manage_content}
-                  className="h-12 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg"
+                  className="h-12"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Content
@@ -244,98 +182,110 @@ const AdminDashboard: React.FC = () => {
                 <TabsTrigger 
                   value="billing" 
                   disabled={!permissions?.can_access_billing}
-                  className="h-12 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg"
+                  className="h-12"
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
                   Billing
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="settings" 
-                  disabled={!permissions?.can_manage_plans}
-                  className="h-12 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
-                </TabsTrigger>
               </TabsList>
             </div>
 
-            
-            <TabsContent value="users" className="p-8 m-0">
+            <TabsContent value="overview" className="p-6">
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-semibold mb-2">User Management</h2>
-                  <p className="text-muted-foreground">Manage user accounts and permissions across the platform</p>
-                </div>
-                <div className="text-center py-16">
-                  <div className="rounded-full bg-muted p-6 mx-auto mb-6 w-fit">
-                    <Users className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-lg font-medium mb-2">User Management Tools</h3>
-                  <p className="text-muted-foreground max-w-md mx-auto">
-                    Advanced user management features will be implemented here to help you oversee platform users
+                  <h3 className="text-lg font-semibold mb-2">Platform Overview</h3>
+                  <p className="text-muted-foreground">
+                    Monitor key platform metrics and system health
                   </p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <MessageSquare className="h-5 w-5" />
+                        Recent Activity
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">New user registrations</span>
+                          <span className="text-sm font-medium">+24 today</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Posts published</span>
+                          <span className="text-sm font-medium">156 today</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Support tickets</span>
+                          <span className="text-sm font-medium">3 open</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Settings className="h-5 w-5" />
+                        System Status
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Database</span>
+                          <Badge variant="secondary" className="bg-green-100 text-green-800">Healthy</Badge>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">API Status</span>
+                          <Badge variant="secondary" className="bg-green-100 text-green-800">Operational</Badge>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Storage</span>
+                          <Badge variant="secondary" className="bg-green-100 text-green-800">Online</Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
             </TabsContent>
 
-            <TabsContent value="content" className="p-8 m-0">
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-semibold mb-2">Content Management</h2>
-                  <p className="text-muted-foreground">Monitor and manage all content created on the platform</p>
-                </div>
-                <div className="text-center py-16">
-                  <div className="rounded-full bg-muted p-6 mx-auto mb-6 w-fit">
-                    <FileText className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-lg font-medium mb-2">Content Overview</h3>
-                  <p className="text-muted-foreground max-w-md mx-auto">
-                    Content moderation and analytics tools will be available here to maintain platform quality
-                  </p>
-                </div>
+            <TabsContent value="users" className="p-6">
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">User Management</h3>
+                <p className="text-muted-foreground">
+                  Advanced user management tools will be implemented here
+                </p>
               </div>
             </TabsContent>
 
-            <TabsContent value="billing" className="p-8 m-0">
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-semibold mb-2">Billing & Revenue</h2>
-                  <p className="text-muted-foreground">Track platform revenue and subscription analytics</p>
-                </div>
-                <div className="text-center py-16">
-                  <div className="rounded-full bg-muted p-6 mx-auto mb-6 w-fit">
-                    <CreditCard className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-lg font-medium mb-2">Revenue Dashboard</h3>
-                  <p className="text-muted-foreground max-w-md mx-auto">
-                    Comprehensive billing analytics and revenue tracking tools will be implemented here
-                  </p>
-                </div>
+            <TabsContent value="content" className="p-6">
+              <div className="text-center py-12">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Content Management</h3>
+                <p className="text-muted-foreground">
+                  Content moderation and management tools will be available here
+                </p>
               </div>
             </TabsContent>
 
-            <TabsContent value="settings" className="p-8 m-0">
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-semibold mb-2">Platform Settings</h2>
-                  <p className="text-muted-foreground">Configure platform-wide settings and preferences</p>
-                </div>
-                <div className="text-center py-16">
-                  <div className="rounded-full bg-muted p-6 mx-auto mb-6 w-fit">
-                    <Database className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-lg font-medium mb-2">System Configuration</h3>
-                  <p className="text-muted-foreground max-w-md mx-auto">
-                    Platform configuration tools and system settings will be available here for administrators
-                  </p>
-                </div>
+            <TabsContent value="billing" className="p-6">
+              <div className="text-center py-12">
+                <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Billing Management</h3>
+                <p className="text-muted-foreground">
+                  Revenue tracking and billing management tools will be implemented here
+                </p>
               </div>
             </TabsContent>
           </Tabs>
         </Card>
       </div>
-    </div>
+    </AdminLayout>
   );
 };
 

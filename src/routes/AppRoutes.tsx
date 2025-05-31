@@ -32,7 +32,7 @@ const AppRoutes = () => {
           <Route path="/signup" element={<Signup />} />
           <Route path="/admin-login" element={<AdminLogin />} />
           
-          {/* Protected routes */}
+          {/* Protected routes with regular layout */}
           <Route 
             path="/dashboard" 
             element={
@@ -40,15 +40,6 @@ const AppRoutes = () => {
                 <OnboardingWrapper>
                   <Dashboard />
                 </OnboardingWrapper>
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/admin" 
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <AdminDashboard />
               </ProtectedRoute>
             } 
           />
@@ -106,6 +97,16 @@ const AppRoutes = () => {
                 </OnboardingWrapper>
               </ProtectedRoute>
             }
+          />
+          
+          {/* Admin routes - separate from regular layout */}
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } 
           />
           
         </Routes>
