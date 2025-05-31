@@ -47,7 +47,7 @@ const AppRoutes = () => {
           <Route 
             path="/admin" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin={true}>
                 <AdminDashboard />
               </ProtectedRoute>
             } 
