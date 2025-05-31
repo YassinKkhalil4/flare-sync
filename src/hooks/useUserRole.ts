@@ -53,43 +53,41 @@ export const useUserRole = () => {
             foundAdminRole = true;
             primaryRole = adminRole.role as UserRole;
             console.log('useUserRole: Found admin role:', adminRole.role);
+            
+            // Set admin state immediately
+            setUserRole(primaryRole);
+            setIsAdmin(true);
+            
+            // Determine admin tier based on role
+            let tier = 'standard';
+            if (primaryRole === 'admin-owner') tier = 'owner';
+            else if (primaryRole === 'admin-manager') tier = 'manager';
+            else if (primaryRole === 'admin-support') tier = 'support';
+            
+            console.log('useUserRole: Admin tier determined:', tier);
+            setAdminTier(tier);
+
+            // Also check the admin_roles table for more detailed permissions
+            const { data: adminRoleData, error: adminRoleError } = await supabase
+              .from('admin_roles')
+              .select('*')
+              .eq('user_id', user.id)
+              .maybeSingle();
+              
+            console.log('useUserRole: admin_roles query result:', { adminRoleData, adminRoleError });
+              
+            if (adminRoleData && !adminRoleError) {
+              console.log('useUserRole: Using tier from admin_roles:', adminRoleData.tier);
+              setAdminTier(adminRoleData.tier);
+            }
+            
+            setIsLoading(false);
+            return;
           } else {
             // Use the first non-admin role
             primaryRole = roleData[0].role as UserRole;
             console.log('useUserRole: Found regular role:', primaryRole);
           }
-        }
-
-        // If admin role found, set admin state
-        if (foundAdminRole && primaryRole) {
-          setUserRole(primaryRole);
-          setIsAdmin(true);
-          
-          // Determine admin tier based on role
-          let tier = 'standard';
-          if (primaryRole === 'admin-owner') tier = 'owner';
-          else if (primaryRole === 'admin-manager') tier = 'manager';
-          else if (primaryRole === 'admin-support') tier = 'support';
-          
-          console.log('useUserRole: Admin tier determined:', tier);
-          setAdminTier(tier);
-
-          // Also check the admin_roles table for more detailed permissions
-          const { data: adminRoleData, error: adminRoleError } = await supabase
-            .from('admin_roles')
-            .select('*')
-            .eq('user_id', user.id)
-            .maybeSingle();
-            
-          console.log('useUserRole: admin_roles query result:', { adminRoleData, adminRoleError });
-            
-          if (adminRoleData && !adminRoleError) {
-            console.log('useUserRole: Using tier from admin_roles:', adminRoleData.tier);
-            setAdminTier(adminRoleData.tier);
-          }
-          
-          setIsLoading(false);
-          return;
         }
 
         // If no admin role found in user_roles, check profiles table as fallback
@@ -126,7 +124,7 @@ export const useUserRole = () => {
         setAdminTier(null);
       } finally {
         setIsLoading(false);
-        console.log('useUserRole: Final state - userRole:', userRole, 'isAdmin:', isAdmin, 'adminTier:', adminTier);
+        console.log('useUserRole: Final state - userRole:', primaryRole, 'isAdmin:', foundAdminRole || false, 'adminTier:', adminTier);
       }
     };
 
