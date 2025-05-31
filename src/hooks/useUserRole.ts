@@ -24,6 +24,10 @@ export const useUserRole = () => {
         return;
       }
 
+      // Declare variables outside try block for proper scope
+      let foundAdminRole = false;
+      let primaryRole: UserRole = null;
+
       try {
         console.log('useUserRole: Fetching role for user:', user.id);
         setIsLoading(true);
@@ -36,9 +40,6 @@ export const useUserRole = () => {
           .eq('user_id', user.id);
 
         console.log('useUserRole: user_roles query result:', { roleData, roleError });
-
-        let foundAdminRole = false;
-        let primaryRole: UserRole = null;
 
         if (roleData && !roleError && roleData.length > 0) {
           // Check if any of the roles is an admin role
@@ -124,7 +125,7 @@ export const useUserRole = () => {
         setAdminTier(null);
       } finally {
         setIsLoading(false);
-        console.log('useUserRole: Final state - userRole:', primaryRole, 'isAdmin:', foundAdminRole || false, 'adminTier:', adminTier);
+        console.log('useUserRole: Final state - userRole:', primaryRole, 'isAdmin:', foundAdminRole, 'adminTier:', adminTier);
       }
     };
 
