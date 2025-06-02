@@ -75,26 +75,50 @@ export const subscriptionService = {
   checkout: async (params: CheckoutParams) => {
     try {
       console.log('Starting checkout with params:', params);
+      
+      // Validate params
+      if (!params.priceId) {
+        throw new Error('Price ID is required');
+      }
+      if (!params.plan) {
+        throw new Error('Plan is required');
+      }
+      
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) {
         console.error('No active session found for checkout');
-        throw new Error('No active session');
+        throw new Error('No active session - please log in');
       }
       
-      console.log('Calling create-paddle-checkout function...');
+      console.log('User session found, calling create-paddle-checkout function...');
       const { data, error } = await supabase.functions.invoke('create-paddle-checkout', {
         body: params,
         headers: {
-          Authorization: `Bearer ${session.session.access_token}`
+          Authorization: `Bearer ${session.session.access_token}`,
+          'Content-Type': 'application/json'
         }
       });
       
       if (error) {
         console.error('Error from create-paddle-checkout function:', error);
-        throw error;
+        throw new Error(`Checkout failed: ${error.message || 'Unknown error'}`);
       }
       
-      console.log('Checkout result:', data);
+      if (!data) {
+        throw new Error('No response data from checkout function');
+      }
+      
+      if (data.error) {
+        console.error('Checkout function returned error:', data.error);
+        throw new Error(`Checkout error: ${data.error}`);
+      }
+      
+      if (!data.url) {
+        console.error('No checkout URL in response:', data);
+        throw new Error('No checkout URL received from Paddle');
+      }
+      
+      console.log('Checkout successful, URL received:', data.url);
       return data;
     } catch (error) {
       console.error('Error creating checkout session:', error);
