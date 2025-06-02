@@ -15,22 +15,36 @@ serve(async (req) => {
 
   try {
     console.log('Paddle checkout function called');
+    console.log('Request method:', req.method);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
     
-    // Get request data
-    const requestBody = await req.text();
-    console.log('Request body:', requestBody);
-    
+    // Get request data - handle both text and JSON properly
     let parsedBody;
     try {
+      const requestBody = await req.text();
+      console.log('Raw request body:', requestBody);
+      console.log('Request body length:', requestBody.length);
+      
+      if (!requestBody || requestBody.trim() === '') {
+        throw new Error("Request body is empty");
+      }
+      
       parsedBody = JSON.parse(requestBody);
+      console.log('Parsed request body:', parsedBody);
     } catch (parseError) {
       console.error('Failed to parse request body:', parseError);
-      throw new Error("Invalid JSON in request body");
+      return new Response(JSON.stringify({ 
+        error: "Invalid or empty request body",
+        details: parseError.message 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
     }
     
     const { priceId, plan } = parsedBody;
     
-    console.log('Parsed request data:', { priceId, plan });
+    console.log('Extracted data:', { priceId, plan });
     
     if (!priceId) {
       throw new Error("Price ID is required");

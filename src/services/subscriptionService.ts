@@ -91,13 +91,24 @@ export const subscriptionService = {
       }
       
       console.log('User session found, calling create-paddle-checkout function...');
+      
+      // Make sure we're sending the body correctly
+      const requestBody = {
+        priceId: params.priceId,
+        plan: params.plan
+      };
+      
+      console.log('Request body being sent:', requestBody);
+      
       const { data, error } = await supabase.functions.invoke('create-paddle-checkout', {
-        body: params,
+        body: requestBody,
         headers: {
           Authorization: `Bearer ${session.session.access_token}`,
           'Content-Type': 'application/json'
         }
       });
+      
+      console.log('Raw response from function:', { data, error });
       
       if (error) {
         console.error('Error from create-paddle-checkout function:', error);
