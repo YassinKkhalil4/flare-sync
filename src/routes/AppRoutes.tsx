@@ -19,6 +19,7 @@ const CreatorProfile = React.lazy(() => import('@/pages/CreatorProfile'));
 const Analytics = React.lazy(() => import('@/pages/Analytics'));
 const Settings = React.lazy(() => import('@/pages/Settings'));
 const SocialConnect = React.lazy(() => import('@/pages/SocialConnect'));
+const Plans = React.lazy(() => import('@/pages/Plans'));
 
 // Admin pages
 const AdminAnalytics = React.lazy(() => import('@/pages/admin/AdminAnalytics'));
@@ -102,6 +103,17 @@ const AppRoutes = () => {
               <ProtectedRoute>
                 <OnboardingWrapper>
                   <ApiKeysSetup />
+                </OnboardingWrapper>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/plans"
+            element={
+              <ProtectedRoute>
+                <OnboardingWrapper>
+                  <Plans />
                 </OnboardingWrapper>
               </ProtectedRoute>
             }

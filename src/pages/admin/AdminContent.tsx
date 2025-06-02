@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -304,72 +305,5 @@ const AdminContent = () => {
     </AdminLayout>
   );
 };
-
-const getStatusBadgeVariant = (status: string) => {
-  switch (status) {
-    case 'published': return 'default';
-    case 'scheduled': return 'secondary';
-    case 'draft': return 'outline';
-    default: return 'outline';
-  }
-};
-
-const getPlatformBadgeColor = (platform: string) => {
-  switch (platform.toLowerCase()) {
-    case 'instagram': return 'bg-pink-100 text-pink-800';
-    case 'twitter': return 'bg-blue-100 text-blue-800';
-    case 'tiktok': return 'bg-black text-white';
-    case 'youtube': return 'bg-red-100 text-red-800';
-    default: return 'bg-gray-100 text-gray-800';
-  }
-};
-
-const deletePostMutation = useMutation({
-  mutationFn: async (postId: string) => {
-    const { error } = await supabase
-      .from('content_posts')
-      .delete()
-      .eq('id', postId);
-    if (error) throw error;
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['adminContent'] });
-    toast({
-      title: 'Success',
-      description: 'Post deleted successfully',
-    });
-  },
-  onError: () => {
-    toast({
-      title: 'Error',
-      description: 'Failed to delete post',
-      variant: 'destructive',
-    });
-  }
-});
-
-const updatePostStatusMutation = useMutation({
-  mutationFn: async ({ postId, status }: { postId: string; status: string }) => {
-    const { error } = await supabase
-      .from('content_posts')
-      .update({ status })
-      .eq('id', postId);
-    if (error) throw error;
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['adminContent'] });
-    toast({
-      title: 'Success',
-      description: 'Post status updated successfully',
-    });
-  },
-  onError: () => {
-    toast({
-      title: 'Error',
-      description: 'Failed to update post status',
-      variant: 'destructive',
-    });
-  }
-});
 
 export default AdminContent;
