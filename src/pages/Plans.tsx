@@ -8,7 +8,7 @@ import { Check, Crown, Zap, Users } from 'lucide-react';
 import { PLAN_DETAILS, type UserPlan } from '@/lib/supabase';
 
 const Plans: React.FC = () => {
-  const { subscription, startCheckout, openCustomerPortal, isLoading } = useSubscription();
+  const { subscription, startCheckout, openCustomerPortal, isLoading, checkSubscription } = useSubscription();
 
   const planData = [
     {
@@ -18,7 +18,7 @@ const Plans: React.FC = () => {
       icon: Zap,
       color: 'bg-blue-500',
       popular: false,
-      paddlePrice: 'pri_basic_monthly' // Replace with your Paddle price ID
+      paddlePrice: 'pri_01je9f4t2avm8bg5n89vnqg0v3' // Replace with your actual Paddle price ID
     },
     {
       id: 'pro' as UserPlan,
@@ -27,7 +27,7 @@ const Plans: React.FC = () => {
       icon: Crown,
       color: 'bg-purple-500',
       popular: true,
-      paddlePrice: 'pri_pro_monthly' // Replace with your Paddle price ID
+      paddlePrice: 'pri_01je9f4t2avm8bg5n89vnqg0v4' // Replace with your actual Paddle price ID
     },
     {
       id: 'enterprise' as UserPlan,
@@ -36,12 +36,18 @@ const Plans: React.FC = () => {
       icon: Users,
       color: 'bg-orange-500',
       popular: false,
-      paddlePrice: 'pri_enterprise_monthly' // Replace with your Paddle price ID
+      paddlePrice: 'pri_01je9f4t2avm8bg5n89vnqg0v5' // Replace with your actual Paddle price ID
     }
   ];
 
   const handleUpgrade = (priceId: string, planName: UserPlan) => {
+    console.log('Starting checkout for plan:', planName, 'with price ID:', priceId);
     startCheckout(priceId, planName);
+  };
+
+  const handleCheckSubscription = () => {
+    console.log('Checking subscription status...');
+    checkSubscription();
   };
 
   if (isLoading) {
@@ -65,17 +71,25 @@ const Plans: React.FC = () => {
         <div className="mb-8 text-center">
           <Card className="inline-block">
             <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mb-2">
                 Current Plan: <Badge variant="default">{subscription.plan}</Badge>
               </p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={openCustomerPortal}
-                className="mt-2"
-              >
-                Manage Subscription
-              </Button>
+              <div className="flex gap-2 justify-center">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={openCustomerPortal}
+                >
+                  Manage Subscription
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleCheckSubscription}
+                >
+                  Sync Status
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -176,6 +190,9 @@ const Plans: React.FC = () => {
       <div className="text-center mt-8">
         <p className="text-sm text-muted-foreground">
           All plans include a 14-day free trial. Cancel anytime.
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">
+          Note: Replace the Paddle price IDs above with your actual price IDs from your Paddle dashboard
         </p>
       </div>
     </div>

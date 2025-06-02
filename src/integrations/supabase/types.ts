@@ -996,6 +996,7 @@ export type Database = {
           full_name: string | null
           id: string
           onboarded: boolean | null
+          paddle_customer_id: string | null
           plan: string | null
           role: string | null
           stripe_customer_id: string | null
@@ -1012,6 +1013,7 @@ export type Database = {
           full_name?: string | null
           id: string
           onboarded?: boolean | null
+          paddle_customer_id?: string | null
           plan?: string | null
           role?: string | null
           stripe_customer_id?: string | null
@@ -1028,6 +1030,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           onboarded?: boolean | null
+          paddle_customer_id?: string | null
           plan?: string | null
           role?: string | null
           stripe_customer_id?: string | null
