@@ -20,6 +20,14 @@ const Analytics = React.lazy(() => import('@/pages/Analytics'));
 const Settings = React.lazy(() => import('@/pages/Settings'));
 const SocialConnect = React.lazy(() => import('@/pages/SocialConnect'));
 
+// Admin pages
+const AdminAnalytics = React.lazy(() => import('@/pages/admin/AdminAnalytics'));
+const AdminUsers = React.lazy(() => import('@/pages/admin/AdminUsers'));
+const AdminContent = React.lazy(() => import('@/pages/admin/AdminContent'));
+const AdminBilling = React.lazy(() => import('@/pages/admin/AdminBilling'));
+const AdminNotifications = React.lazy(() => import('@/pages/admin/AdminNotifications'));
+const AdminSettings = React.lazy(() => import('@/pages/admin/AdminSettings'));
+
 const AppRoutes = () => {
   return (
     <ErrorBoundary>
@@ -105,6 +113,60 @@ const AppRoutes = () => {
             element={
               <ProtectedRoute requireAdmin={true}>
                 <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/admin/analytics" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminAnalytics />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/admin/users" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminUsers />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/admin/content" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminContent />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/admin/billing" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminBilling />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/admin/notifications" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminNotifications />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/admin/settings" 
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminSettings />
               </ProtectedRoute>
             } 
           />
