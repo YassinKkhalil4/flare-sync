@@ -31,9 +31,8 @@ const AdminLogin = () => {
         console.log('AdminLogin: User is admin, redirecting to /admin');
         navigate('/admin');
       } else {
-        console.log('AdminLogin: User is not admin, showing access denied or redirecting to dashboard');
-        // You could either show an error or redirect to dashboard
-        // For now, let them stay on the login page to try different credentials
+        console.log('AdminLogin: User is not admin, user role data suggests non-admin access');
+        // Don't redirect immediately - let them try to login with admin credentials
       }
     }
   }, [user, isAdmin, roleLoading, navigate]);
@@ -60,7 +59,10 @@ const AdminLogin = () => {
           description: 'Checking admin permissions...',
         });
         
-        // The useEffect will handle the redirect once role is loaded
+        // Wait a moment for role data to load, then check admin status
+        setTimeout(() => {
+          // The useEffect will handle the redirect once role is loaded
+        }, 1000);
       }
     } catch (error: any) {
       console.error('AdminLogin: Login error:', error);

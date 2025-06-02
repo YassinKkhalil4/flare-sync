@@ -29,7 +29,7 @@ export const useUserRole = () => {
         setIsLoading(true);
         setError(null);
 
-        // Check user_roles table first for admin roles
+        // Check user_roles table for any roles
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
           .select('role')
@@ -37,7 +37,19 @@ export const useUserRole = () => {
 
         console.log('useUserRole: user_roles query result:', { roleData, roleError });
 
-        if (roleData && !roleError && roleData.length > 0) {
+        if (roleError) {
+          console.error('useUserRole: Error fetching roles:', roleError);
+          setError(roleError.message);
+          
+          // Fallback to creator role on error
+          setUserRole('creator');
+          setIsAdmin(false);
+          setAdminTier(null);
+          setIsLoading(false);
+          return;
+        }
+
+        if (roleData && roleData.length > 0) {
           // Look for admin roles first
           const adminRole = roleData.find(r => 
             r.role === 'admin-owner' || 
@@ -72,7 +84,7 @@ export const useUserRole = () => {
           return;
         }
 
-        // Fallback to profiles table
+        // No roles found in user_roles table - fallback to profiles table
         console.log('useUserRole: No roles in user_roles, checking profiles table');
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
@@ -89,7 +101,7 @@ export const useUserRole = () => {
           setAdminTier(null);
         } else {
           // Default to creator
-          console.log('useUserRole: No role found, defaulting to creator');
+          console.log('useUserRole: No role found anywhere, defaulting to creator');
           setUserRole('creator');
           setIsAdmin(false);
           setAdminTier(null);
