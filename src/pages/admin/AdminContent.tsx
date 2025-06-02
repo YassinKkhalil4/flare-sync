@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Search, FileText, Eye, Trash2, CheckCircle, XCircle, Calendar } from 'lucide-react';
 
-interface ContentPost {
+interface AdminContentPost {
   id: string;
   title: string;
   platform: string;
@@ -23,7 +22,7 @@ interface ContentPost {
   profiles: {
     full_name: string;
     email: string;
-  };
+  } | null;
 }
 
 const AdminContent = () => {
@@ -51,7 +50,16 @@ const AdminContent = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as ContentPost[];
+      
+      // Transform the data to handle the profiles array
+      const transformedData = data?.map(post => ({
+        ...post,
+        profiles: Array.isArray(post.profiles) && post.profiles.length > 0 
+          ? post.profiles[0] 
+          : null
+      })) || [];
+
+      return transformedData as AdminContentPost[];
     }
   });
 
@@ -105,7 +113,7 @@ const AdminContent = () => {
 
   const filteredPosts = posts?.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         post.profiles?.email.toLowerCase().includes(searchTerm.toLowerCase());
+                         post.profiles?.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || post.status === statusFilter;
     const matchesPlatform = platformFilter === 'all' || post.platform === platformFilter;
     return matchesSearch && matchesStatus && matchesPlatform;
@@ -226,7 +234,7 @@ const AdminContent = () => {
                     <TableCell>
                       <div>
                         <div className="font-medium">{post.profiles?.full_name || 'Unknown'}</div>
-                        <div className="text-sm text-muted-foreground">{post.profiles?.email}</div>
+                        <div className="text-sm text-muted-foreground">{post.profiles?.email || 'No email'}</div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -296,5 +304,72 @@ const AdminContent = () => {
     </AdminLayout>
   );
 };
+
+const getStatusBadgeVariant = (status: string) => {
+  switch (status) {
+    case 'published': return 'default';
+    case 'scheduled': return 'secondary';
+    case 'draft': return 'outline';
+    default: return 'outline';
+  }
+};
+
+const getPlatformBadgeColor = (platform: string) => {
+  switch (platform.toLowerCase()) {
+    case 'instagram': return 'bg-pink-100 text-pink-800';
+    case 'twitter': return 'bg-blue-100 text-blue-800';
+    case 'tiktok': return 'bg-black text-white';
+    case 'youtube': return 'bg-red-100 text-red-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const deletePostMutation = useMutation({
+  mutationFn: async (postId: string) => {
+    const { error } = await supabase
+      .from('content_posts')
+      .delete()
+      .eq('id', postId);
+    if (error) throw error;
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['adminContent'] });
+    toast({
+      title: 'Success',
+      description: 'Post deleted successfully',
+    });
+  },
+  onError: () => {
+    toast({
+      title: 'Error',
+      description: 'Failed to delete post',
+      variant: 'destructive',
+    });
+  }
+});
+
+const updatePostStatusMutation = useMutation({
+  mutationFn: async ({ postId, status }: { postId: string; status: string }) => {
+    const { error } = await supabase
+      .from('content_posts')
+      .update({ status })
+      .eq('id', postId);
+    if (error) throw error;
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['adminContent'] });
+    toast({
+      title: 'Success',
+      description: 'Post status updated successfully',
+    });
+  },
+  onError: () => {
+    toast({
+      title: 'Error',
+      description: 'Failed to update post status',
+      variant: 'destructive',
+    });
+  }
+});
 
 export default AdminContent;
