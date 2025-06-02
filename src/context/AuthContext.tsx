@@ -177,26 +177,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const checkAdminRole = async (userId: string) => {
     try {
+      console.log('AuthContext: Checking admin role for user:', userId);
+      
+      // Check for any admin role
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .eq('role', 'admin')
-        .single();
+        .in('role', ['admin', 'admin-owner', 'admin-manager', 'admin-support']);
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error checking admin role:', error);
+        console.error('AuthContext: Error checking admin role:', error);
         return;
       }
 
-      setIsAdmin(!!data);
+      const hasAdminRole = data && data.length > 0;
+      console.log('AuthContext: Admin role check result:', { hasAdminRole, roles: data });
+      setIsAdmin(hasAdminRole);
     } catch (error: any) {
-      console.error('Error checking admin role:', error);
+      console.error('AuthContext: Error checking admin role:', error);
     }
   };
 
   const signIn = async (credentials: SignInCredentials) => {
     try {
+      console.log('AuthContext: Starting sign in process for:', credentials.email);
+      
       // Clean up any existing auth state first
       cleanupAuthState();
       
@@ -206,9 +212,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         password
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('AuthContext: Sign in error:', error);
+        throw error;
+      }
       
       if (data?.session) {
+        console.log('AuthContext: Sign in successful, session created');
         persistSession(data.session);
         toast({
           title: "Signed in successfully",
@@ -218,6 +228,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       return { data };
     } catch (error: any) {
+      console.error('AuthContext: Sign in failed:', error);
       toast({
         title: "Sign in failed",
         description: error.error_description || error.message,

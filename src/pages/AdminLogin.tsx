@@ -35,20 +35,29 @@ const AdminLogin = () => {
     setError('');
 
     try {
+      console.log('AdminLogin: Attempting to sign in with:', email);
+      
       const result = await signIn({ email, password });
       
       if (result?.error) {
+        console.error('AdminLogin: Sign in error:', result.error);
         throw new Error(result.error.message);
       }
       
       if (result?.data?.user) {
+        console.log('AdminLogin: Sign in successful, user:', result.data.user.id);
         toast({
-          title: 'Admin login successful',
-          description: 'Welcome to the admin dashboard',
+          title: 'Login successful',
+          description: 'Checking admin permissions...',
         });
-        // Navigation will be handled by useEffect after role is determined
+        
+        // Wait a moment for role to be determined, then check
+        setTimeout(() => {
+          // The useEffect will handle the redirect once role is loaded
+        }, 1000);
       }
     } catch (error: any) {
+      console.error('AdminLogin: Login error:', error);
       setError(error.message || 'Login failed');
       toast({
         title: 'Login failed',
