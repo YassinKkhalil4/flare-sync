@@ -1,15 +1,16 @@
 
 import React from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useDeals } from '@/hooks/useDeals';
+import { useRealDeals } from '@/hooks/useRealDeals';
 import { Card, CardContent } from '@/components/ui/card';
 import { BrandDealCard } from '@/components/BrandDeals/BrandDealCard';
 import { DealsLoading } from '@/components/BrandDeals/DealsLoading';
+import { useUserRole } from '@/hooks/useUserRole';
 
 const BrandDeals = () => {
   const { user } = useAuth();
-  const { deals, isLoading, respondToDeal } = useDeals();
-  const userType = user?.role || 'creator';
+  const { userRole } = useUserRole();
+  const { deals, isLoading, respondToDeal } = useRealDeals();
 
   const handleStatusUpdate = async (dealId: string, status: 'accepted' | 'rejected' | 'completed') => {
     respondToDeal({ dealId, status });
@@ -27,7 +28,7 @@ const BrandDeals = () => {
           <Card className="bg-muted/50 w-full">
             <CardContent className="py-8 sm:py-12 text-center">
               <p className="text-muted-foreground mb-2 text-sm sm:text-base">No brand deals found</p>
-              {userType === 'brand' && (
+              {userRole === 'brand' && (
                 <p className="text-xs sm:text-sm">Create a new deal to collaborate with creators</p>
               )}
             </CardContent>
@@ -35,10 +36,7 @@ const BrandDeals = () => {
         ) : (
           <div className="grid gap-4 lg:gap-6">
             {deals.map(deal => {
-              // Use proper type assertion to handle the profiles object
               const profiles = deal.profiles as { full_name?: string; avatar_url?: string } | null;
-              
-              // Now safely extract values from the profiles object
               const brandName = profiles?.full_name || 'Unknown Brand';
               const brandLogo = profiles?.avatar_url || '';
               
@@ -64,7 +62,7 @@ const BrandDeals = () => {
                     deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                     created_at: deal.created_at
                   }}
-                  userType={userType}
+                  userType={userRole || 'creator'}
                   actionInProgress={false}
                   onStatusUpdate={handleStatusUpdate}
                 />

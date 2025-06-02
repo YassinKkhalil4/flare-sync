@@ -1,120 +1,13 @@
 
-import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AreaChart, BarChart, LineChart, PieChart } from '@/components/ui/charts';
-import { supabase } from '@/integrations/supabase/client';
-import { Loader2, BarChart3, Calendar, TrendingUp } from 'lucide-react';
-
-interface AnalyticsData {
-  followers: {
-    labels: string[];
-    data: number[];
-  };
-  engagement: {
-    labels: string[];
-    data: number[];
-  };
-  postPerformance: {
-    labels: string[];
-    likes: number[];
-    comments: number[];
-    shares: number[];
-  };
-  platformBreakdown: {
-    labels: string[];
-    data: number[];
-  };
-}
+import { useRealAnalytics } from '@/hooks/useRealAnalytics';
+import { Loader2, BarChart3, Calendar, TrendingUp, Users } from 'lucide-react';
 
 export default function Analytics() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("overview");
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchAnalyticsData = async () => {
-      if (!user?.id) return;
-
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        // Try to fetch real data from Supabase
-        const { data: socialProfiles, error: profilesError } = await supabase
-          .from('social_profiles')
-          .select('platform, followers, engagement, stats, last_synced')
-          .eq('user_id', user.id)
-          .order('platform', { ascending: true });
-
-        if (profilesError) throw profilesError;
-
-        // Fetch content posts for engagement analysis
-        const { data: posts, error: postsError } = await supabase
-          .from('content_posts')
-          .select('published_at, platform, metrics, title')
-          .eq('user_id', user.id)
-          .order('published_at', { ascending: false })
-          .limit(15);
-
-        if (postsError) throw postsError;
-
-        // If no real data, set empty data
-        setAnalyticsData({
-          followers: {
-            labels: [],
-            data: [],
-          },
-          engagement: {
-            labels: [],
-            data: [],
-          },
-          postPerformance: {
-            labels: [],
-            likes: [],
-            comments: [],
-            shares: [],
-          },
-          platformBreakdown: {
-            labels: [],
-            data: [],
-          },
-        });
-      } catch (err) {
-        console.error('Error fetching analytics data:', err);
-        setError('Failed to load analytics data. Please try again later.');
-        
-        // Set empty data for development
-        setAnalyticsData({
-          followers: {
-            labels: [],
-            data: [],
-          },
-          engagement: {
-            labels: [],
-            data: [],
-          },
-          postPerformance: {
-            labels: [],
-            likes: [],
-            comments: [],
-            shares: [],
-          },
-          platformBreakdown: {
-            labels: [],
-            data: [],
-          },
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAnalyticsData();
-  }, [user?.id]);
+  const { analyticsData, isLoading, error } = useRealAnalytics();
 
   if (!user?.id) {
     return (
@@ -137,13 +30,17 @@ export default function Analytics() {
     );
   }
 
-  // Ensure we have data to display - use empty arrays if not
-  const safeData = analyticsData || {
-    followers: { labels: [], data: [] },
-    engagement: { labels: [], data: [] },
-    postPerformance: { labels: [], likes: [], comments: [], shares: [] },
-    platformBreakdown: { labels: [], data: [] }
-  };
+  if (error) {
+    return (
+      <div className="min-h-screen w-full p-4 sm:p-6 lg:p-8">
+        <div className="w-full max-w-4xl mx-auto text-center">
+          <p className="text-base sm:text-lg text-red-500">Error loading analytics data</p>
+        </div>
+      </div>
+    );
+  }
+
+  const data = analyticsData!;
 
   return (
     <div className="min-h-screen w-full p-4 sm:p-6 lg:p-8">
@@ -153,113 +50,213 @@ export default function Analytics() {
           <h1 className="text-2xl sm:text-3xl font-bold">Analytics Dashboard</h1>
         </div>
         
-        <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-          <div className="mb-6">
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 lg:w-auto">
-              <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
-              <TabsTrigger value="platforms" className="text-xs sm:text-sm">Platforms</TabsTrigger>
-              <TabsTrigger value="content" className="text-xs sm:text-sm">Content</TabsTrigger>
-              <TabsTrigger value="audience" className="text-xs sm:text-sm">Audience</TabsTrigger>
-            </TabsList>
-          </div>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Posts</p>
+                  <p className="text-2xl font-bold">{data.totalPosts}</p>
+                </div>
+                <BarChart3 className="h-8 w-8 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Engagement</p>
+                  <p className="text-2xl font-bold">{data.totalEngagement.toLocaleString()}</p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Reach</p>
+                  <p className="text-2xl font-bold">{data.totalReach.toLocaleString()}</p>
+                </div>
+                <Users className="h-8 w-8 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Avg Engagement Rate</p>
+                  <p className="text-2xl font-bold">{data.avgEngagementRate.toFixed(1)}%</p>
+                </div>
+                <Calendar className="h-8 w-8 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <Tabs defaultValue="overview">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 lg:w-auto mb-6">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
+            <TabsTrigger value="platforms" className="text-xs sm:text-sm">Platforms</TabsTrigger>
+            <TabsTrigger value="content" className="text-xs sm:text-sm">Content</TabsTrigger>
+            <TabsTrigger value="audience" className="text-xs sm:text-sm">Audience</TabsTrigger>
+          </TabsList>
           
           <TabsContent value="overview">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-              <Card className="w-full">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center text-base sm:text-lg">
-                    <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-green-500" />
-                    Follower Growth
-                  </CardTitle>
+                  <CardTitle>Posts by Platform</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[250px] sm:h-[300px] flex items-center justify-center">
-                    <p className="text-sm text-muted-foreground">No follower data available</p>
-                  </div>
+                  {data.postsByPlatform.length > 0 ? (
+                    <div className="space-y-4">
+                      {data.postsByPlatform.map((platform) => (
+                        <div key={platform.platform} className="flex items-center justify-between">
+                          <span className="capitalize">{platform.platform}</span>
+                          <span className="font-medium">{platform.count} posts</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">No posts found</p>
+                  )}
                 </CardContent>
               </Card>
               
-              <Card className="w-full">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center text-base sm:text-lg">
-                    <Calendar className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-500" />
-                    Engagement Rate (%)
-                  </CardTitle>
+                  <CardTitle>Recent Posts Performance</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[250px] sm:h-[300px] flex items-center justify-center">
-                    <p className="text-sm text-muted-foreground">No engagement data available</p>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="w-full">
-                <CardHeader>
-                  <CardTitle className="text-base sm:text-lg">Platform Distribution</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[250px] sm:h-[300px] flex items-center justify-center">
-                    <p className="text-sm text-muted-foreground">No platform data available</p>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="w-full">
-                <CardHeader>
-                  <CardTitle className="text-base sm:text-lg">Recent Post Performance</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[250px] sm:h-[300px] flex items-center justify-center">
-                    <p className="text-sm text-muted-foreground">No post data available</p>
-                  </div>
+                  {data.recentPosts.length > 0 ? (
+                    <div className="space-y-4">
+                      {data.recentPosts.slice(0, 5).map((post) => (
+                        <div key={post.id} className="border-b pb-2">
+                          <div className="flex justify-between items-start mb-1">
+                            <h4 className="font-medium text-sm truncate">{post.title}</h4>
+                            <span className="text-xs text-muted-foreground capitalize">{post.platform}</span>
+                          </div>
+                          <div className="flex gap-4 text-xs text-muted-foreground">
+                            <span>{post.metrics.likes} likes</span>
+                            <span>{post.metrics.comments} comments</span>
+                            <span>{post.metrics.shares} shares</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">No posts found</p>
+                  )}
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
           
           <TabsContent value="platforms">
-            <div className="grid gap-4 lg:gap-6">
-              <Card className="w-full">
-                <CardHeader>
-                  <CardTitle className="text-base sm:text-lg">Platform-specific Analytics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="py-8 text-center">
-                    <p className="text-sm text-muted-foreground">No platform data available</p>
+            <Card>
+              <CardHeader>
+                <CardTitle>Connected Platforms</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {data.socialProfiles.length > 0 ? (
+                  <div className="grid gap-4">
+                    {data.socialProfiles.map((profile) => (
+                      <div key={profile.platform} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div>
+                          <h3 className="font-medium capitalize">{profile.platform}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {profile.followers.toLocaleString()} followers • {profile.engagement.toFixed(1)}% engagement
+                          </p>
+                        </div>
+                        <div className={`px-2 py-1 rounded text-xs ${profile.connected ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                          {profile.connected ? 'Connected' : 'Disconnected'}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                ) : (
+                  <p className="text-muted-foreground">No connected platforms</p>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
           
           <TabsContent value="content">
-            <div className="grid gap-4 lg:gap-6">
-              <Card className="w-full">
-                <CardHeader>
-                  <CardTitle className="text-base sm:text-lg">Content Performance Analysis</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="py-8 text-center">
-                    <p className="text-sm text-muted-foreground">No content data available</p>
+            <Card>
+              <CardHeader>
+                <CardTitle>Content Performance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {data.recentPosts.length > 0 ? (
+                  <div className="space-y-4">
+                    {data.recentPosts.map((post) => (
+                      <div key={post.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-medium">{post.title}</h3>
+                          <span className="text-xs text-muted-foreground capitalize bg-gray-100 px-2 py-1 rounded">
+                            {post.platform}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 text-center">
+                          <div>
+                            <p className="text-lg font-bold">{post.metrics.likes}</p>
+                            <p className="text-xs text-muted-foreground">Likes</p>
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold">{post.metrics.comments}</p>
+                            <p className="text-xs text-muted-foreground">Comments</p>
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold">{post.metrics.shares}</p>
+                            <p className="text-xs text-muted-foreground">Shares</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                ) : (
+                  <p className="text-muted-foreground">No content data available</p>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
           
           <TabsContent value="audience">
-            <div className="grid gap-4 lg:gap-6">
-              <Card className="w-full">
-                <CardHeader>
-                  <CardTitle className="text-base sm:text-lg">Audience Demographics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="py-8 text-center">
-                    <p className="text-sm text-muted-foreground">No audience data available</p>
+            <Card>
+              <CardHeader>
+                <CardTitle>Audience Overview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-medium mb-4">Follower Distribution</h4>
+                    {data.socialProfiles.map((profile) => (
+                      <div key={profile.platform} className="flex justify-between items-center mb-2">
+                        <span className="capitalize">{profile.platform}</span>
+                        <span className="font-medium">{profile.followers.toLocaleString()}</span>
+                      </div>
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <div>
+                    <h4 className="font-medium mb-4">Engagement Rates</h4>
+                    {data.socialProfiles.map((profile) => (
+                      <div key={profile.platform} className="flex justify-between items-center mb-2">
+                        <span className="capitalize">{profile.platform}</span>
+                        <span className="font-medium">{profile.engagement.toFixed(1)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

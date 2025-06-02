@@ -1,70 +1,109 @@
 
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Users, TrendingUp, MessageSquare, Star } from 'lucide-react';
+import { Search, Users, TrendingUp, MessageSquare, Star, Loader2 } from 'lucide-react';
 
-// Mock data for creators
-const mockCreators = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    username: '@sarahj_fitness',
-    avatar: '/placeholder.svg',
-    niche: 'Fitness',
-    followers: 125000,
-    engagement: 4.2,
-    location: 'Los Angeles, CA',
-    platforms: ['Instagram', 'TikTok'],
-    rating: 4.8
-  },
-  {
-    id: '2',
-    name: 'Mike Chen',
-    username: '@techtalkmike',
-    avatar: '/placeholder.svg',
-    niche: 'Technology',
-    followers: 89000,
-    engagement: 3.8,
-    location: 'San Francisco, CA',
-    platforms: ['YouTube', 'Twitter'],
-    rating: 4.6
-  },
-  {
-    id: '3',
-    name: 'Emma Wilson',
-    username: '@emmastyle',
-    avatar: '/placeholder.svg',
-    niche: 'Fashion',
-    followers: 203000,
-    engagement: 5.1,
-    location: 'New York, NY',
-    platforms: ['Instagram', 'TikTok', 'YouTube'],
-    rating: 4.9
-  }
-];
+interface Creator {
+  id: string;
+  full_name: string;
+  username: string;
+  avatar_url: string;
+  role: string;
+  followers: number;
+  engagement: number;
+  niche: string;
+  location: string;
+  platforms: string[];
+  rating: number;
+}
 
 export const CreatorDiscoveryPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNiche, setSelectedNiche] = useState('');
-  const [creators] = useState(mockCreators);
 
-  const filteredCreators = creators.filter(creator => {
-    const matchesSearch = creator.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  // Fetch creators from profiles with role 'creator'
+  const { data: creators, isLoading, error } = useQuery({
+    queryKey: ['creators'],
+    queryFn: async () => {
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'creator');
+
+      if (profilesError) throw profilesError;
+
+      // Fetch social profiles for each creator to get followers/engagement data
+      const creatorsWithData = await Promise.all(
+        (profiles || []).map(async (profile) => {
+          const { data: socialProfiles } = await supabase
+            .from('social_profiles')
+            .select('platform, followers, engagement')
+            .eq('user_id', profile.id);
+
+          const totalFollowers = socialProfiles?.reduce((sum, sp) => sum + (sp.followers || 0), 0) || 0;
+          const avgEngagement = socialProfiles?.reduce((sum, sp) => sum + (sp.engagement || 0), 0) / (socialProfiles?.length || 1) || 0;
+          const platforms = socialProfiles?.map(sp => sp.platform) || [];
+
+          return {
+            id: profile.id,
+            full_name: profile.full_name || 'Anonymous Creator',
+            username: profile.username || `@${profile.email?.split('@')[0]}`,
+            avatar_url: profile.avatar_url || '',
+            role: profile.role,
+            followers: totalFollowers,
+            engagement: avgEngagement,
+            niche: 'General', // Could be enhanced with user preferences
+            location: 'Location not set', // Could be enhanced with profile data
+            platforms: platforms.map(p => p.charAt(0).toUpperCase() + p.slice(1)),
+            rating: 4.5 + Math.random() * 0.5, // Mock rating for now
+          };
+        })
+      );
+
+      return creatorsWithData;
+    },
+  });
+
+  const filteredCreators = creators?.filter(creator => {
+    const matchesSearch = creator.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          creator.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          creator.niche.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesNiche = !selectedNiche || creator.niche === selectedNiche;
     return matchesSearch && matchesNiche;
-  });
+  }) || [];
 
   const formatFollowers = (count: number) => {
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
     if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
     return count.toString();
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8 space-y-8">
+        <div className="flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin mr-2" />
+          <span>Loading creators...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8 space-y-8">
+        <div className="text-center">
+          <p className="text-red-500">Error loading creators: {(error as Error).message}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 space-y-8">
@@ -96,7 +135,7 @@ export const CreatorDiscoveryPage: React.FC = () => {
               />
             </div>
             <div className="flex gap-2">
-              {['All', 'Fitness', 'Technology', 'Fashion', 'Lifestyle'].map((niche) => (
+              {['All', 'Fitness', 'Technology', 'Fashion', 'Lifestyle', 'General'].map((niche) => (
                 <Button
                   key={niche}
                   variant={selectedNiche === (niche === 'All' ? '' : niche) ? 'default' : 'outline'}
@@ -117,16 +156,16 @@ export const CreatorDiscoveryPage: React.FC = () => {
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src={creator.avatar} alt={creator.name} />
-                  <AvatarFallback>{creator.name.slice(0, 2)}</AvatarFallback>
+                  <AvatarImage src={creator.avatar_url} alt={creator.full_name} />
+                  <AvatarFallback>{creator.full_name.slice(0, 2)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-medium truncate">{creator.name}</h3>
+                  <h3 className="font-medium truncate">{creator.full_name}</h3>
                   <p className="text-sm text-muted-foreground truncate">{creator.username}</p>
                 </div>
                 <div className="flex items-center gap-1">
                   <Star className="h-4 w-4 text-yellow-500" />
-                  <span className="text-sm font-medium">{creator.rating}</span>
+                  <span className="text-sm font-medium">{creator.rating.toFixed(1)}</span>
                 </div>
               </div>
             </CardHeader>
@@ -148,18 +187,22 @@ export const CreatorDiscoveryPage: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">{creator.engagement}%</span>
+                    <span className="text-sm font-medium">{creator.engagement.toFixed(1)}%</span>
                   </div>
                   <p className="text-xs text-muted-foreground">Engagement</p>
                 </div>
               </div>
               
               <div className="flex flex-wrap gap-1">
-                {creator.platforms.map((platform) => (
-                  <Badge key={platform} variant="outline" className="text-xs">
-                    {platform}
-                  </Badge>
-                ))}
+                {creator.platforms.length > 0 ? (
+                  creator.platforms.map((platform) => (
+                    <Badge key={platform} variant="outline" className="text-xs">
+                      {platform}
+                    </Badge>
+                  ))
+                ) : (
+                  <Badge variant="outline" className="text-xs">No platforms connected</Badge>
+                )}
               </div>
               
               <div className="flex gap-2">
