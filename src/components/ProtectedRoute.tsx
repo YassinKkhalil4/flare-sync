@@ -21,7 +21,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireFeature,
   requireRole
 }) => {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { isAdmin, adminTier, userRole, isLoading: roleLoading } = useUserRole();
   const { checkFeatureAccess } = useFeatureAccess();
   const location = useLocation();
@@ -29,11 +29,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   useEffect(() => {
     // Log route access for debugging
-    console.log('Protected route access:', { 
+    console.log('ProtectedRoute: Route access check:', { 
       path: location.pathname, 
       user: user?.id, 
+      authLoading,
+      roleLoading,
       isAdmin,
       adminTier,
+      userRole,
       requireAdmin,
       requireAdminTier,
       requireFeature,
@@ -41,18 +44,20 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     });
 
     // Check for feature access if needed
-    if (requireFeature && user) {
+    if (requireFeature && user && !roleLoading) {
       checkFeatureAccess(requireFeature).then(hasAccess => {
         setHasFeatureAccess(hasAccess);
       });
     } else {
       setHasFeatureAccess(null); // No feature requirement
     }
-  }, [location, user, isAdmin, adminTier, requireAdmin, requireAdminTier, requireFeature, requireRole, checkFeatureAccess]);
+  }, [location, user, authLoading, roleLoading, isAdmin, adminTier, userRole, requireAdmin, requireAdminTier, requireFeature, requireRole, checkFeatureAccess]);
 
-  const isLoading = loading || roleLoading || (requireFeature && hasFeatureAccess === null);
+  // Wait for both auth and role loading to complete
+  const isLoading = authLoading || roleLoading || (requireFeature && hasFeatureAccess === null);
 
   if (isLoading) {
+    console.log('ProtectedRoute: Still loading...', { authLoading, roleLoading, hasFeatureAccess });
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -64,26 +69,30 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (!user) {
+    console.log('ProtectedRoute: No user, redirecting to login');
     // Save the current path to redirect back after login
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   // Check for role requirement first
   if (requireRole && userRole !== requireRole) {
-    console.log(`Access denied: Role ${requireRole} required, but user is ${userRole}`);
+    console.log(`ProtectedRoute: Role ${requireRole} required, but user is ${userRole}`);
     return <Navigate to="/dashboard" replace />;
   }
 
   // Check for admin requirement
   if (requireAdmin && !isAdmin) {
-    console.log('Access denied: Admin access required for', location.pathname);
+    console.log('ProtectedRoute: Admin access required for', location.pathname, 'but user is not admin. isAdmin:', isAdmin);
     return <Navigate to="/dashboard" replace />;
   }
 
   // Handle admin tier restrictions
   if (requireAdmin && isAdmin && requireAdminTier) {
     const hasRequiredTier = (() => {
-      if (!adminTier) return false;
+      if (!adminTier) {
+        console.log('ProtectedRoute: Admin tier is null');
+        return false;
+      }
       
       switch (requireAdminTier) {
         case 'standard':
@@ -100,17 +109,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     })();
     
     if (!hasRequiredTier) {
-      console.log(`Access denied: Admin tier '${requireAdminTier}' required for ${location.pathname}, but user has '${adminTier}'`);
+      console.log(`ProtectedRoute: Admin tier '${requireAdminTier}' required for ${location.pathname}, but user has '${adminTier}'`);
       return <Navigate to="/admin" replace />;
     }
   }
 
   // Check for feature access requirement
   if (requireFeature && hasFeatureAccess === false) {
-    console.log(`Access denied: Feature ${requireFeature} required for ${location.pathname}, but not available in user's plan`);
+    console.log(`ProtectedRoute: Feature ${requireFeature} required for ${location.pathname}, but not available in user's plan`);
     return <Navigate to="/plans" state={{ requiredFeature: requireFeature }} replace />;
   }
 
+  console.log('ProtectedRoute: Access granted to', location.pathname);
   return <>{children}</>;
 };
 
