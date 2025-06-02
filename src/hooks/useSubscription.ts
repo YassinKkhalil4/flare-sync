@@ -9,7 +9,7 @@ export interface Subscription {
   id: string;
   user_id: string;
   plan: UserPlan;
-  stripe_subscription_id?: string;
+  paddle_subscription_id?: string;
   current_period_end?: string;
   status: 'active' | 'inactive' | 'past_due' | 'canceled';
   created_at: string;
@@ -38,7 +38,7 @@ export const useSubscription = () => {
     mutationFn: subscriptionService.checkout,
     onSuccess: (data) => {
       if (data?.url) {
-        window.location.href = data.url;
+        window.open(data.url, '_blank');
       }
     },
     onError: (error) => {
@@ -54,7 +54,7 @@ export const useSubscription = () => {
     mutationFn: subscriptionService.getCustomerPortalUrl,
     onSuccess: (data) => {
       if (data?.url) {
-        window.location.href = data.url;
+        window.open(data.url, '_blank');
       }
     },
     onError: (error) => {
@@ -68,7 +68,7 @@ export const useSubscription = () => {
 
   return {
     subscription,
-    plan: subscription?.plan || 'basic', // Default to basic plan instead of 'free'
+    plan: subscription?.plan || 'basic',
     subscribed: subscription?.status === 'active',
     currentPeriodEnd: subscription?.current_period_end,
     isLoading,

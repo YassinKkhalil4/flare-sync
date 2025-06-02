@@ -18,7 +18,7 @@ const Plans: React.FC = () => {
       icon: Zap,
       color: 'bg-blue-500',
       popular: false,
-      stripePrice: 'price_basic_monthly'
+      paddlePrice: 'pri_basic_monthly' // Replace with your Paddle price ID
     },
     {
       id: 'pro' as UserPlan,
@@ -27,7 +27,7 @@ const Plans: React.FC = () => {
       icon: Crown,
       color: 'bg-purple-500',
       popular: true,
-      stripePrice: 'price_pro_monthly'
+      paddlePrice: 'pri_pro_monthly' // Replace with your Paddle price ID
     },
     {
       id: 'enterprise' as UserPlan,
@@ -36,7 +36,7 @@ const Plans: React.FC = () => {
       icon: Users,
       color: 'bg-orange-500',
       popular: false,
-      stripePrice: 'price_enterprise_monthly'
+      paddlePrice: 'pri_enterprise_monthly' // Replace with your Paddle price ID
     }
   ];
 
@@ -163,7 +163,7 @@ const Plans: React.FC = () => {
                   className="w-full" 
                   variant={plan.popular ? "default" : "outline"}
                   disabled={isCurrentPlan}
-                  onClick={() => !isCurrentPlan && handleUpgrade(plan.stripePrice, plan.id)}
+                  onClick={() => !isCurrentPlan && handleUpgrade(plan.paddlePrice, plan.id)}
                 >
                   {isCurrentPlan ? 'Current Plan' : `Upgrade to ${plan.name}`}
                 </Button>

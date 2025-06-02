@@ -25,8 +25,8 @@ export const subscriptionService = {
       return {
         id: userId,
         user_id: userId,
-        plan: data.plan || 'free',
-        stripe_subscription_id: data.subscription_id || null,
+        plan: data.plan || 'basic',
+        paddle_subscription_id: data.subscription_id || null,
         current_period_end: data.current_period_end || null,
         status: data.subscription_status || 'inactive',
         created_at: new Date().toISOString(),
@@ -43,7 +43,7 @@ export const subscriptionService = {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) throw new Error('No active session');
       
-      const { data, error } = await supabase.functions.invoke('check-subscription', {
+      const { data, error } = await supabase.functions.invoke('check-paddle-subscription', {
         headers: {
           Authorization: `Bearer ${session.session.access_token}`
         }
@@ -63,7 +63,7 @@ export const subscriptionService = {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) throw new Error('No active session');
       
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
+      const { data, error } = await supabase.functions.invoke('create-paddle-checkout', {
         body: params,
         headers: {
           Authorization: `Bearer ${session.session.access_token}`
@@ -84,7 +84,7 @@ export const subscriptionService = {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) throw new Error('No active session');
       
-      const { data, error } = await supabase.functions.invoke('customer-portal', {
+      const { data, error } = await supabase.functions.invoke('paddle-customer-portal', {
         headers: {
           Authorization: `Bearer ${session.session.access_token}`
         }
