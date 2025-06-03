@@ -10,6 +10,7 @@ import { PLAN_DETAILS, type UserPlan } from '@/lib/supabase';
 const Plans: React.FC = () => {
   const { subscription, startCheckout, openCustomerPortal, isLoading, checkSubscription } = useSubscription();
 
+  // Real Paddle price IDs - these need to be configured in your Paddle dashboard
   const planData = [
     {
       id: 'basic' as UserPlan,
@@ -18,7 +19,7 @@ const Plans: React.FC = () => {
       icon: Zap,
       color: 'bg-blue-500',
       popular: false,
-      paddlePrice: 'pri_01je9f4t2avm8bg5n89vnqg0v3' // Replace with your actual Paddle price ID
+      paddlePrice: 'pri_basic_monthly_001' // Replace with actual Paddle price ID
     },
     {
       id: 'pro' as UserPlan,
@@ -27,7 +28,7 @@ const Plans: React.FC = () => {
       icon: Crown,
       color: 'bg-purple-500',
       popular: true,
-      paddlePrice: 'pri_01je9f4t2avm8bg5n89vnqg0v4' // Replace with your actual Paddle price ID
+      paddlePrice: 'pri_pro_monthly_001' // Replace with actual Paddle price ID
     },
     {
       id: 'enterprise' as UserPlan,
@@ -36,7 +37,7 @@ const Plans: React.FC = () => {
       icon: Users,
       color: 'bg-orange-500',
       popular: false,
-      paddlePrice: 'pri_01je9f4t2avm8bg5n89vnqg0v5' // Replace with your actual Paddle price ID
+      paddlePrice: 'pri_enterprise_monthly_001' // Replace with actual Paddle price ID
     }
   ];
 
@@ -191,9 +192,12 @@ const Plans: React.FC = () => {
         <p className="text-sm text-muted-foreground">
           All plans include a 14-day free trial. Cancel anytime.
         </p>
-        <p className="text-xs text-muted-foreground mt-2">
-          Note: Replace the Paddle price IDs above with your actual price IDs from your Paddle dashboard
-        </p>
+        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+          <p className="text-sm text-yellow-800">
+            <strong>Setup Required:</strong> Replace the Paddle price IDs above with your actual price IDs from your Paddle dashboard.
+            Configure your Paddle webhook URL to: <code className="bg-yellow-100 px-1 rounded">https://lkezjcqdvxfrrfwwyjcp.supabase.co/functions/v1/paddle-webhook</code>
+          </p>
+        </div>
       </div>
     </div>
   );

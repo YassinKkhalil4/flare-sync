@@ -16,20 +16,22 @@ serve(async (req) => {
   try {
     console.log('Paddle checkout function called');
     console.log('Request method:', req.method);
-    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
     
-    // Get request data - handle both text and JSON properly
+    // Get request data properly
+    const contentType = req.headers.get("content-type");
     let parsedBody;
+    
     try {
-      const requestBody = await req.text();
-      console.log('Raw request body:', requestBody);
-      console.log('Request body length:', requestBody.length);
-      
-      if (!requestBody || requestBody.trim() === '') {
-        throw new Error("Request body is empty");
+      if (contentType?.includes("application/json")) {
+        parsedBody = await req.json();
+      } else {
+        const requestBody = await req.text();
+        if (!requestBody || requestBody.trim() === '') {
+          throw new Error("Request body is empty");
+        }
+        parsedBody = JSON.parse(requestBody);
       }
       
-      parsedBody = JSON.parse(requestBody);
       console.log('Parsed request body:', parsedBody);
     } catch (parseError) {
       console.error('Failed to parse request body:', parseError);
@@ -82,7 +84,7 @@ serve(async (req) => {
     
     const paddleApiKey = Deno.env.get("PADDLE_API_KEY");
     if (!paddleApiKey) {
-      throw new Error("PADDLE_API_KEY is not set");
+      throw new Error("PADDLE_API_KEY is not set - please configure in Supabase secrets");
     }
 
     console.log('Creating Paddle checkout session...');

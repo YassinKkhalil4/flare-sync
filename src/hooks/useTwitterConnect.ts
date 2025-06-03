@@ -28,8 +28,19 @@ export const useTwitterConnect = () => {
         return;
       }
 
+      // Check if Twitter credentials are configured
+      const { data, error } = await supabase.functions.invoke('check-twitter-config');
+      
+      if (error || !data?.configured) {
+        toast({
+          title: 'Configuration Required',
+          description: 'Twitter API credentials need to be configured in Supabase secrets. Please contact your administrator.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       // Twitter OAuth 2.0 PKCE configuration
-      const CLIENT_ID = "twitter-client-id"; // Replace with actual Twitter Client ID
       const REDIRECT_URI = `${window.location.origin}/social-connect`;
       const SCOPE = "tweet.read users.read offline.access";
       
@@ -43,7 +54,7 @@ export const useTwitterConnect = () => {
       // Construct Twitter OAuth URL
       const authUrl = `https://twitter.com/i/oauth2/authorize?` +
         `response_type=code` +
-        `&client_id=${CLIENT_ID}` +
+        `&client_id=${data.client_id}` +
         `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
         `&scope=${encodeURIComponent(SCOPE)}` +
         `&state=${encodeURIComponent(session.access_token)}` +

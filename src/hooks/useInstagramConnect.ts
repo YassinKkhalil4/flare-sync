@@ -28,24 +28,29 @@ export const useInstagramConnect = () => {
         return;
       }
 
-      // For now, show a message that Instagram connection is not fully configured
-      toast({
-        title: 'Instagram Connection',
-        description: 'Instagram API credentials need to be configured. Please contact support.',
-        variant: 'default',
-      });
+      // Check if Instagram credentials are configured
+      const { data, error } = await supabase.functions.invoke('check-instagram-config');
+      
+      if (error || !data?.configured) {
+        toast({
+          title: 'Configuration Required',
+          description: 'Instagram API credentials need to be configured in Supabase secrets. Please contact your administrator.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
-      // TODO: Once Instagram credentials are configured in Supabase secrets:
-      // const INSTAGRAM_APP_ID = "configured-in-supabase-secrets";
-      // const REDIRECT_URI = `${window.location.origin}/social-connect`;
-      // const SCOPE = "user_profile,user_media";
-      // const authUrl = `https://api.instagram.com/oauth/authorize?` +
-      //   `client_id=${INSTAGRAM_APP_ID}` +
-      //   `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-      //   `&scope=${encodeURIComponent(SCOPE)}` +
-      //   `&response_type=code` +
-      //   `&state=${encodeURIComponent(session.access_token)}`;
-      // window.location.href = authUrl;
+      // Redirect to Instagram OAuth
+      const REDIRECT_URI = `${window.location.origin}/social-connect`;
+      const SCOPE = "user_profile,user_media";
+      const authUrl = `https://api.instagram.com/oauth/authorize?` +
+        `client_id=${data.client_id}` +
+        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+        `&scope=${encodeURIComponent(SCOPE)}` +
+        `&response_type=code` +
+        `&state=${encodeURIComponent(session.access_token)}`;
+        
+      window.location.href = authUrl;
     } catch (error) {
       console.error('Error initiating Instagram connection:', error);
       toast({
