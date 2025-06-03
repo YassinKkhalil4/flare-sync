@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -168,8 +169,8 @@ const Landing = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
-            {(['free', 'basic', 'pro', 'enterprise'] as const).map((plan) => {
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+            {(['basic', 'pro', 'enterprise'] as const).map((plan) => {
               const planInfo = PLAN_DETAILS[plan];
               const features = planInfo.features;
               
@@ -218,11 +219,11 @@ const Landing = () => {
 
                   <Button 
                     className="w-full mt-4" 
-                    variant={plan === 'free' ? 'outline' : 'default'}
+                    variant={plan === 'pro' ? 'default' : 'outline'}
                     asChild
                   >
                     <Link to="/signup">
-                      {plan === 'free' ? 'Get Started' : 'Choose Plan'}
+                      Choose {plan}
                     </Link>
                   </Button>
                 </div>
