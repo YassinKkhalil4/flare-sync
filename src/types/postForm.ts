@@ -31,14 +31,34 @@ export function toContentPost(data: PostFormData): Omit<ContentPost, 'id' | 'cre
 
 // Helper function to convert PostFormData to ScheduledPost format
 export function toScheduledPost(data: PostFormData): Partial<ScheduledPost> {
-  const status = data.status === 'scheduled' ? 'scheduled' : 'draft';
+  // Map ContentStatus to ScheduledPost status values
+  let scheduledStatus: 'scheduled' | 'published' | 'failed' | 'cancelled';
+  
+  switch (data.status) {
+    case 'scheduled':
+      scheduledStatus = 'scheduled';
+      break;
+    case 'published':
+      scheduledStatus = 'published';
+      break;
+    case 'failed':
+      scheduledStatus = 'failed';
+      break;
+    case 'cancelled':
+      scheduledStatus = 'cancelled';
+      break;
+    default:
+      // For all other statuses (draft, pending, etc.), default to scheduled
+      scheduledStatus = 'scheduled';
+      break;
+  }
   
   return {
     user_id: data.user_id || '',
     content: data.body || data.content || '',
     platform: data.platform,
     scheduled_for: data.scheduled_for || new Date().toISOString(),
-    status: status,
+    status: scheduledStatus,
     metadata: {
       title: data.title,
       media_urls: data.media_urls || []
