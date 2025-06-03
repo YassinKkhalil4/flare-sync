@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ContentService } from '@/services/api';
+import { supabase } from '@/integrations/supabase/client';
 import { ContentPost } from '@/types/content';
 import PostForm from '@/components/content/PostForm';
 import { Card } from '@/components/ui/card';
@@ -15,23 +16,36 @@ export const ContentEditPage: React.FC = () => {
   
   const { data: post, isLoading } = useQuery({
     queryKey: ['content', id],
-    queryFn: () => id ? ContentService.getPostById(id) : null,
+    queryFn: async () => {
+      if (!id) return null;
+      const { data, error } = await supabase
+        .from('content_posts')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
     enabled: !!id
   });
   
-  const handleSubmit = async (data: Partial<ContentPost>, tagIds: string[]) => {
+  const handleSubmit = async (data: Partial<ContentPost>) => {
     try {
       if (!id) return;
       
-      const result = await ContentService.updatePost(id, data, tagIds);
+      const { error } = await supabase
+        .from('content_posts')
+        .update(data)
+        .eq('id', id);
       
-      if (result) {
-        toast({
-          title: 'Success',
-          description: 'Post updated successfully'
-        });
-        navigate('/content');
-      }
+      if (error) throw error;
+      
+      toast({
+        title: 'Success',
+        description: 'Post updated successfully'
+      });
+      navigate('/content');
     } catch (error) {
       console.error('Error updating post:', error);
       toast({

@@ -38,7 +38,7 @@ export const ContentAPI = {
   async getPosts() {
     try {
       const { data, error } = await supabase
-        .from('scheduled_posts')
+        .from('content_posts')
         .select(`
           *,
           profiles:user_id (
@@ -59,7 +59,7 @@ export const ContentAPI = {
   async getPostById(id: string) {
     try {
       const { data, error } = await supabase
-        .from('scheduled_posts')
+        .from('content_posts')
         .select(`
           *,
           profiles:user_id (
@@ -81,7 +81,7 @@ export const ContentAPI = {
   async updatePost(id: string, updates: any) {
     try {
       const { data, error } = await supabase
-        .from('scheduled_posts')
+        .from('content_posts')
         .update(updates)
         .eq('id', id)
         .select()
@@ -98,15 +98,23 @@ export const ContentAPI = {
   async getPendingApprovals() {
     try {
       const { data, error } = await supabase
-        .from('scheduled_posts')
+        .from('content_approvals')
         .select(`
           *,
-          profiles:user_id (
+          content_posts!inner (
+            id,
+            title,
+            body,
+            platform,
+            media_urls,
+            created_at
+          ),
+          profiles:approver_id (
             full_name,
             avatar_url
           )
         `)
-        .eq('status', 'pending_approval')
+        .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -120,10 +128,10 @@ export const ContentAPI = {
   async updateApproval(id: string, status: 'approved' | 'rejected', feedback?: string) {
     try {
       const { data, error } = await supabase
-        .from('scheduled_posts')
+        .from('content_approvals')
         .update({ 
           status,
-          approval_feedback: feedback,
+          feedback,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)

@@ -43,15 +43,21 @@ export class ContentAPI {
     }
   }
 
-  static async schedulePost(data: Omit<ScheduledPost, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> {
+  static async schedulePost(data: any): Promise<boolean> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
       const scheduledData = {
-        ...data,
         user_id: user.id,
-        status: 'scheduled'
+        content: data.body || data.content,
+        platform: data.platform,
+        scheduled_for: data.scheduled_for,
+        status: 'scheduled',
+        metadata: {
+          title: data.title,
+          media_urls: data.media_urls || []
+        }
       };
 
       const { error } = await supabase
@@ -135,6 +141,53 @@ export class ContentAPI {
     } catch (error) {
       console.error('Error updating post status:', error);
       return false;
+    }
+  }
+
+  static async getPendingApprovals() {
+    try {
+      const { data, error } = await supabase
+        .from('content_approvals')
+        .select(`
+          *,
+          content_posts!inner (
+            id,
+            title,
+            body,
+            platform,
+            media_urls,
+            created_at
+          )
+        `)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching pending approvals:', error);
+      return [];
+    }
+  }
+
+  static async updateApproval(id: string, status: 'approved' | 'rejected', feedback?: string) {
+    try {
+      const { data, error } = await supabase
+        .from('content_approvals')
+        .update({ 
+          status,
+          feedback,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating approval:', error);
+      throw error;
     }
   }
 }

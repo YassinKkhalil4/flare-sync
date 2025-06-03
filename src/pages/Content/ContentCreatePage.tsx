@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ContentService } from '@/services/api';
+import { ContentAPI } from '@/services/contentService';
 import { ContentPost } from '@/types/content';
 import PostForm from '@/components/content/PostForm';
 import { Card } from '@/components/ui/card';
@@ -10,9 +10,9 @@ import { toast } from '@/hooks/use-toast';
 export const ContentCreatePage: React.FC = () => {
   const navigate = useNavigate();
   
-  const handleSubmit = async (data: Partial<ContentPost>, tagIds: string[]) => {
+  const handleSubmit = async (data: Partial<ContentPost>) => {
     try {
-      const result = await ContentService.createPost(data as Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>, tagIds);
+      const result = await ContentAPI.createPost(data as Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>);
       
       if (result) {
         toast({
