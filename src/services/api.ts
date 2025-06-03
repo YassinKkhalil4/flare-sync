@@ -1,98 +1,139 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { Notification, NotificationPreferences, NotificationType } from '@/types/notification';
-import { ContentPost, ContentTag, ContentApproval, ContentStatus, SocialPlatform } from '@/types/content';
-import { SocialProfile, Conversation, Message, MessageRequest } from '@/types/messaging';
-import { MessagingAPI } from './messagingService';
-import { NotificationService } from './notificationService';
-import { ContentAPI } from './contentService';
-import { SocialAPI } from './socialService';
-import { dealsService } from './dealsService';
 
-// AI Services
-export const aiServices = {
-  captionGenerator: {
-    generateCaptions: async (params: any) => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      return supabase.functions.invoke('generate-captions', {
-        body: params,
-        headers: {
-          Authorization: `Bearer ${sessionData.session?.access_token}`,
-        },
-      });
+export const ContentAPI = {
+  async addPost(post: any) {
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_posts')
+        .insert([post])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error adding post:', error);
+      throw error;
     }
   },
-  engagementPredictor: {
-    predictEngagement: async (params: any) => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      return supabase.functions.invoke('predict-engagement', {
-        body: params,
-        headers: {
-          Authorization: `Bearer ${sessionData.session?.access_token}`,
-        },
-      });
+  
+  async deletePost(id: string) {
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_posts')
+        .delete()
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      throw error;
     }
   },
-  brandMatchmaker: {
-    findBrandMatches: async (params: any) => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      return supabase.functions.invoke('brand-matchmaker', {
-        body: params,
-        headers: {
-          Authorization: `Bearer ${sessionData.session?.access_token}`,
-        },
-      });
+  
+  async getPosts() {
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_posts')
+        .select(`
+          *,
+          profiles:user_id (
+            full_name,
+            avatar_url
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      return [];
     }
   },
-  contentPlanGenerator: {
-    generateContentPlan: async (params: any) => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      return supabase.functions.invoke('ai-helper', {
-        body: {
-          feature: 'generate-content-plan',
-          params
-        },
-        headers: {
-          Authorization: `Bearer ${sessionData.session?.access_token}`,
-        },
-      });
+
+  async getPostById(id: string) {
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_posts')
+        .select(`
+          *,
+          profiles:user_id (
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching post:', error);
+      return null;
     }
   },
-  smartAssistant: {
-    chatWithAssistant: async (params: any) => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      return supabase.functions.invoke('ai-helper', {
-        body: {
-          feature: 'chat-assistant',
-          params
-        },
-        headers: {
-          Authorization: `Bearer ${sessionData.session?.access_token}`,
-        },
-      });
+
+  async updatePost(id: string, updates: any) {
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_posts')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating post:', error);
+      throw error;
     }
   },
-  smartScheduler: {
-    analyzeSchedule: async (params: any) => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      return supabase.functions.invoke('ai-helper', {
-        body: {
-          feature: 'analyze-schedule',
-          params
-        },
-        headers: {
-          Authorization: `Bearer ${sessionData.session?.access_token}`,
-        },
-      });
+
+  async getPendingApprovals() {
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_posts')
+        .select(`
+          *,
+          profiles:user_id (
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('status', 'pending_approval')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching pending approvals:', error);
+      return [];
+    }
+  },
+
+  async updateApproval(id: string, status: 'approved' | 'rejected', feedback?: string) {
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_posts')
+        .update({ 
+          status,
+          approval_feedback: feedback,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating approval:', error);
+      throw error;
     }
   }
-};
-
-// Export all services
-export { 
-  MessagingAPI as MessagingService,
-  NotificationService,
-  ContentAPI as ContentService,
-  SocialAPI as SocialService,
-  dealsService
 };
