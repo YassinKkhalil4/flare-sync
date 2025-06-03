@@ -1,259 +1,140 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { ContentPost, ContentStatus, ContentTag, ContentApproval } from '@/types/content';
-import { scheduledPostService } from './scheduledPostService';
+import { ContentPost, ScheduledPost } from '@/types/content';
+import { useToast } from '@/hooks/use-toast';
 
-export class ContentAPIClass {
-  async getPosts(): Promise<ContentPost[]> {
-    const { data, error } = await supabase
-      .from('content_posts')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return (data || []) as ContentPost[];
-  }
+export class ContentAPI {
+  static async createPost(data: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>, tagIds?: string[]): Promise<ContentPost | null> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
 
-  async getPostById(id: string): Promise<ContentPost | null> {
-    const { data, error } = await supabase
-      .from('content_posts')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (error) {
-      console.error("Error fetching post by ID:", error);
-      return null;
-    }
-    return data as ContentPost;
-  }
+      const postData = {
+        ...data,
+        user_id: user.id,
+      };
 
-  async createPost(post: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>, tagIds?: string[]): Promise<ContentPost> {
-    // Ensure required fields are present
-    if (!post.title || !post.platform || !post.status) {
-      throw new Error("Missing required fields: title, platform, and status are required");
-    }
-    
-    const { data, error } = await supabase
-      .from('content_posts')
-      .insert([
-        { ...post, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
-      ])
-      .select()
-      .single();
-    
-    if (error) throw error;
-    
-    // If tagIds are provided, create post-tag associations
-    if (tagIds && tagIds.length > 0 && data) {
-      const tagAssociations = tagIds.map(tagId => ({
-        post_id: data.id,
-        tag_id: tagId
-      }));
-      
-      const { error: tagError } = await supabase
-        .from('content_post_tags')
-        .insert(tagAssociations);
-      
-      if (tagError) {
-        console.error("Error associating tags with post:", tagError);
-      }
-    }
-    
-    return data as ContentPost;
-  }
+      const { data: post, error } = await supabase
+        .from('content_posts')
+        .insert(postData)
+        .select()
+        .single();
 
-  async updatePost(id: string, updates: Partial<ContentPost>, tagIds?: string[]): Promise<ContentPost> {
-    const { data, error } = await supabase
-      .from('content_posts')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    
-    // If tagIds are provided, update post-tag associations
-    if (tagIds !== undefined) {
-      // First, remove all existing associations
-      const { error: deleteError } = await supabase
-        .from('content_post_tags')
-        .delete()
-        .eq('post_id', id);
-      
-      if (deleteError) {
-        console.error("Error removing existing tag associations:", deleteError);
-      }
-      
-      // Then, add the new ones
-      if (tagIds.length > 0) {
-        const tagAssociations = tagIds.map(tagId => ({
-          post_id: id,
+      if (error) throw error;
+
+      // Add tags if provided
+      if (tagIds && tagIds.length > 0) {
+        const tagRelations = tagIds.map(tagId => ({
+          post_id: post.id,
           tag_id: tagId
         }));
-        
-        const { error: insertError } = await supabase
+
+        const { error: tagError } = await supabase
           .from('content_post_tags')
-          .insert(tagAssociations);
-        
-        if (insertError) {
-          console.error("Error associating tags with post:", insertError);
-        }
+          .insert(tagRelations);
+
+        if (tagError) console.error('Error adding tags:', tagError);
       }
-    }
-    
-    return data as ContentPost;
-  }
 
-  async deletePost(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('content_posts')
-      .delete()
-      .eq('id', id);
-    
-    if (error) throw error;
-  }
-
-  async getTags(): Promise<ContentTag[]> {
-    const { data, error } = await supabase
-      .from('content_tags')
-      .select('*')
-      .order('name');
-    
-    if (error) throw error;
-    return data || [];
-  }
-
-  async createTag(name: string): Promise<ContentTag> {
-     const { data, error } = await supabase
-      .from('content_tags')
-      .insert([
-        { name, created_at: new Date().toISOString() }
-      ])
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data as ContentTag;
-  }
-
-  async getPostApprovals(postId: string): Promise<ContentApproval[]> {
-    const { data, error } = await supabase
-      .from('content_approvals')
-      .select('*, profiles(*)')
-      .eq('post_id', postId)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return (data || []) as ContentApproval[];
-  }
-
-  async getPendingApprovals(): Promise<ContentApproval[]> {
-    const { data, error } = await supabase
-      .from('content_approvals')
-      .select('*, content_posts(*, profiles(*))')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return (data || []) as ContentApproval[];
-  }
-
-  async updateApproval(approvalId: string, status: 'approved' | 'rejected', notes?: string) {
-    // Fetch the approval record first to get related post info
-    const { data: approval, error: fetchError } = await supabase
-      .from('content_approvals')
-      .select('*, content_posts(*)')
-      .eq('id', approvalId)
-      .single();
-
-    if (fetchError) throw fetchError;
-
-    // Update the approval record
-    const { error } = await supabase
-      .from('content_approvals')
-      .update({
-        status: status,
-        notes: notes,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', approvalId);
-
-    if (error) throw error;
-
-    // If approval was successful, update the post status
-    if (status === 'approved' && approval?.content_posts) {
-      const post = approval.content_posts;
-      
-      await this.updatePost(post.id, {
-        status: 'scheduled' as ContentStatus,
-        // These fields will be properly typed now
-        reviewer_id: approval.approver_id as string,
-        reviewer_notes: notes
-      } as Partial<ContentPost>);
-
-      // Send notification to content creator
-      try {
-        await supabase.functions.invoke('send-notification', {
-          body: {
-            userId: post.user_id,
-            type: 'approval_request',
-            title: 'Content Approved',
-            message: `Your post "${post.title}" has been approved and scheduled for publishing.`,
-            relatedEntityType: 'content_post',
-            relatedEntityId: post.id
-          }
-        });
-      } catch (notificationError) {
-        console.error('Failed to send approval notification:', notificationError);
-      }
-    } else if (status === 'rejected' && approval?.content_posts) {
-      const post = approval.content_posts;
-      
-      await this.updatePost(post.id, {
-        status: 'rejected' as ContentStatus,
-        // These fields will be properly typed now
-        reviewer_id: approval.approver_id as string,
-        reviewer_notes: notes
-      } as Partial<ContentPost>);
-
-      // Send notification to content creator
-      try {
-        await supabase.functions.invoke('send-notification', {
-          body: {
-            userId: post.user_id,
-            type: 'approval_request',
-            title: 'Content Rejected',
-            message: `Your post "${post.title}" was rejected. Please review the feedback and make necessary changes.`,
-            relatedEntityType: 'content_post',
-            relatedEntityId: post.id
-          }
-        });
-      } catch (notificationError) {
-        console.error('Failed to send rejection notification:', notificationError);
-      }
+      return post;
+    } catch (error) {
+      console.error('Error creating post:', error);
+      throw error;
     }
   }
 
-  async schedulePost(post: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>): Promise<ContentPost> {
-    // First create the content post
-    const contentPost = await this.createPost(post);
-    
-    // Then create a scheduled post entry
-    if (post.scheduled_for && contentPost.id) {
-      await scheduledPostService.createScheduledPost({
-        user_id: post.user_id,
-        content: post.body,
-        platform: post.platform,
-        scheduled_for: post.scheduled_for,
-        status: 'scheduled',
-        media_urls: post.media_urls
+  static async schedulePost(data: Omit<ScheduledPost, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const scheduledData = {
+        ...data,
+        user_id: user.id,
+        status: 'scheduled'
+      };
+
+      const { error } = await supabase
+        .from('scheduled_posts')
+        .insert(scheduledData);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error scheduling post:', error);
+      throw error;
+    }
+  }
+
+  static async publishPost(postId: string, platform: string): Promise<boolean> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('No session');
+
+      let functionName = '';
+      switch (platform) {
+        case 'instagram':
+          functionName = 'post-to-instagram';
+          break;
+        case 'twitter':
+          functionName = 'post-to-twitter';
+          break;
+        case 'tiktok':
+          functionName = 'post-to-tiktok';
+          break;
+        case 'youtube':
+          functionName = 'post-to-youtube';
+          break;
+        default:
+          throw new Error(`Publishing to ${platform} not supported yet`);
+      }
+
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: { postId },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
+
+      if (error) throw error;
+      return data?.success || false;
+    } catch (error) {
+      console.error('Error publishing post:', error);
+      throw error;
     }
-    
-    return contentPost;
+  }
+
+  static async getScheduledPosts(): Promise<ScheduledPost[]> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('scheduled_posts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('scheduled_for', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching scheduled posts:', error);
+      return [];
+    }
+  }
+
+  static async updatePostStatus(postId: string, status: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('scheduled_posts')
+        .update({ status })
+        .eq('id', postId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error updating post status:', error);
+      return false;
+    }
   }
 }
-
-// Create and export a singleton instance
-export const ContentAPI = new ContentAPIClass();

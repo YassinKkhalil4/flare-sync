@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useScheduler } from '@/hooks/useScheduler';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,12 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Calendar, Clock, RefreshCw, Save } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { PublishButton } from '@/components/content/PublishButton';
 
-import { scheduledPostService } from '@/services/scheduledPostService';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ContentPost } from '@/types/content';
-import { ScheduledPost } from '@/types/database';
 
 const SmartPostSchedulerPage: React.FC = () => {
   const [selectedPlatform, setSelectedPlatform] = useState<string>('instagram');
@@ -23,7 +21,7 @@ const SmartPostSchedulerPage: React.FC = () => {
     schedulingData,
     scheduledPosts,
     isLoadingScheduledPosts,
-    refreshScheduledPosts
+    refetchScheduledPosts
   } = useScheduler();
   
   const handleAnalyze = () => {
@@ -36,7 +34,7 @@ const SmartPostSchedulerPage: React.FC = () => {
   };
 
   const handleRefresh = () => {
-    refreshScheduledPosts();
+    refetchScheduledPosts();
   };
   
   const renderHeatmap = () => {
@@ -46,18 +44,14 @@ const SmartPostSchedulerPage: React.FC = () => {
     const hours = Array.from({ length: 24 }, (_, i) => i);
     
     const getColorIntensity = (value: number) => {
-      // Generate color based on value (0-1)
-      const maxIntensity = 0.9; // Maximum intensity, adjust if needed
+      const maxIntensity = 0.9;
       const normalizedValue = value / maxIntensity;
       
       if (selectedPlatform === 'instagram') {
-        // Purple gradient for Instagram
         return `rgba(131, 58, 180, ${normalizedValue})`;
       } else if (selectedPlatform === 'tiktok') {
-        // Red gradient for TikTok
         return `rgba(225, 48, 108, ${normalizedValue})`;
       } else {
-        // Blue gradient for others
         return `rgba(64, 93, 230, ${normalizedValue})`;
       }
     };
@@ -284,31 +278,40 @@ const SmartPostSchedulerPage: React.FC = () => {
                     <Card key={post.id}>
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start">
-                          <div>
+                          <div className="flex-1">
                             <Badge className="mb-2" variant={post.platform === 'instagram' ? 'default' : post.platform === 'tiktok' ? 'destructive' : 'secondary'}>
                               {post.platform}
                             </Badge>
-                            <h3 className="font-medium">{post.content ? post.content.substring(0, 30) + (post.content.length > 30 ? '...' : '') : 'No title'}</h3>
+                            <h3 className="font-medium">{post.content ? post.content.substring(0, 50) + (post.content.length > 50 ? '...' : '') : 'No content'}</h3>
                             <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                               {post.content || "No description"}
                             </p>
                           </div>
-                          <div className="text-right">
-                            <div className="flex items-center text-sm font-medium">
+                          <div className="text-right ml-4">
+                            <div className="flex items-center text-sm font-medium mb-1">
                               <Calendar className="h-4 w-4 mr-1" />
                               {post.scheduled_for ? new Date(post.scheduled_for).toLocaleDateString() : 'Not scheduled'}
                             </div>
-                            <div className="flex items-center text-sm text-muted-foreground mt-1">
+                            <div className="flex items-center text-sm text-muted-foreground mb-2">
                               <Clock className="h-4 w-4 mr-1" />
                               {post.scheduled_for ? new Date(post.scheduled_for).toLocaleTimeString() : ''}
                             </div>
-                            <Badge className="mt-2" variant={
-                              post.status === 'published' ? 'default' :
-                              post.status === 'scheduled' ? 'default' :
-                              'outline'
-                            }>
-                              {post.status}
-                            </Badge>
+                            <div className="flex gap-2 items-center">
+                              <Badge variant={
+                                post.status === 'published' ? 'default' :
+                                post.status === 'scheduled' ? 'secondary' :
+                                post.status === 'failed' ? 'destructive' :
+                                'outline'
+                              }>
+                                {post.status}
+                              </Badge>
+                              <PublishButton
+                                postId={post.id}
+                                platform={post.platform}
+                                status={post.status}
+                                onPublishSuccess={refetchScheduledPosts}
+                              />
+                            </div>
                           </div>
                         </div>
                       </CardContent>
