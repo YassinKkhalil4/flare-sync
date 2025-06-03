@@ -2,12 +2,20 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { NotificationService } from '@/services/api';
-import { NotificationPreferences as NotificationPreferencesType } from '@/types/notification';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+
+interface NotificationPreferencesType {
+  email_enabled?: boolean;
+  push_enabled?: boolean;
+  social_events_enabled?: boolean;
+  system_alerts_enabled?: boolean;
+  approval_requests_enabled?: boolean;
+  content_published_enabled?: boolean;
+}
 
 export const NotificationPreferences: React.FC = () => {
   const queryClient = useQueryClient();
