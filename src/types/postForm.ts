@@ -31,12 +31,14 @@ export function toContentPost(data: PostFormData): Omit<ContentPost, 'id' | 'cre
 
 // Helper function to convert PostFormData to ScheduledPost format
 export function toScheduledPost(data: PostFormData): Partial<ScheduledPost> {
+  const status = data.status === 'scheduled' ? 'scheduled' : 'draft';
+  
   return {
     user_id: data.user_id || '',
     content: data.body || data.content || '',
     platform: data.platform,
     scheduled_for: data.scheduled_for || new Date().toISOString(),
-    status: 'scheduled',
+    status: status,
     metadata: {
       title: data.title,
       media_urls: data.media_urls || []

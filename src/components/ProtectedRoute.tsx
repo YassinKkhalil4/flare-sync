@@ -11,7 +11,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin = false }) => {
   const { user, loading } = useAuth();
-  const { role, isLoading: roleLoading } = useUserRole();
+  const { userRole, isLoading: roleLoading } = useUserRole();
 
   if (loading || roleLoading) {
     return <div>Loading...</div>;
@@ -21,7 +21,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin 
     return <Navigate to="/login" replace />;
   }
 
-  if (requireAdmin && role !== 'admin' && !role?.startsWith('admin-')) {
+  if (requireAdmin && userRole !== 'admin' && !userRole?.startsWith('admin-')) {
     return <Navigate to="/dashboard" replace />;
   }
 

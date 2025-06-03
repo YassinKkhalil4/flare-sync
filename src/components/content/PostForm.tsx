@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ContentPost } from '@/types/content';
+import { ContentPost, SocialPlatform, ContentStatus } from '@/types/content';
 import { PostFormData, toContentPost } from '@/types/postForm';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
@@ -37,17 +37,17 @@ const PostForm: React.FC<PostFormProps> = ({ onSubmit, onCancel, initialValues, 
       title: initialValues.title,
       body: initialValues.body || '',
       media_urls: initialValues.media_urls || [],
-      status: initialValues.status,
+      status: initialValues.status as ContentStatus,
       scheduled_for: initialValues.scheduled_for || '',
-      platform: initialValues.platform,
+      platform: initialValues.platform as SocialPlatform,
     } : {
       user_id: '',
       title: '',
       body: '',
       media_urls: [],
-      status: 'draft',
+      status: 'draft' as ContentStatus,
       scheduled_for: '',
-      platform: 'instagram',
+      platform: 'instagram' as SocialPlatform,
     },
     mode: 'onSubmit'
   });
