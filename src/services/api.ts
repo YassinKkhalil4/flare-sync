@@ -241,14 +241,15 @@ export const SocialService = {
     return this.getConnectedPlatforms();
   },
 
-  async connectPlatform(platform: string, credentials: any) {
+  async connectPlatform(platform: string) {
     try {
       const { data, error } = await supabase
         .from('social_profiles')
         .insert({
           user_id: (await supabase.auth.getUser()).data.user?.id,
           platform,
-          ...credentials
+          username: `connecting_${platform}`,
+          connected: false
         })
         .select()
         .single();
@@ -328,14 +329,14 @@ export const MessagingService = {
     }
   },
 
-  async sendMessage(conversationId: string, content: string) {
+  async sendMessage(messageRequest: { conversationId: string; content: string }) {
     try {
       const { data, error } = await supabase
         .from('messages')
         .insert({
-          conversation_id: conversationId,
+          conversation_id: messageRequest.conversationId,
           sender_id: (await supabase.auth.getUser()).data.user?.id,
-          content
+          content: messageRequest.content
         })
         .select()
         .single();
@@ -365,15 +366,16 @@ export const MessagingService = {
     }
   },
 
-  async createConversation(partnerId: string, partnerName: string, partnerType: string) {
+  async createConversation(partnerData: { id: string; name: string; avatar: string; type: string }) {
     try {
       const { data, error } = await supabase
         .from('conversations')
         .insert({
           user_id: (await supabase.auth.getUser()).data.user?.id,
-          partner_id: partnerId,
-          partner_name: partnerName,
-          partner_type: partnerType
+          partner_id: partnerData.id,
+          partner_name: partnerData.name,
+          partner_avatar: partnerData.avatar,
+          partner_type: partnerData.type
         })
         .select()
         .single();
