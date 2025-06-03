@@ -43,6 +43,83 @@ export class ContentAPI {
     }
   }
 
+  static async getPosts() {
+    try {
+      const { data, error } = await supabase
+        .from('content_posts')
+        .select(`
+          *,
+          profiles:user_id (
+            full_name,
+            avatar_url
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      return [];
+    }
+  }
+
+  static async getPostById(id: string) {
+    try {
+      const { data, error } = await supabase
+        .from('content_posts')
+        .select(`
+          *,
+          profiles:user_id (
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching post:', error);
+      return null;
+    }
+  }
+
+  static async updatePost(id: string, updates: any) {
+    try {
+      const { data, error } = await supabase
+        .from('content_posts')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating post:', error);
+      throw error;
+    }
+  }
+
+  static async deletePost(id: string) {
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_posts')
+        .delete()
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      throw error;
+    }
+  }
+
   static async schedulePost(data: any): Promise<boolean> {
     try {
       const { data: { user } } = await supabase.auth.getUser();

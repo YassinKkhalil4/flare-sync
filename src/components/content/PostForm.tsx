@@ -9,15 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ContentPost, ContentStatus, SocialPlatform } from '@/types/content';
+import { ContentPost } from '@/types/content';
+import { PostFormData, toContentPost } from '@/types/postForm';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { ContentAPI } from '@/services/contentService';
 
-type PostFormData = Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>;
-
 interface PostFormProps {
-  onSubmit: (data: PostFormData, tagIds?: string[]) => Promise<void>;
+  onSubmit: (data: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>, tagIds?: string[]) => Promise<void>;
   onCancel: () => void;
   initialValues?: ContentPost;
   tags: { id: string; name: string }[];
@@ -33,7 +32,15 @@ const PostForm: React.FC<PostFormProps> = ({ onSubmit, onCancel, initialValues, 
     setValue,
     watch
   } = useForm<PostFormData>({
-    defaultValues: initialValues || {
+    defaultValues: initialValues ? {
+      user_id: initialValues.user_id,
+      title: initialValues.title,
+      body: initialValues.body || '',
+      media_urls: initialValues.media_urls || [],
+      status: initialValues.status,
+      scheduled_for: initialValues.scheduled_for || '',
+      platform: initialValues.platform,
+    } : {
       user_id: '',
       title: '',
       body: '',
@@ -90,7 +97,8 @@ const PostForm: React.FC<PostFormProps> = ({ onSubmit, onCancel, initialValues, 
 
   const onSubmitHandler = async (data: PostFormData) => {
     try {
-      await onSubmit(data, selectedTagIds);
+      const contentPostData = toContentPost(data);
+      await onSubmit(contentPostData, selectedTagIds);
       toast({
         title: 'Success',
         description: 'Post saved successfully!',
@@ -239,6 +247,7 @@ const PostForm: React.FC<PostFormProps> = ({ onSubmit, onCancel, initialValues, 
               {tags.map(tag => (
                 <Button
                   key={tag.id}
+                  type="button"
                   variant={selectedTagIds.includes(tag.id) ? "default" : "outline"}
                   onClick={() => handleTagSelect(tag.id)}
                 >
