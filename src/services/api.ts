@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export const ContentAPI = {
@@ -133,6 +134,162 @@ export const ContentAPI = {
       return data;
     } catch (error) {
       console.error('Error updating approval:', error);
+      throw error;
+    }
+  }
+};
+
+export const ContentService = {
+  async getPosts() {
+    return ContentAPI.getPosts();
+  },
+
+  async getPostById(id: string) {
+    return ContentAPI.getPostById(id);
+  },
+
+  async createPost(post: any) {
+    return ContentAPI.addPost(post);
+  },
+
+  async updatePost(id: string, updates: any) {
+    return ContentAPI.updatePost(id, updates);
+  },
+
+  async deletePost(id: string) {
+    return ContentAPI.deletePost(id);
+  }
+};
+
+export const NotificationService = {
+  async getPreferences() {
+    try {
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching notification preferences:', error);
+      return {
+        email_enabled: true,
+        push_enabled: true,
+        social_events_enabled: true,
+        system_alerts_enabled: true,
+        approval_requests_enabled: true,
+        content_published_enabled: true
+      };
+    }
+  },
+
+  async updatePreferences(preferences: any) {
+    try {
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .upsert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          ...preferences
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating notification preferences:', error);
+      throw error;
+    }
+  }
+};
+
+export const SocialService = {
+  async getConnectedPlatforms() {
+    try {
+      const { data, error } = await supabase
+        .from('social_profiles')
+        .select('*')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching social platforms:', error);
+      return [];
+    }
+  },
+
+  async connectPlatform(platform: string, credentials: any) {
+    try {
+      const { data, error } = await supabase
+        .from('social_profiles')
+        .insert({
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          platform,
+          ...credentials
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error connecting platform:', error);
+      throw error;
+    }
+  }
+};
+
+export const MessagingService = {
+  async getConversations() {
+    try {
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('*')
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+      return [];
+    }
+  },
+
+  async getMessages(conversationId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      return [];
+    }
+  },
+
+  async sendMessage(conversationId: string, content: string) {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          sender_id: (await supabase.auth.getUser()).data.user?.id,
+          content
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error sending message:', error);
       throw error;
     }
   }
