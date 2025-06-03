@@ -1,4 +1,5 @@
 
+
 import { ContentPost, ScheduledPost, ContentStatus, SocialPlatform } from './content';
 
 // PostFormData type that's compatible with both ContentPost and ScheduledPost
@@ -46,7 +47,6 @@ export function toContentPost(data: PostFormData): Omit<ContentPost, 'id' | 'cre
     scheduled_for: data.scheduled_for || null,
     platform: data.platform,
     published_at: null,
-    platform_post_id: null,
     metrics: null
   };
 }
@@ -87,3 +87,4 @@ export function toScheduledPost(data: PostFormData): Partial<ScheduledPost> {
     }
   };
 }
+
