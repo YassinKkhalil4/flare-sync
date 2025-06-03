@@ -10,7 +10,7 @@ export const useEngagementPredictor = () => {
   const { user, session } = useAuth();
   const [isPredicting, setIsPredicting] = useState(false);
 
-  // Function to predict engagement
+  // Function to predict engagement using real OpenAI API
   const predictEngagement = async (params: EngagementPredictionRequest): Promise<EngagementPredictionResult> => {
     try {
       setIsPredicting(true);
@@ -81,7 +81,6 @@ export const useEngagementPredictor = () => {
         throw error;
       }
       
-      // Transform database data to match our client-side type
       return data.map(item => ({
         id: item.id,
         platform: item.platform,

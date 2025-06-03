@@ -10,7 +10,7 @@ export const useCaptionGenerator = () => {
   const { user, session } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Function to generate captions
+  // Function to generate captions using real OpenAI API
   const generateCaptions = async (params: CaptionGenerationRequest): Promise<CaptionGenerationResponse> => {
     try {
       setIsGenerating(true);
@@ -104,7 +104,6 @@ export const useCaptionGenerator = () => {
         description: 'Your selected caption has been saved.'
       });
       
-      // Refresh the saved captions
       refetchSavedCaptions();
       
       return true;

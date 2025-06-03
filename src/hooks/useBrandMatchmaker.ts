@@ -37,7 +37,7 @@ export const useBrandMatchmaker = () => {
     enabled: !!user?.id,
   });
 
-  // Find brand matches function
+  // Find brand matches function using real OpenAI API
   const findBrandMatchesFunction = async (request: BrandMatchRequest): Promise<BrandMatchResult[]> => {
     try {
       setIsMatching(true);
@@ -57,56 +57,7 @@ export const useBrandMatchmaker = () => {
         throw new Error(response.error.message || 'Failed to find brand matches');
       }
 
-      // Return mock data for now since the edge function might not be fully implemented
-      const mockResults: BrandMatchResult[] = [
-        {
-          brandId: 'brand-1',
-          brandName: 'TechFlow',
-          matchScore: 92,
-          reasonForMatch: [
-            'Perfect audience alignment with tech-savvy millennials',
-            'High engagement rate matches brand requirements',
-            'Content style aligns with brand voice'
-          ],
-          estimatedMetrics: {
-            cpm: 15,
-            ctr: 3.2,
-            roi: 180
-          }
-        },
-        {
-          brandId: 'brand-2',
-          brandName: 'EcoLifestyle',
-          matchScore: 88,
-          reasonForMatch: [
-            'Strong sustainability focus matches brand values',
-            'Target demographic overlap of 85%',
-            'Previous campaign performance in similar niche'
-          ],
-          estimatedMetrics: {
-            cpm: 12,
-            ctr: 2.8,
-            roi: 160
-          }
-        },
-        {
-          brandId: 'brand-3',
-          brandName: 'FitnessPro',
-          matchScore: 85,
-          reasonForMatch: [
-            'Health and wellness content alignment',
-            'High engagement on fitness-related posts',
-            'Audience demographics match target market'
-          ],
-          estimatedMetrics: {
-            cpm: 18,
-            ctr: 3.5,
-            roi: 200
-          }
-        }
-      ];
-
-      return mockResults;
+      return response.data as BrandMatchResult[];
     } catch (error) {
       console.error('Error finding brand matches:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to find brand matches';
@@ -158,7 +109,7 @@ export const useBrandMatchmaker = () => {
       
       return data as BrandProfile[];
     },
-    enabled: false, // Only load when explicitly requested
+    enabled: false,
   });
 
   return {

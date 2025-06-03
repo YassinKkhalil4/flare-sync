@@ -5,10 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { ContentPlan, ContentPlanRequest, ContentPlanPost } from '@/types/contentPlan';
 import { useAuth } from '@/context/AuthContext';
-import { aiServices } from '@/services/api';
 
 export const useContentPlanGenerator = () => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [contentPlan, setContentPlan] = useState<ContentPlan | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -39,41 +38,33 @@ export const useContentPlanGenerator = () => {
     enabled: !!user
   });
 
-  // Generate content plan
+  // Generate content plan using real OpenAI API
   const generateContentPlan = async (params: ContentPlanRequest) => {
     try {
       setIsGenerating(true);
       
-      // Use the real AI service if possible or fallback to mock
-      let plan: ContentPlan;
-      try {
-        const response = await aiServices.contentPlanGenerator.generateContentPlan({
+      if (!session?.access_token) {
+        throw new Error('You must be logged in to generate content plans');
+      }
+
+      const response = await supabase.functions.invoke('generate-content-plan', {
+        body: {
           timeCommitment: params.timeCommitment,
           platforms: params.platforms,
           goal: params.goal,
           niche: params.niche,
           additionalInfo: params.additionalInfo
-        });
-        
-        if (response.error) throw new Error(response.error.message);
-        plan = response.data;
-      } catch (err) {
-        console.warn('Using mock data because AI service failed:', err);
-        // Fallback to mock data
-        plan = {
-          id: `plan-${Date.now()}`,
-          name: `${params.niche} Content Plan`,
-          content: `<h2>Content Plan for ${params.niche}</h2><p>This is a comprehensive content plan tailored to your ${params.niche} niche and ${params.audience} audience.</p><ul><li>Week 1: Introduction posts to establish your presence</li><li>Week 2: Educational content to provide value</li><li>Week 3: Behind-the-scenes content to build connection</li><li>Week 4: User-generated content and engagement</li></ul>`,
-          startDate: new Date().toISOString(),
-          endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          goal: params.goal,
-          platforms: params.platforms,
-          posts: generateMockPosts(params.platforms),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+      
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to generate content plan');
       }
       
+      const plan = response.data as ContentPlan;
       setContentPlan(plan);
       return plan;
     } catch (error) {
@@ -92,33 +83,6 @@ export const useContentPlanGenerator = () => {
     }
   };
 
-  // Generate mock posts for testing
-  const generateMockPosts = (platforms: string[]): ContentPlanPost[] => {
-    const posts: ContentPlanPost[] = [];
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    
-    platforms.forEach(platform => {
-      days.forEach(day => {
-        if (Math.random() > 0.3) { // Not every day has posts
-          posts.push({
-            id: `post-${platform}-${day}-${Date.now()}-${Math.random().toString(36).substring(7)}`,
-            day,
-            time: `${Math.floor(Math.random() * 12) + 1}:${Math.random() > 0.5 ? '00' : '30'} ${Math.random() > 0.5 ? 'AM' : 'PM'}`,
-            platform,
-            contentType: Math.random() > 0.5 ? 'image' : 'video',
-            title: `${platform} ${day} Post`,
-            description: `Engaging ${platform} content for ${day}`,
-            suggestedCaption: `Check out this amazing content! #${platform} #${day.toLowerCase()} #trending`,
-            hashtags: ['trending', platform.toLowerCase(), day.toLowerCase(), 'content'],
-            status: 'draft'
-          });
-        }
-      });
-    });
-    
-    return posts;
-  };
-
   // Save content plan
   const saveContentPlanMutation = useMutation({
     mutationFn: async (plan: ContentPlan) => {
@@ -126,7 +90,6 @@ export const useContentPlanGenerator = () => {
         throw new Error('You must be logged in to save content plans');
       }
       
-      // Prepare the plan for saving in the database
       const planToSave = {
         ...plan,
         user_id: user.id,
@@ -142,7 +105,6 @@ export const useContentPlanGenerator = () => {
         
       if (error) throw error;
       
-      // Save the posts with the plan_id reference
       const postsToSave = plan.posts.map(post => ({
         ...post,
         plan_id: data.id,
