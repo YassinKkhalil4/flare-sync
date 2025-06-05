@@ -11,9 +11,12 @@ export const useRealDeals = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fix the userRole type issue
+  const normalizedUserRole = userRole === 'admin' ? 'creator' : (userRole || 'creator') as 'creator' | 'brand';
+
   const { data: deals = [], isLoading } = useQuery({
-    queryKey: ['deals', user?.id, userRole],
-    queryFn: () => RealDealsService.getDealsForUser(user!.id, userRole || 'creator'),
+    queryKey: ['deals', user?.id, normalizedUserRole],
+    queryFn: () => RealDealsService.getDealsForUser(user!.id, normalizedUserRole),
     enabled: !!user?.id && !!userRole,
   });
 

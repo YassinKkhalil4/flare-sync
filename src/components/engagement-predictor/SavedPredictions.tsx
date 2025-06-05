@@ -1,14 +1,14 @@
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
-import { EngagementPrediction } from "@/types/engagement";
-import { formatDistanceToNow } from "date-fns";
-import { ArrowRight, BarChart, Clock } from "lucide-react";
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EngagementPrediction } from '@/services/aiService';
+import { BarChart, Calendar, TrendingUp } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
 interface SavedPredictionsProps {
-  predictions: EngagementPrediction[] | undefined;
+  predictions: EngagementPrediction[];
   isLoading: boolean;
 }
 
@@ -17,85 +17,93 @@ export function SavedPredictions({ predictions, isLoading }: SavedPredictionsPro
     return (
       <div className="space-y-4">
         {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-24 w-full" />
+          <Card key={i}>
+            <CardHeader>
+              <Skeleton className="h-4 w-32" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-20 w-full" />
+            </CardContent>
+          </Card>
         ))}
       </div>
     );
   }
-  
-  if (!predictions || predictions.length === 0) {
+
+  if (!predictions.length) {
     return (
-      <Card className="bg-muted/50">
-        <CardContent className="flex items-center justify-center p-6">
-          <div className="text-center">
-            <BarChart className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
-            <h3 className="mt-3 text-lg font-medium">No saved predictions yet</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Generate engagement predictions to see them here
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="text-center py-12">
+        <BarChart className="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <h3 className="text-lg font-medium mb-2">No predictions yet</h3>
+        <p className="text-muted-foreground">
+          Generate your first engagement prediction to see results here
+        </p>
+      </div>
     );
   }
-  
+
   return (
     <div className="space-y-4">
-      <ScrollArea className="h-[400px]">
-        <div className="space-y-3 pr-3">
-          {predictions.map((prediction) => (
-            <Card key={prediction.id} className="group transition-all hover:shadow-md">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-sm">
-                    <span className="capitalize">{prediction.platform}</span> {prediction.post_type || 'Post'}
-                  </CardTitle>
-                  <CardDescription className="flex items-center text-xs">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {formatDistanceToNow(new Date(prediction.createdAt), { addSuffix: true })}
-                  </CardDescription>
+      {predictions.map((prediction) => (
+        <Card key={prediction.id}>
+          <CardHeader>
+            <div className="flex justify-between items-start">
+              <CardTitle className="text-lg">{prediction.platform} Post</CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">
+                  Score: {prediction.overall_score}
+                </Badge>
+                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {formatDistanceToNow(new Date(prediction.created_at), { addSuffix: true })}
                 </div>
-                <CardDescription className="text-xs">
-                  {prediction.caption && prediction.caption.length > 80
-                    ? `${prediction.caption.slice(0, 80)}...`
-                    : prediction.caption || prediction.content || 'No caption provided'}
-                </CardDescription>
-              </CardHeader>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground line-clamp-2">
+                {prediction.caption}
+              </p>
               
-              <CardContent className="pb-2">
-                <div className="flex justify-between items-center">
-                  <div className="space-y-1">
-                    <div className="text-xs text-muted-foreground">Engagement Score</div>
-                    <div className="text-lg font-semibold">{prediction.overall_score || Math.round(prediction.confidence * 100)}</div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="text-lg font-semibold">
+                    {prediction.metrics.likes.estimatedCount}
                   </div>
-                  
-                  <div className="flex space-x-3 text-xs">
-                    <div className="text-center">
-                      <div className="font-medium">{prediction.metrics.likes.estimatedCount}</div>
-                      <div className="text-muted-foreground">Likes</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-medium">{prediction.metrics.comments.estimatedCount}</div>
-                      <div className="text-muted-foreground">Comments</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-medium">{prediction.metrics.shares.estimatedCount}</div>
-                      <div className="text-muted-foreground">Shares</div>
-                    </div>
-                  </div>
+                  <div className="text-xs text-muted-foreground">Est. Likes</div>
                 </div>
-              </CardContent>
-              
-              <CardFooter className="pt-2 flex justify-end">
-                <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 text-xs transition-opacity">
-                  View Details
-                  <ArrowRight className="h-3 w-3 ml-1" />
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      </ScrollArea>
+                <div className="text-center">
+                  <div className="text-lg font-semibold">
+                    {prediction.metrics.comments.estimatedCount}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Est. Comments</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-semibold">
+                    {prediction.metrics.shares.estimatedCount}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Est. Shares</div>
+                </div>
+              </div>
+
+              {prediction.insights && prediction.insights.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3" />
+                    Top Insights:
+                  </h4>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    {prediction.insights.slice(0, 2).map((insight, index) => (
+                      <li key={index}>• {insight}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

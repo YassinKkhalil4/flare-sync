@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,6 @@ import { LoadingSpinner } from '@/components/social/LoadingSpinner';
 interface OptimalTime {
   day: number;
   time: string;
-  engagement_score: number;
   score: number;
 }
 
@@ -23,28 +23,22 @@ export const SmartSchedulerPage: React.FC = () => {
   const [postCount, setPostCount] = useState('7');
   const [optimalTimes, setOptimalTimes] = useState<OptimalTime[]>([]);
   
-  const { analyzeSchedule, isAnalyzing, schedulingData } = useScheduler();
+  const { analyzeSchedule, isAnalyzing } = useScheduler();
 
   const handleAnalyze = async () => {
     if (!platform || !contentType || !audienceLocation) return;
     
     try {
-      await analyzeSchedule({
+      const result = await analyzeSchedule({
         platform,
         contentType,
         audienceLocation,
         postCount: parseInt(postCount)
       });
 
-      // Mock optimal times data since we don't have the exact response format
-      const mockOptimalTimes: OptimalTime[] = [
-        { day: 1, time: "09:00", engagement_score: 85, score: 95 },
-        { day: 3, time: "14:30", engagement_score: 78, score: 88 },
-        { day: 5, time: "19:15", engagement_score: 82, score: 91 },
-        { day: 0, time: "11:00", engagement_score: 75, score: 83 },
-        { day: 2, time: "16:45", engagement_score: 73, score: 80 },
-      ];
-      setOptimalTimes(mockOptimalTimes);
+      if (result) {
+        setOptimalTimes(result);
+      }
     } catch (error) {
       console.error('Error analyzing schedule:', error);
     }
@@ -61,6 +55,12 @@ export const SmartSchedulerPage: React.FC = () => {
   const getDayName = (day: number) => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     return days[day];
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'bg-green-100 text-green-800';
+    if (score >= 60) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
   };
 
   return (
@@ -182,41 +182,22 @@ export const SmartSchedulerPage: React.FC = () => {
               </div>
             ) : optimalTimes && optimalTimes.length > 0 ? (
               <div className="space-y-4">
-                <div className="grid gap-3">
-                  {optimalTimes.map((timeSlot, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Calendar className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{getDayName(timeSlot.day)}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {formatTime(timeSlot.time)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Badge variant="outline" className="mb-1">
-                          {timeSlot.engagement_score}% engagement
-                        </Badge>
-                        <p className="text-xs text-muted-foreground">
-                          Score: {timeSlot.score}/100
-                        </p>
+                <div className="text-sm text-muted-foreground mb-4">
+                  Here are the optimal posting times based on your audience and content type:
+                </div>
+                {optimalTimes.map((timeSlot, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <div className="font-medium">{getDayName(timeSlot.day)}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {formatTime(timeSlot.time)}
                       </div>
                     </div>
-                  ))}
-                </div>
-                
-                <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                  <h4 className="font-medium mb-2">💡 Tips for Better Engagement</h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Post consistently at these times for best results</li>
-                    <li>• Monitor your analytics and adjust based on your audience</li>
-                    <li>• Consider time zones if you have a global audience</li>
-                    <li>• Quality content matters more than perfect timing</li>
-                  </ul>
-                </div>
+                    <Badge className={getScoreColor(timeSlot.score)}>
+                      {timeSlot.score}% engagement
+                    </Badge>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="text-center py-12 text-muted-foreground">

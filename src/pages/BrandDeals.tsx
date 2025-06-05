@@ -1,77 +1,225 @@
 
-import React from 'react';
-import { useAuth } from '@/context/AuthContext';
+import React, { useState } from 'react';
+import MainLayout from '@/components/layouts/MainLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useRealDeals } from '@/hooks/useRealDeals';
-import { Card, CardContent } from '@/components/ui/card';
-import { BrandDealCard } from '@/components/BrandDeals/BrandDealCard';
-import { DealsLoading } from '@/components/BrandDeals/DealsLoading';
 import { useUserRole } from '@/hooks/useUserRole';
+import { Handshake, DollarSign, Calendar, Package } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 const BrandDeals = () => {
-  const { user } = useAuth();
+  const { deals, isLoading, createDeal, respondToDeal } = useRealDeals();
   const { userRole } = useUserRole();
-  const { deals, isLoading, respondToDeal } = useRealDeals();
+  const [isCreatingDeal, setIsCreatingDeal] = useState(false);
+  const [newDeal, setNewDeal] = useState({
+    title: '',
+    description: '',
+    budget: 0,
+    creator_id: '',
+    requirements: [] as string[],
+    deliverables: [] as string[]
+  });
 
-  const handleStatusUpdate = async (dealId: string, status: 'accepted' | 'rejected' | 'completed') => {
-    respondToDeal({ dealId, status });
+  const handleCreateDeal = async () => {
+    if (!newDeal.title || !newDeal.description || !newDeal.creator_id) return;
+    
+    await createDeal({
+      ...newDeal,
+      requirements: newDeal.requirements.filter(r => r.trim()),
+      deliverables: newDeal.deliverables.filter(d => d.trim())
+    });
+    
+    setNewDeal({
+      title: '',
+      description: '',
+      budget: 0,
+      creator_id: '',
+      requirements: [],
+      deliverables: []
+    });
+    setIsCreatingDeal(false);
   };
 
-  if (isLoading) {
-    return <DealsLoading />;
-  }
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'accepted': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      case 'completed': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   return (
-    <div className="min-h-screen w-full p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-7xl mx-auto">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-6">Brand Collaborations</h1>
-        {!deals || deals.length === 0 ? (
-          <Card className="bg-muted/50 w-full">
-            <CardContent className="py-8 sm:py-12 text-center">
-              <p className="text-muted-foreground mb-2 text-sm sm:text-base">No brand deals found</p>
-              {userRole === 'brand' && (
-                <p className="text-xs sm:text-sm">Create a new deal to collaborate with creators</p>
-              )}
+    <MainLayout>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Brand Deals</h1>
+            <p className="text-muted-foreground">
+              {userRole === 'brand' ? 'Manage your brand partnerships' : 'View and respond to brand opportunities'}
+            </p>
+          </div>
+
+          {userRole === 'brand' && (
+            <Button onClick={() => setIsCreatingDeal(true)}>
+              <Handshake className="h-4 w-4 mr-2" />
+              Create Deal
+            </Button>
+          )}
+        </div>
+
+        {isCreatingDeal && userRole === 'brand' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Create New Deal</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Input
+                placeholder="Deal title"
+                value={newDeal.title}
+                onChange={(e) => setNewDeal({ ...newDeal, title: e.target.value })}
+              />
+              <Textarea
+                placeholder="Deal description"
+                value={newDeal.description}
+                onChange={(e) => setNewDeal({ ...newDeal, description: e.target.value })}
+              />
+              <Input
+                placeholder="Creator ID"
+                value={newDeal.creator_id}
+                onChange={(e) => setNewDeal({ ...newDeal, creator_id: e.target.value })}
+              />
+              <Input
+                type="number"
+                placeholder="Budget"
+                value={newDeal.budget}
+                onChange={(e) => setNewDeal({ ...newDeal, budget: Number(e.target.value) })}
+              />
+              <div className="flex gap-2">
+                <Button onClick={handleCreateDeal}>Create Deal</Button>
+                <Button variant="outline" onClick={() => setIsCreatingDeal(false)}>Cancel</Button>
+              </div>
             </CardContent>
           </Card>
-        ) : (
-          <div className="grid gap-4 lg:gap-6">
-            {deals.map(deal => {
-              const profiles = deal.profiles as { full_name?: string; avatar_url?: string } | null;
-              const brandName = profiles?.full_name || 'Unknown Brand';
-              const brandLogo = profiles?.avatar_url || '';
-              
-              const dealStatus = (['pending', 'accepted', 'rejected', 'completed'].includes(deal.status) 
-                ? deal.status 
-                : 'pending') as 'pending' | 'accepted' | 'rejected' | 'completed';
-              
-              return (
-                <BrandDealCard
-                  key={deal.id}
-                  deal={{
-                    id: deal.id,
-                    brand_id: deal.brand_id,
-                    brand_name: brandName,
-                    brand_logo: brandLogo,
-                    creator_id: deal.creator_id,
-                    title: deal.description?.substring(0, 50) || 'Untitled Deal',
-                    description: deal.description || '',
-                    budget: deal.price,
-                    status: dealStatus,
-                    requirements: ['Content creation', 'Social media posting'],
-                    deliverables: ['One post per week', 'Monthly analytics report'],
-                    deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                    created_at: deal.created_at
-                  }}
-                  userType={userRole || 'creator'}
-                  actionInProgress={false}
-                  onStatusUpdate={handleStatusUpdate}
-                />
-              );
-            })}
-          </div>
         )}
+
+        <div className="grid gap-6">
+          {isLoading ? (
+            <Card>
+              <CardContent className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </CardContent>
+            </Card>
+          ) : deals.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                <Handshake className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No deals yet</h3>
+                <p className="text-muted-foreground">
+                  {userRole === 'brand' 
+                    ? 'Create your first brand deal to start collaborating with creators'
+                    : 'Brand deals will appear here when you receive offers'
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            deals.map((deal) => (
+              <Card key={deal.id}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        {deal.title}
+                        <Badge className={getStatusColor(deal.status)}>
+                          {deal.status}
+                        </Badge>
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {deal.brand_name}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="flex items-center gap-1 text-lg font-semibold">
+                        <DollarSign className="h-4 w-4" />
+                        {formatCurrency(deal.budget)}
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">{deal.description}</p>
+                  
+                  {deal.requirements && deal.requirements.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium mb-2">Requirements:</h4>
+                      <ul className="text-sm text-muted-foreground list-disc list-inside">
+                        {deal.requirements.map((req, index) => (
+                          <li key={index}>{req}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {deal.deliverables && deal.deliverables.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="text-sm font-medium mb-2">Deliverables:</h4>
+                      <ul className="text-sm text-muted-foreground list-disc list-inside">
+                        {deal.deliverables.map((deliverable, index) => (
+                          <li key={index}>{deliverable}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {deal.deadline && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                      <Calendar className="h-4 w-4" />
+                      Deadline: {new Date(deal.deadline).toLocaleDateString()}
+                    </div>
+                  )}
+
+                  {userRole === 'creator' && deal.status === 'pending' && (
+                    <div className="flex gap-2 pt-4 border-t">
+                      <Button 
+                        size="sm" 
+                        onClick={() => respondToDeal({ dealId: deal.id, status: 'accepted' })}
+                      >
+                        Accept Deal
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => respondToDeal({ dealId: deal.id, status: 'rejected' })}
+                      >
+                        Decline
+                      </Button>
+                    </div>
+                  )}
+
+                  {deal.status === 'accepted' && (
+                    <div className="pt-4 border-t">
+                      <Button 
+                        size="sm"
+                        onClick={() => respondToDeal({ dealId: deal.id, status: 'completed' })}
+                      >
+                        <Package className="h-4 w-4 mr-2" />
+                        Mark as Completed
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
       </div>
-    </div>
+    </MainLayout>
   );
 };
 
