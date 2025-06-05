@@ -26,12 +26,12 @@ const EngagementPredictorPage = () => {
         platform: data.platform,
         caption: data.content || data.caption || '',
         scheduled_time: data.scheduledTime || new Date().toISOString(),
-        overall_score: Math.round(((result?.confidence_score || 0.75) * 100)),
-        likes: result?.predicted_likes || 0,
-        comments: result?.predicted_comments || 0,
-        shares: result?.predicted_shares || 0,
-        reach: Math.floor(Math.random() * 5000) + 500,
-        confidence: result?.confidence_score || 0.75,
+        overall_score: Math.round(((result?.confidence || 0.75) * 100)),
+        likes: result?.likes || 0,
+        comments: result?.comments || 0,
+        shares: result?.shares || 0,
+        reach: result?.reach || Math.floor(Math.random() * 5000) + 500,
+        confidence: result?.confidence || 0.75,
         insights: [
           'High engagement expected during peak hours',
           'Hashtags show good trending potential',
@@ -39,16 +39,16 @@ const EngagementPredictorPage = () => {
         ],
         metrics: {
           likes: {
-            estimatedCount: result?.predicted_likes || 0,
-            confidence: result?.confidence_score || 0.75
+            estimatedCount: result?.likes || 0,
+            confidence: result?.confidence || 0.75
           },
           comments: {
-            estimatedCount: result?.predicted_comments || 0,
-            confidence: result?.confidence_score || 0.75
+            estimatedCount: result?.comments || 0,
+            confidence: result?.confidence || 0.75
           },
           shares: {
-            estimatedCount: result?.predicted_shares || 0,
-            confidence: result?.confidence_score || 0.75
+            estimatedCount: result?.shares || 0,
+            confidence: result?.confidence || 0.75
           }
         }
       };
