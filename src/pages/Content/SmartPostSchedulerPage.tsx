@@ -1,340 +1,121 @@
-
-import React, { useState } from 'react';
-import { useScheduler } from '@/hooks/useScheduler';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React from 'react';
+import { useState } from 'react';
+import MainLayout from '@/components/layouts/MainLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Calendar, Clock, RefreshCw, Save } from 'lucide-react';
-import { PublishButton } from '@/components/content/PublishButton';
+import { formatDate } from '@/lib/utils';
+import { SchedulerForm } from '@/components/content/SchedulerForm';
+import { SchedulingAnalytics } from '@/components/content/SchedulingAnalytics';
+import { useScheduler } from '@/hooks/useScheduler';
 
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
-const SmartPostSchedulerPage: React.FC = () => {
-  const [selectedPlatform, setSelectedPlatform] = useState<string>('instagram');
-  
-  const {
-    analyzeSchedule,
-    isAnalyzing,
-    schedulingData,
-    scheduledPosts,
-    isLoadingScheduledPosts,
-    refetchScheduledPosts
+export default function SmartPostSchedulerPage() {
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const { 
+    analyzeSchedule, 
+    schedulingData, 
+    scheduledPosts, 
+    isLoadingScheduledPosts, 
+    refetchScheduledPosts,
+    publishScheduledPost,
   } = useScheduler();
-  
-  const handleAnalyze = () => {
-    analyzeSchedule({ 
-      platform: selectedPlatform,
-      contentType: 'mixed',
-      audienceLocation: 'US',
-      postCount: 10
-    });
-  };
 
-  const handleRefresh = () => {
-    refetchScheduledPosts();
-  };
-  
-  const renderHeatmap = () => {
-    if (!schedulingData?.heatmap) return null;
-    
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const hours = Array.from({ length: 24 }, (_, i) => i);
-    
-    const getColorIntensity = (value: number) => {
-      const maxIntensity = 0.9;
-      const normalizedValue = value / maxIntensity;
-      
-      if (selectedPlatform === 'instagram') {
-        return `rgba(131, 58, 180, ${normalizedValue})`;
-      } else if (selectedPlatform === 'tiktok') {
-        return `rgba(225, 48, 108, ${normalizedValue})`;
-      } else {
-        return `rgba(64, 93, 230, ${normalizedValue})`;
-      }
-    };
-
-    return (
-      <div className="overflow-x-auto pt-4">
-        <div className="min-w-[800px]">
-          <div className="flex mb-1">
-            <div className="w-20"></div>
-            {hours.map(hour => (
-              <div key={`header-${hour}`} className="w-8 text-center text-xs text-muted-foreground">
-                {hour}
-              </div>
-            ))}
-          </div>
-          
-          {days.map((day, dayIndex) => (
-            <div key={`row-${day}`} className="flex mb-1">
-              <div className="w-20 pr-2 text-sm font-medium">{day}</div>
-              {hours.map(hour => {
-                const cellData = schedulingData.heatmap.find(
-                  item => item.day === dayIndex && item.hour === hour
-                );
-                const value = cellData?.value || 0;
-                
-                return (
-                  <TooltipProvider key={`cell-${dayIndex}-${hour}`}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div
-                          className="w-8 h-6 rounded-sm cursor-pointer"
-                          style={{ backgroundColor: getColorIntensity(value) }}
-                        ></div>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">
-                        <p className="text-xs">
-                          {day} at {hour}:00 - Engagement: {Math.round(value * 100)}%
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                );
-              })}
-            </div>
-          ))}
-          
-          <div className="flex items-center mt-4 justify-end">
-            <div className="flex items-center">
-              <span className="text-xs text-muted-foreground mr-2">Low</span>
-              <div className="flex h-2">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={`legend-${i}`}
-                    className="w-5 h-2"
-                    style={{ 
-                      backgroundColor: getColorIntensity(i * 0.25) 
-                    }}
-                  ></div>
-                ))}
-              </div>
-              <span className="text-xs text-muted-foreground ml-2">High</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  const handleAnalyzeSchedule = async (values: any) => {
+    setIsAnalyzing(true);
+    try {
+      await analyzeSchedule(values);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">Smart Post Scheduler</h1>
-      
-      <Tabs defaultValue="analyze" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="analyze">Analyze & Schedule</TabsTrigger>
-          <TabsTrigger value="scheduled">Scheduled Posts</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="analyze">
-          <div className="grid md:grid-cols-2 gap-6">
+    <MainLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Smart Post Scheduler</h1>
+          <p className="text-muted-foreground">
+            Plan and schedule your content for optimal engagement
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Form Section */}
+          <div>
             <Card>
               <CardHeader>
-                <CardTitle>Engagement Analysis</CardTitle>
-                <CardDescription>
-                  Analyze optimal posting times based on your audience engagement
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Platform</label>
-                  <Select 
-                    value={selectedPlatform} 
-                    onValueChange={setSelectedPlatform}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select platform" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="instagram">Instagram</SelectItem>
-                      <SelectItem value="tiktok">TikTok</SelectItem>
-                      <SelectItem value="youtube">YouTube</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <Button 
-                  onClick={handleAnalyze} 
-                  className="w-full"
-                  disabled={isAnalyzing}
-                >
-                  {isAnalyzing ? 'Analyzing...' : 'Analyze Optimal Times'}
-                </Button>
-                
-                <Separator />
-                
-                {schedulingData ? (
-                  <>
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">
-                        Optimal Posting Times for {selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1)}
-                      </h3>
-                      
-                      <div className="space-y-4">
-                        {schedulingData.optimalTimes.map((dayData, index) => (
-                          <div key={index} className="flex items-center justify-between">
-                            <span className="font-medium">{dayData.day}</span>
-                            <div className="flex gap-2">
-                              {dayData.times.map((time, timeIndex) => (
-                                <Badge key={timeIndex} variant="outline">
-                                  <Clock className="h-3 w-3 mr-1" />{time}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">Weekly Engagement Heatmap</h3>
-                      {renderHeatmap()}
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">Recommendations</h3>
-                      <ul className="space-y-2">
-                        {schedulingData.recommendations.map((rec, index) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <div className="rounded-full bg-primary/10 p-1 mt-0.5">
-                              <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
-                            </div>
-                            <span className="text-sm">{rec}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-8">
-                    <div className="rounded-full bg-primary/10 p-4 inline-block mb-3">
-                      <Calendar className="h-8 w-8 text-primary" />
-                    </div>
-                    <h3 className="text-lg font-medium mb-1">No Analysis Yet</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Run an analysis to see optimal posting times
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Schedule Posts</CardTitle>
-                <CardDescription>
-                  Schedule your content based on optimal posting times
-                </CardDescription>
+                <CardTitle>Schedule New Post</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-16">
-                  <div className="mx-auto bg-primary/10 p-6 rounded-full w-fit mb-4">
-                    <Calendar className="h-10 w-10 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-medium mb-2">Schedule Your Content</h3>
-                  <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-                    Create content in the Content Manager and use the optimal times from 
-                    your analysis to schedule posts for maximum engagement.
-                  </p>
-                  <Button onClick={() => window.location.href = '/content/create'}>
-                    Create New Post
-                  </Button>
-                </div>
+                <SchedulerForm onSubmit={handleAnalyzeSchedule} isLoading={isAnalyzing} />
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-        
-        <TabsContent value="scheduled">
+
+          {/* Scheduled Posts */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Scheduled Posts</CardTitle>
-                <CardDescription>
-                  Manage and track your scheduled content
-                </CardDescription>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleRefresh}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </Button>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Scheduled Posts
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {isLoadingScheduledPosts ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                </div>
-              ) : scheduledPosts && scheduledPosts.length > 0 ? (
                 <div className="space-y-4">
-                  {scheduledPosts.map((post) => (
-                    <Card key={post.id}>
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <Badge className="mb-2" variant={post.platform === 'instagram' ? 'default' : post.platform === 'tiktok' ? 'destructive' : 'secondary'}>
-                              {post.platform}
-                            </Badge>
-                            <h3 className="font-medium">{post.content ? post.content.substring(0, 50) + (post.content.length > 50 ? '...' : '') : 'No content'}</h3>
-                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                              {post.content || "No description"}
-                            </p>
-                          </div>
-                          <div className="text-right ml-4">
-                            <div className="flex items-center text-sm font-medium mb-1">
-                              <Calendar className="h-4 w-4 mr-1" />
-                              {post.scheduled_for ? new Date(post.scheduled_for).toLocaleDateString() : 'Not scheduled'}
-                            </div>
-                            <div className="flex items-center text-sm text-muted-foreground mb-2">
-                              <Clock className="h-4 w-4 mr-1" />
-                              {post.scheduled_for ? new Date(post.scheduled_for).toLocaleTimeString() : ''}
-                            </div>
-                            <div className="flex gap-2 items-center">
-                              <Badge variant={
-                                post.status === 'published' ? 'default' :
-                                post.status === 'scheduled' ? 'secondary' :
-                                post.status === 'failed' ? 'destructive' :
-                                'outline'
-                              }>
-                                {post.status}
-                              </Badge>
-                              <PublishButton
-                                postId={post.id}
-                                platform={post.platform}
-                                status={post.status}
-                                onPublishSuccess={refetchScheduledPosts}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
                   ))}
                 </div>
+              ) : scheduledPosts.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No scheduled posts yet</p>
+                  <p className="text-sm mt-2">Create your first scheduled post above</p>
+                </div>
               ) : (
-                <div className="text-center py-12">
-                  <h3 className="text-lg font-medium mb-2">No Scheduled Posts</h3>
-                  <p className="text-muted-foreground mb-4">
-                    You don't have any posts scheduled yet
-                  </p>
-                  <Button onClick={() => window.location.href = '/content/create'}>
-                    Create New Post
-                  </Button>
+                <div className="space-y-4">
+                  {scheduledPosts.slice(0, 5).map((post) => (
+                    <div key={post.id} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium line-clamp-2">{post.caption || post.title}</p>
+                          <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {formatDate(post.scheduled_time || post.created_at)}
+                            </span>
+                            <Badge variant="outline" className="text-xs">
+                              {post.platform || 'Instagram'}
+                            </Badge>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => publishScheduledPost(post.id)}
+                        >
+                          Publish Now
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-};
+        </div>
 
-export default SmartPostSchedulerPage;
+        {/* Scheduling Analytics */}
+        {schedulingData && (
+          <SchedulingAnalytics schedulingData={schedulingData} />
+        )}
+      </div>
+    </MainLayout>
+  );
+}

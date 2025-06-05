@@ -22,7 +22,7 @@ export const useScheduler = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [schedulingData, setSchedulingData] = useState<SchedulingData | null>(null);
   
-  const { posts: scheduledPosts, isLoading: isLoadingScheduledPosts, refetch: refetchScheduledPosts } = useRealContent();
+  const { posts: scheduledPosts, isLoadingPosts: isLoadingScheduledPosts, refetchPosts: refetchScheduledPosts } = useRealContent();
 
   const analyzeMutation = useMutation({
     mutationFn: (params: {

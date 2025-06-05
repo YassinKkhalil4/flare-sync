@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { ConversationList } from '@/components/messaging/ConversationList';
-import { ChatInterface } from '@/components/messaging/ChatInterface';
+import ConversationList from '@/components/messaging/ConversationList';
+import ChatInterface from '@/components/messaging/ChatInterface';
 
 const Messaging: React.FC = () => {
   return (

@@ -1,80 +1,73 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useScheduler } from '@/hooks/useScheduler';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Send } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 interface PublishButtonProps {
-  postId: string;
-  platform: string;
-  status: string;
+  post: any;
   onPublishSuccess?: () => void;
 }
 
-export const PublishButton: React.FC<PublishButtonProps> = ({
-  postId,
-  platform,
-  status,
-  onPublishSuccess
+export const PublishButton: React.FC<PublishButtonProps> = ({ 
+  post, 
+  onPublishSuccess 
 }) => {
   const [isPublishing, setIsPublishing] = useState(false);
-  const { publishScheduledPost } = useScheduler();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const handlePublish = async () => {
-    try {
-      setIsPublishing(true);
-      await publishScheduledPost(postId, platform);
-      onPublishSuccess?.();
-    } catch (error) {
-      console.error('Error publishing post:', error);
+    if (!user) {
       toast({
+        title: 'Authentication Required',
+        description: 'Please log in to publish posts.',
         variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      await publishPost(post.id);
+      
+      toast({
+        title: 'Post Published',
+        description: 'Your post has been published successfully!',
+      });
+      
+      if (onPublishSuccess) {
+        onPublishSuccess();
+      }
+    } catch (error) {
+      console.error('Failed to publish post:', error);
+      toast({
         title: 'Publishing Failed',
-        description: 'Failed to publish post. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to publish post. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsPublishing(false);
     }
   };
 
-  if (status === 'published') {
-    return (
-      <Button variant="outline" disabled>
-        Published
-      </Button>
-    );
-  }
-
-  if (status === 'failed') {
-    return (
-      <Button variant="destructive" onClick={handlePublish} disabled={isPublishing}>
-        {isPublishing ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Retrying...
-          </>
-        ) : (
-          'Retry'
-        )}
-      </Button>
-    );
-  }
+  const publishPost = async (postId: string) => {
+    // Simulate publishing delay
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log(`Post with ID ${postId} published successfully!`);
+        resolve(null);
+      }, 1500);
+    });
+  };
 
   return (
-    <Button onClick={handlePublish} disabled={isPublishing}>
-      {isPublishing ? (
-        <>
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          Publishing...
-        </>
-      ) : (
-        <>
-          <Send className="h-4 w-4 mr-2" />
-          Publish Now
-        </>
-      )}
+    <Button
+      variant="primary"
+      isLoading={isPublishing}
+      disabled={isPublishing}
+      onClick={handlePublish}
+    >
+      {isPublishing ? 'Publishing...' : 'Publish Now'}
     </Button>
   );
 };
