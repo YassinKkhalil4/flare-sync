@@ -1,124 +1,96 @@
 
 import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessagingService, Conversation, Message } from '@/services/messagingService';
 import { useAuth } from '@/context/AuthContext';
-import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 export const useMessaging = () => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { data: conversations, isLoading: isLoadingConversations } = useQuery({
-    queryKey: ['conversations', user?.id],
-    queryFn: () => MessagingService.getConversations(user?.id || ''),
-    enabled: !!user?.id,
-  });
-
-  const sendMessageMutation = useMutation({
-    mutationFn: ({
-      conversationId,
-      content,
-      sender
-    }: {
-      conversationId: string;
-      content: string;
-      sender: string;
-    }) => MessagingService.sendMessage(conversationId, content, user?.id || '', sender),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['messages'] });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Failed to send message',
-        description: error instanceof Error ? error.message : 'Unknown error',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const createConversationMutation = useMutation({
-    mutationFn: ({
-      partnerId,
-      partnerName,
-      partnerType,
-      partnerAvatar
-    }: {
-      partnerId: string;
-      partnerName: string;
-      partnerType: string;
-      partnerAvatar?: string;
-    }) => MessagingService.createConversation(
-      user?.id || '',
-      partnerId,
-      partnerName,
-      partnerType,
-      partnerAvatar
-    ),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      toast({
-        title: 'Conversation created',
-        description: 'You can now start messaging',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Failed to create conversation',
-        description: error instanceof Error ? error.message : 'Unknown error',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  return {
-    conversations: conversations || [],
-    isLoadingConversations,
-    sendMessage: sendMessageMutation.mutate,
-    createConversation: createConversationMutation.mutate,
-    isSendingMessage: sendMessageMutation.isPending,
-    isCreatingConversation: createConversationMutation.isPending,
-  };
-};
-
-export const useConversationMessages = (conversationId?: string) => {
-  const queryClient = useQueryClient();
-
-  const { data: messages, isLoading } = useQuery({
-    queryKey: ['messages', conversationId],
-    queryFn: () => MessagingService.getMessages(conversationId || ''),
-    enabled: !!conversationId,
-  });
-
-  // Set up real-time subscription for new messages
   useEffect(() => {
-    if (!conversationId) return;
+    if (user) {
+      loadConversations();
+    }
+  }, [user]);
 
-    const channel = supabase
-      .channel(`messages-${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-        }
-      )
-      .subscribe();
+  const loadConversations = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const convs = await MessagingService.getConversations(user.id);
+      setConversations(convs);
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [conversationId, queryClient]);
+  const loadMessages = async (conversationId: string) => {
+    setIsLoading(true);
+    try {
+      const msgs = await MessagingService.getMessages(conversationId);
+      setMessages(msgs);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const sendMessage = async (conversationId: string, content: string) => {
+    if (!user) return;
+    
+    try {
+      const message = await MessagingService.sendMessage(
+        conversationId,
+        content,
+        user.id,
+        user.email || 'Unknown'
+      );
+      setMessages(prev => [...prev, message]);
+      await loadConversations(); // Refresh conversations to update last message
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  };
+
+  const createConversation = async (
+    partnerId: string,
+    partnerName: string,
+    partnerType: 'creator' | 'brand',
+    partnerAvatar?: string
+  ) => {
+    if (!user) return;
+    
+    try {
+      const conversation = await MessagingService.createConversation(
+        user.id,
+        partnerId,
+        partnerName,
+        partnerType,
+        partnerAvatar
+      );
+      setConversations(prev => [conversation, ...prev]);
+      return conversation;
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+    }
+  };
 
   return {
-    messages: messages || [],
+    conversations,
+    selectedConversation,
+    messages,
     isLoading,
+    setSelectedConversation,
+    loadConversations,
+    loadMessages,
+    sendMessage,
+    createConversation,
   };
 };

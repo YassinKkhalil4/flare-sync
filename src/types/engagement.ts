@@ -21,6 +21,14 @@ export interface EngagementPredictionRequest {
   platform: string;
   hashtags?: string[];
   mediaUrls?: string[];
+  caption?: string;
+  scheduledTime?: string;
+  postType?: string;
+}
+
+export interface EngagementMetric {
+  estimatedCount: number;
+  confidence: number;
 }
 
 export interface EngagementPredictionResult {
@@ -29,6 +37,7 @@ export interface EngagementPredictionResult {
   caption: string;
   scheduled_time: string;
   overall_score: number;
+  overallScore?: number; // Backward compatibility
   likes: number;
   comments: number;
   shares: number;
@@ -36,8 +45,10 @@ export interface EngagementPredictionResult {
   confidence: number;
   insights: string[];
   metrics: {
-    likes: number;
-    comments: number;
-    shares: number;
+    likes: EngagementMetric | number;
+    comments: EngagementMetric | number;
+    shares: EngagementMetric | number;
   };
+  recommended_times?: string[];
+  recommendedTimes?: string[];
 }

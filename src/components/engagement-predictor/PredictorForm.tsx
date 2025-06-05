@@ -22,7 +22,7 @@ import {
 import { EngagementPredictionRequest } from "@/types/engagement";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { ArrowRight, Brain } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 const formSchema = z.object({
   platform: z.enum(["instagram", "tiktok", "youtube"], {
@@ -40,11 +40,11 @@ const formSchema = z.object({
 });
 
 interface PredictorFormProps {
-  onSubmit: (values: EngagementPredictionRequest) => void;
+  onPredict: (values: EngagementPredictionRequest) => void;
   isLoading: boolean;
 }
 
-export function PredictorForm({ onSubmit, isLoading }: PredictorFormProps) {
+export const PredictorForm = ({ onPredict, isLoading }: PredictorFormProps) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -56,7 +56,13 @@ export function PredictorForm({ onSubmit, isLoading }: PredictorFormProps) {
   });
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    onSubmit(values as EngagementPredictionRequest);
+    onPredict({
+      content: values.caption,
+      platform: values.platform,
+      caption: values.caption,
+      scheduledTime: values.scheduledTime,
+      postType: values.postType,
+    });
   };
 
   return (
@@ -187,4 +193,4 @@ export function PredictorForm({ onSubmit, isLoading }: PredictorFormProps) {
       </form>
     </Form>
   );
-}
+};
