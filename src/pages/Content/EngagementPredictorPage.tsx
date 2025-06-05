@@ -21,7 +21,12 @@ export default function EngagementPredictorPage() {
   const handleFormSubmit = (values: EngagementPredictionRequest) => {
     predictEngagement(values, {
       onSuccess: (data) => {
-        setCurrentPrediction(data);
+        // Transform the data to match EngagementPredictionResult
+        const result: EngagementPredictionResult = {
+          ...data,
+          overallScore: data.overall_score
+        };
+        setCurrentPrediction(result);
       }
     });
   };
@@ -67,7 +72,7 @@ export default function EngagementPredictorPage() {
         <TabsContent value="saved">
           <div className="bg-card p-6 rounded-lg border">
             <h2 className="text-xl font-semibold mb-4">Your Saved Predictions</h2>
-            <SavedPredictions predictions={savedPredictions} isLoading={isLoadingSavedPredictions} />
+            <SavedPredictions predictions={savedPredictions || []} isLoading={isLoadingSavedPredictions} />
           </div>
         </TabsContent>
       </Tabs>
