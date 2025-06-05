@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -62,8 +63,7 @@ export const PublishButton: React.FC<PublishButtonProps> = ({
 
   return (
     <Button
-      variant="primary"
-      isLoading={isPublishing}
+      variant="default"
       disabled={isPublishing}
       onClick={handlePublish}
     >

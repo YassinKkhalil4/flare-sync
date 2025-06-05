@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState } from 'react';
 import MainLayout from '@/components/layouts/MainLayout';
@@ -18,7 +19,6 @@ export default function SmartPostSchedulerPage() {
     schedulingData, 
     scheduledPosts, 
     isLoadingScheduledPosts, 
-    refetchScheduledPosts,
     publishScheduledPost,
   } = useScheduler();
 
@@ -84,11 +84,11 @@ export default function SmartPostSchedulerPage() {
                     <div key={post.id} className="border rounded-lg p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <p className="font-medium line-clamp-2">{post.caption || post.title}</p>
+                          <p className="font-medium line-clamp-2">{post.body || post.title}</p>
                           <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              {formatDate(post.scheduled_time || post.created_at)}
+                              {formatDate(post.created_at)}
                             </span>
                             <Badge variant="outline" className="text-xs">
                               {post.platform || 'Instagram'}

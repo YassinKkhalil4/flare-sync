@@ -22,7 +22,7 @@ export const useScheduler = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [schedulingData, setSchedulingData] = useState<SchedulingData | null>(null);
   
-  const { posts: scheduledPosts, isLoadingPosts: isLoadingScheduledPosts, refetchPosts: refetchScheduledPosts } = useRealContent();
+  const { posts: scheduledPosts, isLoadingPosts: isLoadingScheduledPosts, publishPost } = useRealContent();
 
   const analyzeMutation = useMutation({
     mutationFn: (params: {
@@ -90,12 +90,7 @@ export const useScheduler = () => {
   const publishScheduledPost = async (postId: string) => {
     // Implementation for publishing scheduled posts
     try {
-      // Call the publish API
-      toast({
-        title: 'Post Published',
-        description: 'Your post has been published successfully.',
-      });
-      refetchScheduledPosts();
+      publishPost(postId);
     } catch (error) {
       toast({
         title: 'Publish Failed',
@@ -111,7 +106,6 @@ export const useScheduler = () => {
     schedulingData,
     scheduledPosts,
     isLoadingScheduledPosts,
-    refetchScheduledPosts,
     publishScheduledPost,
   };
 };
