@@ -5,10 +5,14 @@ import ConversationList from '@/components/messaging/ConversationList';
 import ChatInterface from '@/components/messaging/ChatInterface';
 import { Card, CardContent } from '@/components/ui/card';
 import { MessageCircle } from 'lucide-react';
-import { Conversation } from '@/services/realMessagingService';
+import { Conversation } from '@/services/messagingService';
 
 const Messages = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+
+  const handleSelectConversation = (conversation: Conversation) => {
+    setSelectedConversation(conversation);
+  };
 
   return (
     <MainLayout>
@@ -24,7 +28,7 @@ const Messages = () => {
           <div className="md:col-span-1">
             <ConversationList
               selectedConversationId={selectedConversation?.id}
-              onSelectConversation={setSelectedConversation}
+              onSelectConversation={handleSelectConversation}
             />
           </div>
 

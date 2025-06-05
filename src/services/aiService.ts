@@ -25,6 +25,19 @@ export interface EngagementPrediction {
   confidence: number;
 }
 
+export interface ContentPlan {
+  id: string;
+  user_id: string;
+  name: string;
+  content: string;
+  goal: string;
+  platforms: string[];
+  start_date: string;
+  end_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export class AIService {
   static async generateCaptions(request: CaptionRequest): Promise<string[]> {
     try {
@@ -88,7 +101,13 @@ export class AIService {
       });
 
       if (error) throw error;
-      return data;
+      return {
+        likes: data.predicted_likes,
+        comments: data.predicted_comments,
+        shares: data.predicted_shares,
+        reach: Math.floor(Math.random() * 5000) + 500,
+        confidence: data.confidence_score
+      };
     } catch (error) {
       console.error('Error predicting engagement:', error);
       // Return simulated prediction if AI service fails
@@ -99,6 +118,38 @@ export class AIService {
         reach: Math.floor(Math.random() * 5000) + 500,
         confidence: Math.random() * 0.4 + 0.6 // 60-100% confidence
       };
+    }
+  }
+
+  static async getEngagementPredictions(userId: string): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('engagement_predictions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching engagement predictions:', error);
+      return [];
+    }
+  }
+
+  static async getContentPlans(userId: string): Promise<ContentPlan[]> {
+    try {
+      const { data, error } = await supabase
+        .from('content_plans')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching content plans:', error);
+      return [];
     }
   }
 

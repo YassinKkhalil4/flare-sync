@@ -1,60 +1,60 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { AIService, EngagementPrediction } from '@/services/aiService';
+import { AIService } from '@/services/aiService';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
-export interface EngagementPredictionRequest {
-  platform: string;
-  caption: string;
-  scheduledTime: string;
-  postType: string;
-  mediaMetadata?: any;
-}
-
 export const useEngagementPredictor = () => {
-  const [isPredicting, setIsPredicting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
 
-  const { data: savedPredictions, isLoading: isLoadingSavedPredictions, refetch } = useQuery({
-    queryKey: ['engagementPredictions'],
-    queryFn: () => AIService.getEngagementPredictions(),
+  const { data: savedPredictions, isLoading: isLoadingPredictions } = useQuery({
+    queryKey: ['engagement-predictions', user?.id],
+    queryFn: () => AIService.getEngagementPredictions(user?.id || ''),
+    enabled: !!user?.id,
   });
 
   const predictMutation = useMutation({
-    mutationFn: (params: EngagementPredictionRequest) => AIService.predictEngagement(params),
+    mutationFn: (params: {
+      content: string;
+      platform: string;
+      hashtags?: string[];
+      mediaUrls?: string[];
+    }) => AIService.predictEngagement(params.content, params.platform, params.hashtags, params.mediaUrls),
     onSuccess: () => {
       toast({
-        title: 'Prediction Complete',
-        description: 'Your engagement prediction has been generated.',
+        title: 'Prediction complete',
+        description: 'Engagement prediction has been generated successfully.',
       });
-      refetch();
     },
     onError: (error) => {
       toast({
-        title: 'Prediction Failed',
+        title: 'Prediction failed',
         description: error instanceof Error ? error.message : 'Failed to predict engagement',
         variant: 'destructive',
       });
     },
   });
 
-  const predictEngagement = async (params: EngagementPredictionRequest, options?: {
-    onSuccess?: (data: EngagementPrediction) => void;
+  const predict = async (params: {
+    content: string;
+    platform: string;
+    hashtags?: string[];
+    mediaUrls?: string[];
   }) => {
-    setIsPredicting(true);
+    setIsLoading(true);
     try {
-      const result = await predictMutation.mutateAsync(params);
-      options?.onSuccess?.(result);
-      return result;
+      return await predictMutation.mutateAsync(params);
     } finally {
-      setIsPredicting(false);
+      setIsLoading(false);
     }
   };
 
   return {
-    predictEngagement,
-    isPredicting,
-    savedPredictions,
-    isLoadingSavedPredictions,
+    predict,
+    isLoading,
+    savedPredictions: savedPredictions || [],
+    isLoadingPredictions,
   };
 };

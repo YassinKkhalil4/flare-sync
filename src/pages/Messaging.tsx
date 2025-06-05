@@ -4,10 +4,14 @@ import ConversationList from '@/components/messaging/ConversationList';
 import ChatInterface from '@/components/messaging/ChatInterface';
 import { Card, CardContent } from '@/components/ui/card';
 import { MessageCircle } from 'lucide-react';
-import { Conversation } from '@/services/realMessagingService';
+import { Conversation } from '@/services/messagingService';
 
 const Messaging: React.FC = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+
+  const handleSelectConversation = (conversation: Conversation) => {
+    setSelectedConversation(conversation);
+  };
 
   return (
     <div className="container mx-auto py-8">
@@ -17,7 +21,7 @@ const Messaging: React.FC = () => {
         <div className="md:col-span-1">
           <ConversationList
             selectedConversationId={selectedConversation?.id}
-            onSelectConversation={setSelectedConversation}
+            onSelectConversation={handleSelectConversation}
           />
         </div>
         <div className="md:col-span-2">

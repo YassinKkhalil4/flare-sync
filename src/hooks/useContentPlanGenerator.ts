@@ -2,60 +2,51 @@
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { AIService, ContentPlan } from '@/services/aiService';
-import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 
 export const useContentPlanGenerator = () => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const { user } = useAuth();
 
-  const { data: contentPlans, isLoading: isLoadingPlans, refetch } = useQuery({
-    queryKey: ['contentPlans'],
-    queryFn: () => AIService.getContentPlans(),
+  const { data: savedPlans, isLoading: isLoadingPlans } = useQuery({
+    queryKey: ['content-plans', user?.id],
+    queryFn: () => AIService.getContentPlans(user?.id || ''),
+    enabled: !!user?.id,
   });
 
-  const generateMutation = useMutation({
+  const generatePlanMutation = useMutation({
     mutationFn: (params: {
-      timeCommitment: string;
+      niche: string;
       platforms: string[];
       goal: string;
-      niche: string;
-      additionalInfo?: string;
-    }) => AIService.generateContentPlan(params),
+      duration: number;
+    }) => AIService.generateContentPlan(params.niche, params.platforms, params.goal, params.duration),
     onSuccess: () => {
-      toast({
-        title: 'Content Plan Generated',
-        description: 'Your content plan has been created successfully.',
-      });
-      refetch();
+      // Handle success
     },
     onError: (error) => {
-      toast({
-        title: 'Generation Failed',
-        description: error instanceof Error ? error.message : 'Failed to generate content plan',
-        variant: 'destructive',
-      });
+      console.error('Error generating content plan:', error);
     },
   });
 
-  const generateContentPlan = async (params: {
-    timeCommitment: string;
+  const generatePlan = async (params: {
+    niche: string;
     platforms: string[];
     goal: string;
-    niche: string;
-    additionalInfo?: string;
+    duration: number;
   }) => {
     setIsGenerating(true);
     try {
-      await generateMutation.mutateAsync(params);
+      return await generatePlanMutation.mutateAsync(params);
     } finally {
       setIsGenerating(false);
     }
   };
 
   return {
-    generateContentPlan,
+    generatePlan,
     isGenerating,
-    contentPlans,
+    savedPlans: savedPlans || [],
     isLoadingPlans,
-    contentPlan: generateMutation.data,
   };
 };

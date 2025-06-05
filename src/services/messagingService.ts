@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
 
 export interface Message {
   id: string;
@@ -18,7 +17,7 @@ export interface Conversation {
   partner_id: string;
   partner_name: string;
   partner_avatar?: string;
-  partner_type: string;
+  partner_type: 'creator' | 'brand';
   last_message?: string;
   last_message_time?: string;
   created_at: string;
@@ -95,7 +94,7 @@ export class MessagingService {
     userId: string,
     partnerId: string,
     partnerName: string,
-    partnerType: string,
+    partnerType: 'creator' | 'brand',
     partnerAvatar?: string
   ): Promise<Conversation> {
     const { data, error } = await supabase
