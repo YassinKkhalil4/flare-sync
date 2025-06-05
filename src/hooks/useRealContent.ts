@@ -4,37 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/hooks/use-toast';
-
-export interface ContentPost {
-  id: string;
-  user_id: string;
-  title: string;
-  body?: string;
-  platform: string;
-  status: string;
-  scheduled_for?: string;
-  published_at?: string;
-  media_urls?: string[];
-  platform_post_id?: string;
-  metrics?: any;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ScheduledPost {
-  id: string;
-  user_id: string;
-  content?: string;
-  platform: string;
-  scheduled_for: string;
-  status: string;
-  media_urls?: string[];
-  post_id?: string;
-  error_message?: string;
-  metadata?: any;
-  created_at: string;
-  updated_at: string;
-}
+import { ContentPost, ScheduledPost, ContentStatus } from '@/types/content';
 
 export const useRealContent = () => {
   const { user } = useAuth();

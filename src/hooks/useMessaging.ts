@@ -1,44 +1,26 @@
 
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { MessagingService, Conversation, Message } from '@/services/messagingService';
 import { useAuth } from '@/context/AuthContext';
 
 export const useMessaging = () => {
   const { user } = useAuth();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      loadConversations();
-    }
-  }, [user]);
-
-  const loadConversations = async () => {
-    if (!user) return;
-    
-    setIsLoading(true);
-    try {
-      const convs = await MessagingService.getConversations(user.id);
-      setConversations(convs);
-    } catch (error) {
-      console.error('Error loading conversations:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { data: conversations = [], isLoading: isLoadingConversations } = useQuery({
+    queryKey: ['conversations', user?.id],
+    queryFn: () => MessagingService.getConversations(user!.id),
+    enabled: !!user?.id,
+  });
 
   const loadMessages = async (conversationId: string) => {
-    setIsLoading(true);
     try {
       const msgs = await MessagingService.getMessages(conversationId);
       setMessages(msgs);
     } catch (error) {
       console.error('Error loading messages:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -53,7 +35,6 @@ export const useMessaging = () => {
         user.email || 'Unknown'
       );
       setMessages(prev => [...prev, message]);
-      await loadConversations(); // Refresh conversations to update last message
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -75,7 +56,6 @@ export const useMessaging = () => {
         partnerType,
         partnerAvatar
       );
-      setConversations(prev => [conversation, ...prev]);
       return conversation;
     } catch (error) {
       console.error('Error creating conversation:', error);
@@ -86,11 +66,39 @@ export const useMessaging = () => {
     conversations,
     selectedConversation,
     messages,
-    isLoading,
+    isLoading: isLoadingConversations,
+    isLoadingConversations,
     setSelectedConversation,
-    loadConversations,
     loadMessages,
     sendMessage,
     createConversation,
+  };
+};
+
+export const useConversationMessages = (conversationId: string) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const loadMessages = async () => {
+      setIsLoading(true);
+      try {
+        const msgs = await MessagingService.getMessages(conversationId);
+        setMessages(msgs);
+      } catch (error) {
+        console.error('Error loading messages:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadMessages();
+  }, [conversationId]);
+
+  return {
+    messages,
+    isLoading,
   };
 };
