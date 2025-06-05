@@ -1,210 +1,118 @@
 
-import { Conversation, Message, MessageRequest } from '../types/messaging';
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
-// Real API implementation using Supabase
-export const MessagingAPI = {
-  // Get all conversations for the current user
-  getConversations: async (): Promise<Conversation[]> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+export interface Message {
+  id: string;
+  conversation_id: string;
+  content: string;
+  sender: string;
+  user_id: string;
+  timestamp: string;
+  read: boolean;
+}
 
-      const { data, error } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
+export interface Conversation {
+  id: string;
+  user_id: string;
+  partner_id: string;
+  partner_name: string;
+  partner_avatar?: string;
+  partner_type: string;
+  last_message?: string;
+  last_message_time?: string;
+  created_at: string;
+  updated_at: string;
+}
 
-      if (error) throw error;
+export class MessagingService {
+  static async getConversations(userId: string): Promise<Conversation[]> {
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false });
 
-      // Transform data to match Conversation interface
-      return (data || []).map(conv => ({
-        id: conv.id,
-        partner: {
-          id: conv.partner_id,
-          name: conv.partner_name,
-          avatar: conv.partner_avatar || '/placeholder.svg',
-          type: conv.partner_type
-        },
-        lastMessage: {
-          content: conv.last_message || 'No messages yet',
-          timestamp: conv.last_message_time || conv.created_at,
-          read: true // We'll implement read status later
-        }
-      }));
-    } catch (error) {
-      console.error('Error fetching conversations:', error);
-      return [];
-    }
-  },
-  
-  // Get messages for a specific conversation
-  getMessages: async (conversationId: string): Promise<Message[]> => {
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('timestamp', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  }
 
-      if (error) throw error;
+  static async getMessages(conversationId: string): Promise<Message[]> {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('timestamp', { ascending: true });
 
-      return (data || []).map(msg => ({
-        id: msg.id,
-        sender: msg.sender,
-        content: msg.content,
-        timestamp: msg.timestamp
-      }));
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-      return [];
-    }
-  },
-  
-  // Send a new message
-  sendMessage: async (data: MessageRequest): Promise<Message> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+    if (error) throw error;
+    return data || [];
+  }
 
-      const messageData = {
-        conversation_id: data.conversationId,
-        user_id: user.id,
-        sender: 'me',
-        content: data.content,
+  static async sendMessage(
+    conversationId: string,
+    content: string,
+    userId: string,
+    sender: string
+  ): Promise<Message> {
+    const { data, error } = await supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        content,
+        user_id: userId,
+        sender,
         timestamp: new Date().toISOString(),
         read: false
-      };
+      })
+      .select()
+      .single();
 
-      const { data: insertedMessage, error } = await supabase
-        .from('messages')
-        .insert(messageData)
-        .select()
-        .single();
+    if (error) throw error;
 
-      if (error) throw error;
+    // Update conversation last message
+    await supabase
+      .from('conversations')
+      .update({
+        last_message: content,
+        last_message_time: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', conversationId);
 
-      // Update conversation's last message
-      await supabase
-        .from('conversations')
-        .update({
-          last_message: data.content,
-          last_message_time: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', data.conversationId);
-
-      return {
-        id: insertedMessage.id,
-        sender: insertedMessage.sender,
-        content: insertedMessage.content,
-        timestamp: insertedMessage.timestamp
-      };
-    } catch (error) {
-      console.error('Error sending message:', error);
-      throw error;
-    }
-  },
-  
-  // Mark conversation as read
-  markAsRead: async (conversationId: string): Promise<void> => {
-    try {
-      const { error } = await supabase
-        .from('messages')
-        .update({ read: true })
-        .eq('conversation_id', conversationId)
-        .eq('read', false);
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error marking messages as read:', error);
-    }
-  },
-  
-  // Create a new conversation with a brand
-  createConversation: async (partnerData: { id: string, name: string, avatar: string, type: string }): Promise<Conversation> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      // Check if conversation already exists
-      const { data: existingConversation } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('partner_id', partnerData.id)
-        .single();
-
-      if (existingConversation) {
-        return {
-          id: existingConversation.id,
-          partner: {
-            id: partnerData.id,
-            name: partnerData.name,
-            avatar: partnerData.avatar,
-            type: partnerData.type
-          },
-          lastMessage: {
-            content: existingConversation.last_message || 'Conversation exists',
-            timestamp: existingConversation.last_message_time || existingConversation.created_at,
-            read: true
-          }
-        };
-      }
-
-      const conversationData = {
-        user_id: user.id,
-        partner_id: partnerData.id,
-        partner_name: partnerData.name,
-        partner_avatar: partnerData.avatar,
-        partner_type: partnerData.type,
-        last_message: 'New conversation started',
-        last_message_time: new Date().toISOString()
-      };
-
-      const { data: conversation, error } = await supabase
-        .from('conversations')
-        .insert(conversationData)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      return {
-        id: conversation.id,
-        partner: {
-          id: partnerData.id,
-          name: partnerData.name,
-          avatar: partnerData.avatar,
-          type: partnerData.type
-        },
-        lastMessage: {
-          content: 'New conversation started',
-          timestamp: new Date().toISOString(),
-          read: true
-        }
-      };
-    } catch (error) {
-      console.error('Error creating conversation:', error);
-      throw error;
-    }
-  },
-
-  // Create conversation with brand from matchmaker
-  createBrandConversation: async (brandId: string, brandName: string): Promise<string> => {
-    try {
-      const conversation = await MessagingAPI.createConversation({
-        id: brandId,
-        name: brandName,
-        avatar: '/placeholder.svg',
-        type: 'brand'
-      });
-      
-      return conversation.id;
-    } catch (error) {
-      console.error('Error creating brand conversation:', error);
-      throw error;
-    }
+    return data;
   }
-};
+
+  static async markAsRead(messageId: string): Promise<void> {
+    const { error } = await supabase
+      .from('messages')
+      .update({ read: true })
+      .eq('id', messageId);
+
+    if (error) throw error;
+  }
+
+  static async createConversation(
+    userId: string,
+    partnerId: string,
+    partnerName: string,
+    partnerType: string,
+    partnerAvatar?: string
+  ): Promise<Conversation> {
+    const { data, error } = await supabase
+      .from('conversations')
+      .insert({
+        user_id: userId,
+        partner_id: partnerId,
+        partner_name: partnerName,
+        partner_type: partnerType,
+        partner_avatar: partnerAvatar,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+}

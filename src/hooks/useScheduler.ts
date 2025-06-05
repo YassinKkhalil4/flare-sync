@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { AIService } from '@/services/aiService';
 import { useRealContent } from '@/hooks/useRealContent';
 import { toast } from '@/hooks/use-toast';
@@ -22,7 +22,12 @@ export const useScheduler = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [schedulingData, setSchedulingData] = useState<SchedulingData | null>(null);
   
-  const { posts: scheduledPosts, isLoadingPosts: isLoadingScheduledPosts, publishPost } = useRealContent();
+  const { 
+    posts: scheduledPosts, 
+    isLoadingPosts: isLoadingScheduledPosts, 
+    publishPost,
+    schedulePost 
+  } = useRealContent();
 
   const analyzeMutation = useMutation({
     mutationFn: (params: {
@@ -78,9 +83,25 @@ export const useScheduler = () => {
     contentType: string;
     audienceLocation: string;
     postCount: number;
+    content?: string;
+    scheduledTime?: string;
   }) => {
     setIsAnalyzing(true);
     try {
+      // If content and scheduled time are provided, create a scheduled post
+      if (params.content && params.scheduledTime) {
+        schedulePost({
+          content: params.content,
+          platform: params.platform,
+          scheduled_for: params.scheduledTime,
+          status: 'scheduled',
+          metadata: {
+            contentType: params.contentType,
+            audienceLocation: params.audienceLocation,
+          }
+        });
+      }
+      
       return await analyzeMutation.mutateAsync(params);
     } finally {
       setIsAnalyzing(false);
@@ -88,7 +109,6 @@ export const useScheduler = () => {
   };
 
   const publishScheduledPost = async (postId: string) => {
-    // Implementation for publishing scheduled posts
     try {
       publishPost(postId);
     } catch (error) {

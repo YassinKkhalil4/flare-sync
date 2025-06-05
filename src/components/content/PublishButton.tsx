@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useRealContent } from '@/hooks/useRealContent';
 
 interface PublishButtonProps {
   post: any;
@@ -16,6 +17,7 @@ export const PublishButton: React.FC<PublishButtonProps> = ({
   const [isPublishing, setIsPublishing] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { publishPost } = useRealContent();
 
   const handlePublish = async () => {
     if (!user) {
@@ -31,11 +33,6 @@ export const PublishButton: React.FC<PublishButtonProps> = ({
     try {
       await publishPost(post.id);
       
-      toast({
-        title: 'Post Published',
-        description: 'Your post has been published successfully!',
-      });
-      
       if (onPublishSuccess) {
         onPublishSuccess();
       }
@@ -49,16 +46,6 @@ export const PublishButton: React.FC<PublishButtonProps> = ({
     } finally {
       setIsPublishing(false);
     }
-  };
-
-  const publishPost = async (postId: string) => {
-    // Simulate publishing delay
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        console.log(`Post with ID ${postId} published successfully!`);
-        resolve(null);
-      }, 1500);
-    });
   };
 
   return (
