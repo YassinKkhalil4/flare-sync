@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Upload, X } from 'lucide-react';
+import { CalendarIcon, Upload, X, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -164,7 +164,7 @@ export const PostScheduleForm: React.FC<PostScheduleFormProps> = ({ onSubmit, is
           disabled={uploading}
           className="hidden"
         />
-        <Label htmlFor="media" className="bg-secondary text-secondary-foreground rounded-md px-3 py-2 text-sm font-medium hover:bg-secondary/80 dark:bg-muted/80 cursor-pointer">
+        <Label htmlFor="media" className="bg-secondary text-secondary-foreground rounded-md px-3 py-2 text-sm font-medium hover:bg-secondary/80 dark:bg-muted/80 cursor-pointer inline-flex items-center">
           {uploading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -206,3 +206,5 @@ export const PostScheduleForm: React.FC<PostScheduleFormProps> = ({ onSubmit, is
     </form>
   );
 };
+
+export default PostScheduleForm;

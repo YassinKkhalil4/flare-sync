@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Copy, Check, Save, ArrowDown, Sparkles } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { Copy, Check, Heart, MessageCircle, Share2, Sparkles } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface CaptionResultsProps {
   captions: string[];
@@ -12,157 +12,147 @@ interface CaptionResultsProps {
   onSaveCaption: (captionId: string, selectedCaption: string) => Promise<boolean>;
 }
 
-export const CaptionResults: React.FC<CaptionResultsProps> = ({ 
-  captions, 
+export const CaptionResults: React.FC<CaptionResultsProps> = ({
+  captions,
   captionId,
-  onSaveCaption
+  onSaveCaption,
 }) => {
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [copied, setCopied] = useState<number | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [savedIndex, setSavedIndex] = useState<number | null>(null);
+  const { toast } = useToast();
 
-  const copyToClipboard = (text: string, index: number) => {
-    navigator.clipboard.writeText(text);
-    setCopied(index);
-    setTimeout(() => setCopied(null), 2000);
-    
-    toast({
-      title: 'Caption copied',
-      description: 'Caption has been copied to clipboard',
-    });
-  };
-
-  const handleSelect = (index: number) => {
-    setSelectedIndex(index);
-  };
-
-  const handleSave = async () => {
-    if (selectedIndex === null) {
+  const copyToClipboard = async (text: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIndex(index);
       toast({
-        title: 'No caption selected',
-        description: 'Please select a caption to save',
+        title: 'Copied!',
+        description: 'Caption copied to clipboard',
+      });
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (error) {
+      toast({
+        title: 'Copy failed',
+        description: 'Failed to copy caption to clipboard',
         variant: 'destructive',
       });
-      return;
     }
-    
-    setSaving(true);
+  };
+
+  const saveCaption = async (caption: string, index: number) => {
     try {
-      const success = await onSaveCaption(captionId, captions[selectedIndex]);
+      const success = await onSaveCaption(captionId, caption);
       if (success) {
+        setSavedIndex(index);
         toast({
-          title: 'Caption saved',
-          description: 'Your selected caption has been saved',
+          title: 'Caption saved!',
+          description: 'Caption has been saved to your library',
         });
+        setTimeout(() => setSavedIndex(null), 2000);
       }
     } catch (error) {
-      console.error('Error saving caption:', error);
       toast({
-        title: 'Error saving caption',
-        description: 'There was an error saving your caption',
+        title: 'Save failed',
+        description: 'Failed to save caption',
         variant: 'destructive',
       });
-    } finally {
-      setSaving(false);
     }
+  };
+
+  const getEngagementScore = (caption: string) => {
+    // Simple scoring based on caption characteristics
+    let score = 60;
+    if (caption.includes('#')) score += 15;
+    if (caption.includes('?')) score += 10;
+    if (caption.includes('!')) score += 5;
+    if (caption.length > 100 && caption.length < 300) score += 10;
+    return Math.min(95, score);
   };
 
   if (!captions || captions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-8">
-        <div className="rounded-full bg-muted p-6 mb-6">
-          <Sparkles className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <h3 className="text-xl font-semibold mb-2">No captions generated yet</h3>
-        <p className="text-muted-foreground text-center max-w-md">
-          Use the generate tab to create your first set of AI-powered captions
-        </p>
+      <div className="text-center text-muted-foreground py-12">
+        <Sparkles className="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p className="text-lg font-medium">No captions generated yet</p>
+        <p className="text-sm">Fill out the form to generate AI captions</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h3 className="text-lg font-semibold">Generated Captions</h3>
-          <p className="text-sm text-muted-foreground">
-            {captions.length} caption{captions.length !== 1 ? 's' : ''} ready for you
-          </p>
-        </div>
-        {selectedIndex !== null && (
-          <Button 
-            onClick={handleSave} 
-            disabled={saving}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
-          >
-            {saving ? (
-              <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-t-transparent"></div>
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            Save Selected
-          </Button>
-        )}
+    <div className="space-y-4">
+      <div className="text-center mb-6">
+        <h3 className="text-lg font-semibold mb-2">Generated Captions</h3>
+        <p className="text-muted-foreground">Choose your favorite and copy or save it</p>
       </div>
-      
-      <ScrollArea className="h-[600px] pr-4">
-        <div className="space-y-4">
-          {captions.map((caption, index) => (
-            <Card 
-              key={index} 
-              className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
-                selectedIndex === index 
-                  ? 'border-primary ring-2 ring-primary/20 shadow-lg bg-primary/5' 
-                  : 'hover:border-primary/50 border-border'
-              }`}
-              onClick={() => handleSelect(index)}
-            >
-              <CardContent className="p-6 relative">
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                        Caption {index + 1}
-                      </span>
-                      {selectedIndex === index && (
-                        <span className="text-xs font-medium text-primary-foreground bg-primary px-2 py-1 rounded-full">
-                          Selected
-                        </span>
-                      )}
-                    </div>
-                    <p className="whitespace-pre-line leading-relaxed text-sm">{caption}</p>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    className="flex-shrink-0 h-9 w-9 p-0 hover:bg-muted" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      copyToClipboard(caption, index);
-                    }}
-                  >
-                    {copied === index ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
+
+      {captions.map((caption, index) => (
+        <Card key={index} className="relative overflow-hidden">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Caption {index + 1}
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">
+                  {getEngagementScore(caption)}% Score
+                </Badge>
+                <div className="flex items-center text-xs text-muted-foreground gap-1">
+                  <Heart className="h-3 w-3" />
+                  <MessageCircle className="h-3 w-3" />
+                  <Share2 className="h-3 w-3" />
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </ScrollArea>
-      
-      {captions.length > 4 && (
-        <div className="flex justify-center pt-4">
-          <Button variant="ghost" size="sm" className="flex items-center text-muted-foreground hover:text-foreground">
-            <ArrowDown className="h-3 w-3 mr-1" />
-            Scroll to see more captions
-          </Button>
-        </div>
-      )}
+              </div>
+            </div>
+          </CardHeader>
+          
+          <CardContent className="space-y-4">
+            <div className="bg-muted/30 rounded-lg p-4">
+              <p className="text-sm leading-relaxed whitespace-pre-line">
+                {caption}
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(caption, index)}
+                className="flex-1"
+              >
+                {copiedIndex === index ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2 text-green-600" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy
+                  </>
+                )}
+              </Button>
+              
+              <Button
+                variant={savedIndex === index ? "default" : "outline"}
+                size="sm"
+                onClick={() => saveCaption(caption, index)}
+                className="flex-1"
+              >
+                {savedIndex === index ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Saved!
+                  </>
+                ) : (
+                  'Save to Library'
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 };

@@ -1,43 +1,30 @@
 
 export interface CaptionGenerationRequest {
-  platform: string;
-  niche: string;
-  tone: string;
-  postType: string;
-  objective: string;
   description: string;
+  platform: string;
+  tone?: string;
+  objective?: string;
+  niche?: string;
+  postType?: string;
 }
 
 export interface CaptionGenerationResponse {
   success: boolean;
   captions: string[];
-  captionId: string;
-}
-
-export interface Caption {
-  id: string;
-  platform: string;
-  niche: string;
-  tone: string;
-  postType: string;
-  objective: string;
-  description: string;
-  captions: string[];
-  selectedCaption?: string;
-  createdAt: string;
+  error?: string;
 }
 
 export interface SavedCaption {
   id: string;
   user_id: string;
-  platform: string;
-  niche: string;
-  tone: string;
-  post_type: string;
-  objective: string;
   description: string;
+  platform: string;
+  tone?: string;
+  objective?: string;
+  niche?: string;
+  post_type?: string;
   captions: string[];
-  selected_caption: string | null;
+  selected_caption?: string;
   created_at: string;
   updated_at: string;
 }

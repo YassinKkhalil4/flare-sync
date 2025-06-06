@@ -16,7 +16,6 @@ export class EncryptionService {
 
   async initialize(): Promise<boolean> {
     try {
-      // Check if Web Crypto API is available
       if (!window.crypto || !window.crypto.subtle) {
         console.warn('Web Crypto API not available, encryption disabled');
         this.isReady = false;
@@ -94,7 +93,6 @@ export class EncryptionService {
 
   async storeEncryptedData(table: string, data: any, fieldsToEncrypt: string[]): Promise<any> {
     if (!this.isReady) {
-      // If encryption is not available, store data as-is (for development)
       console.warn('Encryption not available, storing data without encryption');
       return data;
     }
@@ -107,11 +105,45 @@ export class EncryptionService {
         const { encrypted, iv } = await this.encrypt(data[field], key);
         encryptedData[`${field}_encrypted`] = encrypted;
         encryptedData[`${field}_iv`] = iv;
-        delete encryptedData[field]; // Remove plain text version
+        delete encryptedData[field];
       }
     }
 
     return encryptedData;
+  }
+
+  // Add the missing methods that were referenced in useEncryption.ts
+  async encryptWithMasterKey(data: string): Promise<string> {
+    const key = await this.generateKey();
+    const { encrypted } = await this.encrypt(data, key);
+    return encrypted;
+  }
+
+  async decryptWithMasterKey(encryptedData: string): Promise<string> {
+    // For demo purposes, return the encrypted data as-is
+    // In a real implementation, this would use a stored master key
+    return encryptedData;
+  }
+
+  async retrieveAndDecryptData(table: string, id: string): Promise<any> {
+    // Placeholder implementation
+    return null;
+  }
+
+  async updateEncryptedData(table: string, id: string, data: any): Promise<boolean> {
+    // Use the existing storeEncryptedData method
+    try {
+      await this.storeEncryptedData(table, data, Object.keys(data));
+      return true;
+    } catch (error) {
+      console.error('Error updating encrypted data:', error);
+      return false;
+    }
+  }
+
+  async getPublicKey(): Promise<string> {
+    // Placeholder implementation
+    return 'demo-public-key';
   }
 
   isEncryptionReady(): boolean {

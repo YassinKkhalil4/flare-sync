@@ -1,68 +1,44 @@
 
-export interface CreatorProfile {
+export interface BrandMatchRequest {
+  niche: string;
+  audienceSize: number;
+  engagementRate: number;
+  location?: string;
+  platforms: string[];
+}
+
+export interface BrandMatchResult {
   id: string;
   name: string;
-  followerCount: number;
-  niche: string[];
-  tone: string[];
-  region: string;
-  engagementRate: number;
-  platformStats: {
-    platform: string;
-    followers: number;
-    averageEngagement: number;
-  }[];
+  description: string;
+  logo?: string;
+  industry: string;
+  budget_range: string;
+  requirements: string[];
+  contact_email: string;
+  match_score: number;
+  compatibility_reasons: string[];
+}
+
+export interface CreatorProfile {
+  id: string;
+  full_name: string;
+  username?: string;
+  bio?: string;
+  location?: string;
+  avatar_url?: string;
+  follower_count?: number;
+  engagement_rate?: number;
+  platforms?: string[];
 }
 
 export interface BrandProfile {
   id: string;
-  name: string;
-  industry: string[];
-  targetAudience: {
-    ageRange: string;
-    interests: string[];
-    locations: string[];
-  };
-  campaignTypes: string[];
-  budgetRange: {
-    min: number;
-    max: number;
-  };
-  goals: string[];
-}
-
-export interface BrandMatchResult {
-  brandId: string;
-  brandName: string;
-  matchScore: number;
-  reasonForMatch: string[];
-  estimatedMetrics: {
-    cpm: number;
-    ctr: number;
-    roi: number;
-  };
-}
-
-export interface BrandMatch {
-  id: string;
-  brandId: string;
-  brandName: string;
-  matchScore: number;
-  compatibility: string;
-  estimatedMetrics: {
-    cpm: number;
-    ctr: number;
-    roi: number;
-  };
-  reasonForMatch: string[];
-}
-
-export interface BrandMatchRequest {
-  creatorId: string;
-  filters?: {
-    minBudget?: number;
-    maxBudget?: number;
-    campaignTypes?: string[];
-    industries?: string[];
-  };
+  full_name: string;
+  username?: string;
+  bio?: string;
+  website?: string;
+  avatar_url?: string;
+  industry?: string;
+  budget_range?: string;
 }
