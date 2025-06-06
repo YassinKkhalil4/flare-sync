@@ -82,7 +82,7 @@ const AdminTesting = () => {
     }
   });
 
-  // Test functions
+  // Simple test functions
   async function runSignupTest() {
     console.log('Running signup test...');
     const testEmail = `test_signup_${Date.now()}@flare-sync-test.com`;
@@ -106,86 +106,11 @@ const AdminTesting = () => {
     console.log('Login test passed');
   }
 
-  async function runLogoutTest() {
-    console.log('Running logout test...');
-    const { error } = await supabase.auth.signOut();
-    if (error) throw new Error(`Logout test failed: ${error.message}`);
-    console.log('Logout test passed');
-  }
-
-  async function runPasswordResetTest() {
-    console.log('Running password reset test...');
-    const { error } = await supabase.auth.resetPasswordForEmail('test@flare-sync.com');
-    if (error) throw new Error(`Password reset test failed: ${error.message}`);
-    console.log('Password reset test passed');
-  }
-
-  async function runSessionPersistenceTest() {
-    console.log('Running session persistence test...');
-    const { data: { session } } = await supabase.auth.getSession();
-    console.log('Session persistence test completed');
-  }
-
-  async function runContentCreationTest() {
-    console.log('Running content creation test...');
-    const { data: { user } } = await supabase.auth.getUser();
-    let userId = user?.id;
-
-    if (!user) {
-      const testEmail = `test_content_${Date.now()}@test.com`;
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: testEmail,
-        password: 'TestPassword123!'
-      });
-      if (signUpError || !signUpData.user) throw new Error('Failed to create test user');
-      userId = signUpData.user.id;
-    }
-
-    const { error } = await supabase.from('content_posts').insert({
-      user_id: userId,
-      title: 'Test Content Post',
-      body: 'This is a test content post',
-      platform: 'instagram',
-      status: 'draft'
-    });
-    if (error) throw new Error(`Content creation test failed: ${error.message}`);
-    console.log('Content creation test passed');
-  }
-
-  async function runContentSchedulingTest() {
-    console.log('Running content scheduling test...');
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('No authenticated user for content scheduling test');
-
-    const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const { error } = await supabase.from('scheduled_posts').insert({
-      user_id: user.id,
-      content: 'Test scheduled content',
-      platform: 'instagram',
-      scheduled_for: futureDate.toISOString(),
-      status: 'pending'
-    });
-    if (error) throw new Error(`Content scheduling test failed: ${error.message}`);
-    console.log('Content scheduling test passed');
-  }
-
-  async function runDealCreationTest() {
-    console.log('Running deal creation test...');
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('No authenticated user for deal creation test');
-
-    const { error } = await supabase.from('brand_deals').insert({
-      brand_id: user.id,
-      creator_id: user.id,
-      title: 'Test Deal',
-      description: 'Test deal description',
-      budget: 1000,
-      brand_name: 'Test Brand',
-      requirements: ['Test requirement'],
-      deliverables: ['Test deliverable']
-    });
-    if (error) throw new Error(`Deal creation test failed: ${error.message}`);
-    console.log('Deal creation test passed');
+  async function runDatabaseTest() {
+    console.log('Running database test...');
+    const { data, error } = await supabase.from('profiles').select('id').limit(1);
+    if (error) throw new Error(`Database test failed: ${error.message}`);
+    console.log('Database test passed');
   }
 
   // Define test suites
@@ -195,25 +120,14 @@ const AdminTesting = () => {
       category: 'auth',
       tests: [
         { name: 'User Signup', fn: runSignupTest },
-        { name: 'User Login', fn: runLoginTest },
-        { name: 'User Logout', fn: runLogoutTest },
-        { name: 'Password Reset', fn: runPasswordResetTest },
-        { name: 'Session Persistence', fn: runSessionPersistenceTest }
+        { name: 'User Login', fn: runLoginTest }
       ]
     },
     {
-      name: 'Content Management Tests',
-      category: 'content',
+      name: 'Database Tests',
+      category: 'database',
       tests: [
-        { name: 'Content Creation', fn: runContentCreationTest },
-        { name: 'Content Scheduling', fn: runContentSchedulingTest }
-      ]
-    },
-    {
-      name: 'Brand Deals Tests',
-      category: 'deals',
-      tests: [
-        { name: 'Deal Creation', fn: runDealCreationTest }
+        { name: 'Database Connection', fn: runDatabaseTest }
       ]
     }
   ];

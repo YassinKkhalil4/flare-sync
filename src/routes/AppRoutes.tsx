@@ -35,9 +35,14 @@ import ContentPlanGeneratorPage from '@/pages/Content/ContentPlanGeneratorPage';
 import SmartAssistantPage from '@/pages/Content/SmartAssistantPage';
 
 // Admin pages
-import AdminLayout from '@/components/admin/AdminLayout';
 import AdminDashboard from '@/pages/AdminDashboard';
 import AdminLogin from '@/pages/AdminLogin';
+import AdminUsers from '@/pages/admin/AdminUsers';
+import AdminContent from '@/pages/admin/AdminContent';
+import AdminAnalytics from '@/pages/admin/AdminAnalytics';
+import AdminBilling from '@/pages/admin/AdminBilling';
+import AdminNotifications from '@/pages/admin/AdminNotifications';
+import AdminTesting from '@/pages/admin/AdminTesting';
 
 // Legal pages
 import Privacy from '@/pages/Privacy';
@@ -214,14 +219,39 @@ const AppRoutes: React.FC = () => {
 
       {/* Admin routes */}
       <Route path="/admin/login" element={<AdminLogin />} />
-      <Route path="/admin/*" element={
+      <Route path="/admin" element={
         <ProtectedRoute requireAdmin>
-          <AdminLayout>
-            <Routes>
-              <Route path="/" element={<AdminDashboard />} />
-              <Route path="/dashboard" element={<AdminDashboard />} />
-            </Routes>
-          </AdminLayout>
+          <AdminDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/users" element={
+        <ProtectedRoute requireAdmin>
+          <AdminUsers />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/content" element={
+        <ProtectedRoute requireAdmin>
+          <AdminContent />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/analytics" element={
+        <ProtectedRoute requireAdmin>
+          <AdminAnalytics />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/billing" element={
+        <ProtectedRoute requireAdmin>
+          <AdminBilling />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/notifications" element={
+        <ProtectedRoute requireAdmin>
+          <AdminNotifications />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/testing" element={
+        <ProtectedRoute requireAdmin>
+          <AdminTesting />
         </ProtectedRoute>
       } />
 
