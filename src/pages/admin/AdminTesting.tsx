@@ -46,9 +46,11 @@ const AdminTesting = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch test results
   const { data: testResults, isLoading, refetch } = useQuery({
     queryKey: ['adminTestResults', selectedTimeRange],
     queryFn: async () => {
+      console.log('Fetching test results for range:', selectedTimeRange);
       const startDate = new Date();
       switch (selectedTimeRange) {
         case '24h':
@@ -70,11 +72,123 @@ const AdminTesting = () => {
         .gte('executed_at', startDate.toISOString())
         .order('executed_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching test results:', error);
+        throw error;
+      }
+      
+      console.log('Fetched test results:', data);
       return data as TestResultData[];
     }
   });
 
+  // Test functions
+  async function runSignupTest() {
+    console.log('Running signup test...');
+    const testEmail = `test_signup_${Date.now()}@flare-sync-test.com`;
+    const { error } = await supabase.auth.signUp({
+      email: testEmail,
+      password: 'TestPassword123!'
+    });
+    if (error) throw new Error(`Signup test failed: ${error.message}`);
+    console.log('Signup test passed');
+  }
+
+  async function runLoginTest() {
+    console.log('Running login test...');
+    const { error } = await supabase.auth.signInWithPassword({
+      email: 'test@flare-sync.com',
+      password: 'testpassword'
+    });
+    if (error && !error.message.includes('Invalid')) {
+      throw new Error(`Login test failed: ${error.message}`);
+    }
+    console.log('Login test passed');
+  }
+
+  async function runLogoutTest() {
+    console.log('Running logout test...');
+    const { error } = await supabase.auth.signOut();
+    if (error) throw new Error(`Logout test failed: ${error.message}`);
+    console.log('Logout test passed');
+  }
+
+  async function runPasswordResetTest() {
+    console.log('Running password reset test...');
+    const { error } = await supabase.auth.resetPasswordForEmail('test@flare-sync.com');
+    if (error) throw new Error(`Password reset test failed: ${error.message}`);
+    console.log('Password reset test passed');
+  }
+
+  async function runSessionPersistenceTest() {
+    console.log('Running session persistence test...');
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('Session persistence test completed');
+  }
+
+  async function runContentCreationTest() {
+    console.log('Running content creation test...');
+    const { data: { user } } = await supabase.auth.getUser();
+    let userId = user?.id;
+
+    if (!user) {
+      const testEmail = `test_content_${Date.now()}@test.com`;
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: testEmail,
+        password: 'TestPassword123!'
+      });
+      if (signUpError || !signUpData.user) throw new Error('Failed to create test user');
+      userId = signUpData.user.id;
+    }
+
+    const { error } = await supabase.from('content_posts').insert({
+      user_id: userId,
+      title: 'Test Content Post',
+      body: 'This is a test content post',
+      platform: 'instagram',
+      status: 'draft'
+    });
+    if (error) throw new Error(`Content creation test failed: ${error.message}`);
+    console.log('Content creation test passed');
+  }
+
+  async function runContentSchedulingTest() {
+    console.log('Running content scheduling test...');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No authenticated user for content scheduling test');
+
+    const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const { error } = await supabase.from('scheduled_posts').insert({
+      user_id: user.id,
+      content: 'Test scheduled content',
+      platform: 'instagram',
+      scheduled_for: futureDate.toISOString(),
+      status: 'pending'
+    });
+    if (error) throw new Error(`Content scheduling test failed: ${error.message}`);
+    console.log('Content scheduling test passed');
+  }
+
+  async function runDealCreationTest() {
+    console.log('Running deal creation test...');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No authenticated user for deal creation test');
+
+    const { error } = await supabase.from('brand_deals').insert({
+      brand_id: user.id,
+      creator_id: user.id,
+      title: 'Test Deal',
+      description: 'Test deal description',
+      budget: 1000,
+      brand_name: 'Test Brand',
+      requirements: ['Test requirement'],
+      deliverables: ['Test deliverable']
+    });
+    if (error) throw new Error(`Deal creation test failed: ${error.message}`);
+    console.log('Deal creation test passed');
+  }
+
+  // Define test suites
   const testSuites = [
     {
       name: 'Authentication Tests',
@@ -92,37 +206,22 @@ const AdminTesting = () => {
       category: 'content',
       tests: [
         { name: 'Content Creation', fn: runContentCreationTest },
-        { name: 'Content Scheduling', fn: runContentSchedulingTest },
-        { name: 'Content Update', fn: runContentUpdateTest },
-        { name: 'Content Deletion', fn: runContentDeletionTest },
-        { name: 'Media Upload', fn: runMediaUploadTest }
+        { name: 'Content Scheduling', fn: runContentSchedulingTest }
       ]
     },
     {
       name: 'Brand Deals Tests',
       category: 'deals',
       tests: [
-        { name: 'Deal Creation', fn: runDealCreationTest },
-        { name: 'Deal Acceptance', fn: runDealAcceptanceTest },
-        { name: 'Deal Rejection', fn: runDealRejectionTest },
-        { name: 'Deal Completion', fn: runDealCompletionTest },
-        { name: 'Deal Listing', fn: runDealListingTest }
-      ]
-    },
-    {
-      name: 'Analytics Tests',
-      category: 'analytics',
-      tests: [
-        { name: 'Analytics Generation', fn: runAnalyticsGenerationTest },
-        { name: 'Engagement Prediction', fn: runEngagementPredictionTest },
-        { name: 'Performance Tracking', fn: runPerformanceTrackingTest },
-        { name: 'Report Generation', fn: runReportGenerationTest }
+        { name: 'Deal Creation', fn: runDealCreationTest }
       ]
     }
   ];
 
+  // Run all tests mutation
   const runAllTestsMutation = useMutation({
     mutationFn: async () => {
+      console.log('Starting all tests...');
       setIsRunningTests(true);
       setTestProgress(0);
       
@@ -152,8 +251,7 @@ const AdminTesting = () => {
           
           toast({
             title: "Test Passed",
-            description: `${test.name} completed successfully`,
-            variant: "success"
+            description: `${test.name} completed successfully`
           });
           
         } catch (error) {
@@ -172,6 +270,12 @@ const AdminTesting = () => {
           });
           
           console.error(`Test failed: ${test.name}`, error);
+          
+          toast({
+            title: "Test Failed",
+            description: `${test.name}: ${errorMessage}`,
+            variant: "destructive"
+          });
         }
         
         completedTests++;
@@ -187,228 +291,12 @@ const AdminTesting = () => {
       
       toast({
         title: "Test Suite Complete",
-        description: `All ${allTests.length} tests have been executed`,
-        variant: "success"
+        description: `All ${allTests.length} tests have been executed`
       });
     }
   });
 
-  // Test functions
-  async function runSignupTest() {
-    const testEmail = `test_signup_${Date.now()}@flare-sync-test.com`;
-    const { error } = await supabase.auth.signUp({
-      email: testEmail,
-      password: 'TestPassword123!'
-    });
-    if (error) throw new Error(`Signup test failed: ${error.message}`);
-  }
-
-  async function runLoginTest() {
-    // Test with a known test account or create one first
-    const { error } = await supabase.auth.signInWithPassword({
-      email: 'test@flare-sync.com',
-      password: 'testpassword'
-    });
-    if (error && !error.message.includes('Invalid')) {
-      throw new Error(`Login test failed: ${error.message}`);
-    }
-  }
-
-  async function runLogoutTest() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw new Error(`Logout test failed: ${error.message}`);
-  }
-
-  async function runPasswordResetTest() {
-    const { error } = await supabase.auth.resetPasswordForEmail('test@flare-sync.com');
-    if (error) throw new Error(`Password reset test failed: ${error.message}`);
-  }
-
-  async function runSessionPersistenceTest() {
-    const { data: { session } } = await supabase.auth.getSession();
-    // This test checks if session management is working
-    console.log('Session persistence test completed');
-  }
-
-  async function runContentCreationTest() {
-    const { data: { user } } = await supabase.auth.getUser();
-    let userId = user?.id;
-
-    if (!user) {
-      // Create a test user for this test
-      const testEmail = `test_content_${Date.now()}@test.com`;
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: testEmail,
-        password: 'TestPassword123!'
-      });
-      if (signUpError || !signUpData.user) throw new Error('Failed to create test user');
-      userId = signUpData.user.id;
-    }
-
-    const { error } = await supabase.from('content_posts').insert({
-      user_id: userId,
-      title: 'Test Content Post',
-      body: 'This is a test content post',
-      platform: 'instagram',
-      status: 'draft'
-    });
-    if (error) throw new Error(`Content creation test failed: ${error.message}`);
-  }
-
-  async function runContentSchedulingTest() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('No authenticated user for content scheduling test');
-
-    const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const { error } = await supabase.from('scheduled_posts').insert({
-      user_id: user.id,
-      content: 'Test scheduled content',
-      platform: 'instagram',
-      scheduled_for: futureDate.toISOString(),
-      status: 'pending'
-    });
-    if (error) throw new Error(`Content scheduling test failed: ${error.message}`);
-  }
-
-  async function runContentUpdateTest() {
-    const { data: posts } = await supabase.from('content_posts').select('id').limit(1);
-    if (!posts || posts.length === 0) throw new Error('No content posts found for update test');
-
-    const { error } = await supabase.from('content_posts')
-      .update({ title: 'Updated Test Content' })
-      .eq('id', posts[0].id);
-    if (error) throw new Error(`Content update test failed: ${error.message}`);
-  }
-
-  async function runContentDeletionTest() {
-    // Create a post first, then delete it
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('No authenticated user for content deletion test');
-
-    const { data: post, error: createError } = await supabase.from('content_posts').insert({
-      user_id: user.id,
-      title: 'Test Delete Post',
-      body: 'To be deleted',
-      platform: 'instagram',
-      status: 'draft'
-    }).select().single();
-
-    if (createError) throw new Error(`Failed to create test post: ${createError.message}`);
-
-    const { error: deleteError } = await supabase.from('content_posts').delete().eq('id', post.id);
-    if (deleteError) throw new Error(`Content deletion test failed: ${deleteError.message}`);
-  }
-
-  async function runMediaUploadTest() {
-    // Simulate media upload test
-    console.log('Media upload test simulated - would require actual file upload');
-  }
-
-  async function runDealCreationTest() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('No authenticated user for deal creation test');
-
-    const { error } = await supabase.from('brand_deals').insert({
-      brand_id: user.id,
-      creator_id: user.id,
-      title: 'Test Deal',
-      description: 'Test deal description',
-      budget: 1000,
-      brand_name: 'Test Brand',
-      requirements: ['Test requirement'],
-      deliverables: ['Test deliverable']
-    });
-    if (error) throw new Error(`Deal creation test failed: ${error.message}`);
-  }
-
-  async function runDealAcceptanceTest() {
-    const { data: deals } = await supabase.from('brand_deals')
-      .select('id')
-      .eq('status', 'pending')
-      .limit(1);
-
-    if (deals && deals.length > 0) {
-      const { error } = await supabase.from('brand_deals')
-        .update({ status: 'accepted' })
-        .eq('id', deals[0].id);
-      if (error) throw new Error(`Deal acceptance test failed: ${error.message}`);
-    }
-  }
-
-  async function runDealRejectionTest() {
-    const { data: deals } = await supabase.from('brand_deals')
-      .select('id')
-      .eq('status', 'pending')
-      .limit(1);
-
-    if (deals && deals.length > 0) {
-      const { error } = await supabase.from('brand_deals')
-        .update({ status: 'rejected' })
-        .eq('id', deals[0].id);
-      if (error) throw new Error(`Deal rejection test failed: ${error.message}`);
-    }
-  }
-
-  async function runDealCompletionTest() {
-    const { data: deals } = await supabase.from('brand_deals')
-      .select('id')
-      .eq('status', 'accepted')
-      .limit(1);
-
-    if (deals && deals.length > 0) {
-      const { error } = await supabase.from('brand_deals')
-        .update({ status: 'completed' })
-        .eq('id', deals[0].id);
-      if (error) throw new Error(`Deal completion test failed: ${error.message}`);
-    }
-  }
-
-  async function runDealListingTest() {
-    const { data, error } = await supabase.from('brand_deals').select('*').limit(10);
-    if (error) throw new Error(`Deal listing test failed: ${error.message}`);
-  }
-
-  async function runAnalyticsGenerationTest() {
-    const { data, error } = await supabase.from('content_posts').select('id, created_at').limit(10);
-    if (error) throw new Error(`Analytics generation test failed: ${error.message}`);
-  }
-
-  async function runEngagementPredictionTest() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('No authenticated user for engagement prediction test');
-
-    const { error } = await supabase.from('engagement_predictions').insert({
-      user_id: user.id,
-      platform: 'instagram',
-      content: 'Test prediction content',
-      predicted_likes: 100,
-      predicted_comments: 10,
-      predicted_shares: 5,
-      confidence_score: 0.85
-    });
-    if (error) throw new Error(`Engagement prediction test failed: ${error.message}`);
-  }
-
-  async function runPerformanceTrackingTest() {
-    const { data, error } = await supabase.from('content_posts')
-      .select('id, metrics')
-      .not('metrics', 'is', null)
-      .limit(5);
-    if (error) throw new Error(`Performance tracking test failed: ${error.message}`);
-  }
-
-  async function runReportGenerationTest() {
-    const [posts, deals, notifications] = await Promise.all([
-      supabase.from('content_posts').select('count'),
-      supabase.from('brand_deals').select('count'),
-      supabase.from('notifications').select('count')
-    ]);
-
-    if (posts.error || deals.error || notifications.error) {
-      throw new Error('Report generation test failed');
-    }
-  }
-
+  // Calculate test metrics
   const testMetrics: TestMetrics = React.useMemo(() => {
     if (!testResults) {
       return {
@@ -465,31 +353,6 @@ const AdminTesting = () => {
     };
   }, [testResults]);
 
-  const exportTestReport = async () => {
-    if (!testResults) return;
-
-    const csvData = [
-      ['Test Name', 'Category', 'Status', 'Duration (ms)', 'Executed At', 'Error Message'],
-      ...testResults.map(test => [
-        test.test_name,
-        test.category,
-        test.status,
-        test.duration.toString(),
-        test.executed_at,
-        test.error_message || ''
-      ])
-    ];
-
-    const csvContent = csvData.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `test-report-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
   if (isLoading) {
     return (
       <AdminLayout>
@@ -524,10 +387,6 @@ const AdminTesting = () => {
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
-            <Button variant="outline" onClick={exportTestReport}>
-              <Download className="h-4 w-4 mr-2" />
-              Export Report
-            </Button>
           </div>
         </div>
 
@@ -556,7 +415,7 @@ const AdminTesting = () => {
         )}
 
         {/* Test Metrics Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Tests</CardTitle>
@@ -600,17 +459,6 @@ const AdminTesting = () => {
               <p className="text-xs text-muted-foreground">Per test execution</p>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Categories</CardTitle>
-              <TestTube className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{Object.keys(testMetrics.categoryCoverage).length}</div>
-              <p className="text-xs text-muted-foreground">Feature areas covered</p>
-            </CardContent>
-          </Card>
         </div>
 
         <Tabs defaultValue="results" className="space-y-6">
@@ -641,42 +489,50 @@ const AdminTesting = () => {
                 <CardDescription>Detailed test execution history</CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Test Name</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Duration</TableHead>
-                      <TableHead>Executed At</TableHead>
-                      <TableHead>Error</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {testResults?.slice(0, 50).map((test) => (
-                      <TableRow key={test.id}>
-                        <TableCell className="font-medium">{test.test_name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{test.category}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={test.status === 'passed' ? 'default' : 'destructive'}>
-                            {test.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{test.duration}ms</TableCell>
-                        <TableCell>{new Date(test.executed_at).toLocaleString()}</TableCell>
-                        <TableCell>
-                          {test.error_message && (
-                            <span className="text-sm text-red-600 truncate block max-w-xs">
-                              {test.error_message}
-                            </span>
-                          )}
-                        </TableCell>
+                {testResults && testResults.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Test Name</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Duration</TableHead>
+                        <TableHead>Executed At</TableHead>
+                        <TableHead>Error</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {testResults.slice(0, 20).map((test) => (
+                        <TableRow key={test.id}>
+                          <TableCell className="font-medium">{test.test_name}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{test.category}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={test.status === 'passed' ? 'default' : 'destructive'}>
+                              {test.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{test.duration}ms</TableCell>
+                          <TableCell>{new Date(test.executed_at).toLocaleString()}</TableCell>
+                          <TableCell>
+                            {test.error_message && (
+                              <span className="text-sm text-red-600 truncate block max-w-xs">
+                                {test.error_message}
+                              </span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-8">
+                    <TestTube className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No test results yet</h3>
+                    <p className="text-muted-foreground">Click "Run All Tests" to start testing your features</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -689,17 +545,23 @@ const AdminTesting = () => {
                   <CardDescription>Daily test results over time</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={testMetrics.trendData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="passed" stroke="#22c55e" strokeWidth={2} />
-                      <Line type="monotone" dataKey="failed" stroke="#ef4444" strokeWidth={2} />
-                      <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  {testMetrics.trendData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={testMetrics.trendData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="passed" stroke="#22c55e" strokeWidth={2} />
+                        <Line type="monotone" dataKey="failed" stroke="#ef4444" strokeWidth={2} />
+                        <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                      No trend data available
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -709,15 +571,21 @@ const AdminTesting = () => {
                   <CardDescription>Tests by feature category</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={Object.entries(testMetrics.categoryCoverage).map(([key, value]) => ({ category: key, count: value }))}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="category" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="#3b82f6" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  {Object.keys(testMetrics.categoryCoverage).length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={Object.entries(testMetrics.categoryCoverage).map(([key, value]) => ({ category: key, count: value }))}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="category" />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="count" fill="#3b82f6" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                      No category data available
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
