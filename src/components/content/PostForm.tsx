@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -6,7 +5,6 @@ import { Editor } from '@tinymce/tinymce-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ContentPost, SocialPlatform, ContentStatus } from '@/types/content';
@@ -14,6 +12,9 @@ import { PostFormData, toContentPost } from '@/types/postForm';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { ContentAPI } from '@/services/contentService';
+import { MediaUpload } from './MediaUpload';
+import { TagSelector } from './TagSelector';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 interface PostFormProps {
   onSubmit: (data: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>, tagIds?: string[]) => Promise<void>;
@@ -83,15 +84,9 @@ const PostForm: React.FC<PostFormProps> = ({ onSubmit, onCancel, initialValues, 
   const handleEditorChange = (content: string | undefined) => {
     setValue('body', content || '', { shouldValidate: true });
   };
-  
-  const handleTagSelect = (tagId: string) => {
-    setSelectedTagIds(prev => {
-      if (prev.includes(tagId)) {
-        return prev.filter(id => id !== tagId);
-      } else {
-        return [...prev, tagId];
-      }
-    });
+
+  const handleMediaUpload = (urls: string[]) => {
+    setValue('media_urls', urls);
   };
 
   const onSubmitHandler = async (data: PostFormData) => {
@@ -131,150 +126,150 @@ const PostForm: React.FC<PostFormProps> = ({ onSubmit, onCancel, initialValues, 
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{initialValues ? 'Edit Post' : 'Create New Post'}</CardTitle>
-        <CardDescription>Create and manage your content posts here.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmitHandler)} className="space-y-4">
-          <div>
-            <Label htmlFor="title">Title</Label>
-            <Controller
-              name="title"
-              control={control}
-              rules={{ required: 'Title is required' }}
-              render={({ field }) => (
-                <Input id="title" placeholder="Post title" {...field} />
-              )}
-            />
-            {errors.title && <p className="text-red-500 text-sm">{errors.title.message}</p>}
-          </div>
-          
-          <div>
-            <Label htmlFor="body">Body</Label>
-            <Controller
-              name="body"
-              control={control}
-              rules={{ required: 'Body is required' }}
-              render={({ field }) => (
-                <Editor
-                  apiKey={tinyMCEApiKey}
-                  value={field.value || ''}
-                  onEditorChange={handleEditorChange}
-                  init={{
-                    height: 400,
-                    menubar: false,
-                    plugins: [
-                      // Core editing features
-                      'anchor', 'autolink', 'charmap', 'codesample', 'emoticons', 'image', 'link', 'lists', 'media', 'searchreplace', 'table', 'visualblocks', 'wordcount',
-                      // Premium features
-                      'checklist', 'mediaembed', 'casechange', 'formatpainter', 'pageembed', 'a11ychecker', 'tinymcespellchecker', 'permanentpen', 'powerpaste', 'advtable', 'advcode', 'editimage', 'advtemplate', 'ai', 'mentions', 'tinycomments', 'tableofcontents', 'footnotes', 'mergetags', 'autocorrect', 'typography', 'inlinecss', 'markdown','importword', 'exportword', 'exportpdf'
-                    ],
-                    toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table mergetags | addcomment showcomments | spellcheckdialog a11ycheck typography | align lineheight | checklist numlist bullist indent outdent | emoticons charmap | removeformat',
-                    tinycomments_mode: 'embedded',
-                    tinycomments_author: 'Author name',
-                    mergetags_list: [
-                      { value: 'First.Name', title: 'First Name' },
-                      { value: 'Email', title: 'Email' },
-                    ],
-                    ai_request: (request, respondWith) => respondWith.string(() => Promise.reject('See docs to implement AI Assistant')),
-                    content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }'
-                  }}
-                />
-              )}
-            />
-            {errors.body && <p className="text-red-500 text-sm">{errors.body.message}</p>}
-          </div>
-          
-          <div>
-            <Label htmlFor="platform">Platform</Label>
-            <Controller
-              name="platform"
-              control={control}
-              rules={{ required: 'Platform is required' }}
-              render={({ field }) => (
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a platform" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {platformOptions.map((platform) => (
-                      <SelectItem key={platform.value} value={platform.value}>{platform.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {errors.platform && <p className="text-red-500 text-sm">{errors.platform.message}</p>}
-          </div>
-          
-          <div>
-            <Label htmlFor="status">Status</Label>
-            <Controller
-              name="status"
-              control={control}
-              rules={{ required: 'Status is required' }}
-              render={({ field }) => (
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map((status) => (
-                      <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
-          </div>
-
-          {watchedStatus === 'scheduled' && (
+    <ErrorBoundary>
+      <Card>
+        <CardHeader>
+          <CardTitle>{initialValues ? 'Edit Post' : 'Create New Post'}</CardTitle>
+          <CardDescription>Create and manage your content posts here.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmitHandler)} className="space-y-6">
             <div>
-              <Label htmlFor="scheduled_for">Scheduled For</Label>
+              <Label htmlFor="title">Title</Label>
               <Controller
-                name="scheduled_for"
+                name="title"
                 control={control}
+                rules={{ required: 'Title is required' }}
                 render={({ field }) => (
-                  <Input type="datetime-local" id="scheduled_for" {...field} />
+                  <Input id="title" placeholder="Post title" {...field} />
                 )}
               />
+              {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>}
             </div>
-          )}
-          
-          <div>
-            <Label>Tags</Label>
-            <div className="flex flex-wrap gap-2">
-              {tags.map(tag => (
-                <Button
-                  key={tag.id}
-                  type="button"
-                  variant={selectedTagIds.includes(tag.id) ? "default" : "outline"}
-                  onClick={() => handleTagSelect(tag.id)}
-                >
-                  {tag.name}
-                </Button>
-              ))}
+            
+            <div>
+              <Label htmlFor="body">Content</Label>
+              <Controller
+                name="body"
+                control={control}
+                rules={{ required: 'Content is required' }}
+                render={({ field }) => (
+                  <Editor
+                    apiKey={tinyMCEApiKey}
+                    value={field.value || ''}
+                    onEditorChange={handleEditorChange}
+                    init={{
+                      height: 400,
+                      menubar: false,
+                      plugins: [
+                        'anchor', 'autolink', 'charmap', 'codesample', 'emoticons', 'image', 'link', 'lists', 'media', 'searchreplace', 'table', 'visualblocks', 'wordcount',
+                        'checklist', 'mediaembed', 'casechange', 'formatpainter', 'pageembed', 'a11ychecker', 'tinymcespellchecker', 'permanentpen', 'powerpaste', 'advtable', 'advcode', 'editimage', 'advtemplate', 'ai', 'mentions', 'tinycomments', 'tableofcontents', 'footnotes', 'mergetags', 'autocorrect', 'typography', 'inlinecss', 'markdown','importword', 'exportword', 'exportpdf'
+                      ],
+                      toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table mergetags | addcomment showcomments | spellcheckdialog a11ycheck typography | align lineheight | checklist numlist bullist indent outdent | emoticons charmap | removeformat',
+                      tinycomments_mode: 'embedded',
+                      tinycomments_author: 'Author name',
+                      mergetags_list: [
+                        { value: 'First.Name', title: 'First Name' },
+                        { value: 'Email', title: 'Email' },
+                      ],
+                      ai_request: (request, respondWith) => respondWith.string(() => Promise.reject('See docs to implement AI Assistant')),
+                      content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }'
+                    }}
+                  />
+                )}
+              />
+              {errors.body && <p className="text-red-500 text-sm mt-1">{errors.body.message}</p>}
             </div>
-          </div>
-        </form>
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-        <Button type="submit" onClick={handleSubmit(onSubmitHandler)} disabled={isLoading}>
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            'Save Post'
-          )}
-        </Button>
-      </CardFooter>
-    </Card>
+
+            <div>
+              <Label>Media</Label>
+              <MediaUpload
+                onMediaUpload={handleMediaUpload}
+                existingUrls={watch('media_urls') || []}
+                maxFiles={5}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="platform">Platform</Label>
+                <Controller
+                  name="platform"
+                  control={control}
+                  rules={{ required: 'Platform is required' }}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a platform" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {platformOptions.map((platform) => (
+                          <SelectItem key={platform.value} value={platform.value}>{platform.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.platform && <p className="text-red-500 text-sm mt-1">{errors.platform.message}</p>}
+              </div>
+              
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Controller
+                  name="status"
+                  control={control}
+                  rules={{ required: 'Status is required' }}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statusOptions.map((status) => (
+                          <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.status && <p className="text-red-500 text-sm mt-1">{errors.status.message}</p>}
+              </div>
+            </div>
+
+            {watchedStatus === 'scheduled' && (
+              <div>
+                <Label htmlFor="scheduled_for">Scheduled For</Label>
+                <Controller
+                  name="scheduled_for"
+                  control={control}
+                  render={({ field }) => (
+                    <Input type="datetime-local" id="scheduled_for" {...field} />
+                  )}
+                />
+              </div>
+            )}
+            
+            <TagSelector
+              selectedTagIds={selectedTagIds}
+              onTagsChange={setSelectedTagIds}
+            />
+          </form>
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+          <Button type="submit" onClick={handleSubmit(onSubmitHandler)} disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save Post'
+            )}
+          </Button>
+        </CardFooter>
+      </Card>
+    </ErrorBoundary>
   );
 };
 

@@ -5,22 +5,29 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { ContentPost, ScheduledPost, ContentStatus } from '@/types/content';
+import { EnhancedContentService } from '@/services/enhancedContentService';
+import { storageService } from '@/services/storageService';
 
 export const useRealContent = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // Initialize storage on first load
+  useState(() => {
+    storageService.initializeStorage().catch(console.error);
+  });
+
   const { data: posts = [], isLoading: isLoadingPosts } = useQuery({
     queryKey: ['content-posts', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('content_posts')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as ContentPost[];
+      if (!user?.id) return [];
+      
+      const result = await EnhancedContentService.getUserPostsWithTags(user.id);
+      if (result.error) {
+        console.error('Error fetching posts:', result.error);
+        return [];
+      }
+      return result.data || [];
     },
     enabled: !!user?.id,
   });
@@ -28,31 +35,40 @@ export const useRealContent = () => {
   const { data: scheduledPosts = [], isLoading: isLoadingScheduled } = useQuery({
     queryKey: ['scheduled-posts', user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
       const { data, error } = await supabase
         .from('scheduled_posts')
         .select('*')
         .eq('user_id', user?.id)
         .order('scheduled_for', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching scheduled posts:', error);
+        return [];
+      }
       return data as ScheduledPost[];
     },
     enabled: !!user?.id,
   });
 
   const createPostMutation = useMutation({
-    mutationFn: async (postData: Omit<ContentPost, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-      const { data, error } = await supabase
-        .from('content_posts')
-        .insert({
-          ...postData,
-          user_id: user?.id,
-        })
-        .select()
-        .single();
+    mutationFn: async ({ 
+      postData, 
+      tagIds = [] 
+    }: { 
+      postData: Omit<ContentPost, 'id' | 'user_id' | 'created_at' | 'updated_at'>; 
+      tagIds?: string[] 
+    }) => {
+      if (!user?.id) throw new Error('User not authenticated');
 
-      if (error) throw error;
-      return data as ContentPost;
+      const result = await EnhancedContentService.createPostWithTags({
+        ...postData,
+        user_id: user.id
+      }, tagIds);
+
+      if (result.error) throw new Error(result.error);
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['content-posts'] });
@@ -72,11 +88,13 @@ export const useRealContent = () => {
 
   const schedulePostMutation = useMutation({
     mutationFn: async (postData: Omit<ScheduledPost, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+      if (!user?.id) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('scheduled_posts')
         .insert({
           ...postData,
-          user_id: user?.id,
+          user_id: user.id,
         })
         .select()
         .single();
@@ -102,6 +120,8 @@ export const useRealContent = () => {
 
   const publishPostMutation = useMutation({
     mutationFn: async (postId: string) => {
+      if (!user?.id) throw new Error('User not authenticated');
+
       // In a real implementation, this would call the social media APIs
       // For now, we'll update the status in our database
       const { data, error } = await supabase
@@ -111,7 +131,7 @@ export const useRealContent = () => {
           published_at: new Date().toISOString(),
         })
         .eq('id', postId)
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -137,11 +157,13 @@ export const useRealContent = () => {
 
   const deletePostMutation = useMutation({
     mutationFn: async (postId: string) => {
+      if (!user?.id) throw new Error('User not authenticated');
+
       const { error } = await supabase
         .from('content_posts')
         .delete()
         .eq('id', postId)
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
       if (error) throw error;
     },
@@ -166,7 +188,8 @@ export const useRealContent = () => {
     scheduledPosts,
     isLoadingPosts,
     isLoadingScheduled,
-    createPost: createPostMutation.mutate,
+    createPost: (postData: Omit<ContentPost, 'id' | 'user_id' | 'created_at' | 'updated_at'>, tagIds?: string[]) => 
+      createPostMutation.mutate({ postData, tagIds }),
     schedulePost: schedulePostMutation.mutate,
     publishPost: publishPostMutation.mutate,
     deletePost: deletePostMutation.mutate,
