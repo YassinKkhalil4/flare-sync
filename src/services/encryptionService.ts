@@ -1,118 +1,122 @@
 
-import { databaseEncryptionService } from './databaseEncryptionService';
-import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import * as crypto from '@/utils/cryptography';
+/**
+ * Client-side encryption service for sensitive data
+ * Used to encrypt social media tokens before storing in the database
+ */
+export class EncryptionService {
+  private static instance: EncryptionService;
+  private isReady = false;
 
-class EncryptionService {
-  private masterKey: CryptoKey | null = null;
-  
+  static getInstance(): EncryptionService {
+    if (!EncryptionService.instance) {
+      EncryptionService.instance = new EncryptionService();
+    }
+    return EncryptionService.instance;
+  }
+
   async initialize(): Promise<boolean> {
-    const success = await databaseEncryptionService.initialize();
-    
-    if (!success) {
-      toast({
-        title: 'Encryption Error',
-        description: 'Failed to initialize encryption. Some features may not work properly.',
-        variant: 'destructive'
-      });
+    try {
+      // Check if Web Crypto API is available
+      if (!window.crypto || !window.crypto.subtle) {
+        console.warn('Web Crypto API not available, encryption disabled');
+        this.isReady = false;
+        return false;
+      }
+
+      this.isReady = true;
+      return true;
+    } catch (error) {
+      console.error('Failed to initialize encryption:', error);
+      this.isReady = false;
+      return false;
     }
-    
-    return success;
   }
 
-  async storeEncryptedData<T extends Record<string, any>>(
-    tableName: string,
-    data: T,
-    sensitiveFields: (keyof T)[]
-  ): Promise<string | null> {
-    return databaseEncryptionService.storeEncryptedData(tableName, data, sensitiveFields);
+  async generateKey(): Promise<CryptoKey> {
+    if (!this.isReady) {
+      throw new Error('Encryption service not initialized');
+    }
+
+    return await window.crypto.subtle.generateKey(
+      {
+        name: 'AES-GCM',
+        length: 256,
+      },
+      true,
+      ['encrypt', 'decrypt']
+    );
   }
 
-  async retrieveAndDecryptData<T extends Record<string, any>>(
-    tableName: string,
-    query: Record<string, any>,
-    sensitiveFields: (keyof T)[]
-  ): Promise<T | null> {
-    return databaseEncryptionService.retrieveAndDecryptData(tableName, query, sensitiveFields);
+  async encrypt(data: string, key: CryptoKey): Promise<{ encrypted: string; iv: string }> {
+    if (!this.isReady) {
+      throw new Error('Encryption service not initialized');
+    }
+
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const encoder = new TextEncoder();
+    const encodedData = encoder.encode(data);
+
+    const encrypted = await window.crypto.subtle.encrypt(
+      {
+        name: 'AES-GCM',
+        iv: iv,
+      },
+      key,
+      encodedData
+    );
+
+    return {
+      encrypted: btoa(String.fromCharCode(...new Uint8Array(encrypted))),
+      iv: btoa(String.fromCharCode(...iv)),
+    };
   }
 
-  async updateEncryptedData<T extends Record<string, any>>(
-    tableName: string,
-    id: string,
-    data: Partial<T>,
-    sensitiveFields: (keyof T)[]
-  ): Promise<boolean> {
-    return databaseEncryptionService.updateEncryptedData(tableName, id, data, sensitiveFields);
+  async decrypt(encryptedData: string, iv: string, key: CryptoKey): Promise<string> {
+    if (!this.isReady) {
+      throw new Error('Encryption service not initialized');
+    }
+
+    const decoder = new TextDecoder();
+    const ivArray = new Uint8Array(atob(iv).split('').map(char => char.charCodeAt(0)));
+    const encryptedArray = new Uint8Array(atob(encryptedData).split('').map(char => char.charCodeAt(0)));
+
+    const decrypted = await window.crypto.subtle.decrypt(
+      {
+        name: 'AES-GCM',
+        iv: ivArray,
+      },
+      key,
+      encryptedArray
+    );
+
+    return decoder.decode(decrypted);
   }
 
-  // Add the missing methods for useEncryption.ts
-  async encryptWithMasterKey(data: string): Promise<{ encrypted: string; iv: string }> {
-    if (!this.masterKey) {
-      await this.initialize();
-      // Initialize masterKey if not done already
-      const masterKeyBase64 = localStorage.getItem('app_master_key');
-      if (masterKeyBase64) {
-        this.masterKey = await crypto.importKeyFromBase64(masterKeyBase64);
-      } else {
-        const newKey = await crypto.generateEncryptionKey();
-        this.masterKey = newKey;
-        localStorage.setItem('app_master_key', await crypto.exportKeyToBase64(newKey));
+  async storeEncryptedData(table: string, data: any, fieldsToEncrypt: string[]): Promise<any> {
+    if (!this.isReady) {
+      // If encryption is not available, store data as-is (for development)
+      console.warn('Encryption not available, storing data without encryption');
+      return data;
+    }
+
+    const key = await this.generateKey();
+    const encryptedData = { ...data };
+
+    for (const field of fieldsToEncrypt) {
+      if (data[field]) {
+        const { encrypted, iv } = await this.encrypt(data[field], key);
+        encryptedData[`${field}_encrypted`] = encrypted;
+        encryptedData[`${field}_iv`] = iv;
+        delete encryptedData[field]; // Remove plain text version
       }
     }
-    return crypto.encrypt(data, this.masterKey!);
+
+    return encryptedData;
   }
 
-  async decryptWithMasterKey(encryptedData: { encrypted: string; iv: string }): Promise<string> {
-    if (!this.masterKey) {
-      await this.initialize();
-      // Initialize masterKey if not done already
-      const masterKeyBase64 = localStorage.getItem('app_master_key');
-      if (masterKeyBase64) {
-        this.masterKey = await crypto.importKeyFromBase64(masterKeyBase64);
-      } else {
-        throw new Error('Encryption key not found');
-      }
-    }
-    return crypto.decrypt(encryptedData.encrypted, encryptedData.iv, this.masterKey!);
-  }
-  
-  // Add method for admin service
-  async decryptFields<T extends Record<string, any>>(
-    data: Record<string, any>,
-    fields: string[]
-  ): Promise<T> {
-    const result: Record<string, any> = { ...data };
-    
-    for (const field of fields) {
-      const encryptedField = `${field}_encrypted`;
-      const ivField = `${field}_iv`;
-      
-      if (data[encryptedField] && data[ivField]) {
-        try {
-          const decrypted = await this.decryptWithMasterKey({
-            encrypted: data[encryptedField],
-            iv: data[ivField]
-          });
-          
-          result[field] = decrypted;
-          delete result[encryptedField];
-          delete result[ivField];
-        } catch (error) {
-          console.error(`Failed to decrypt field ${field}:`, error);
-        }
-      }
-    }
-    
-    return result as T;
-  }
-  
-  // Add method for getPublicKey
-  async getPublicKey(): Promise<string | null> {
-    // Implementation would depend on your key management strategy
-    // For now, just return null
-    return null;
+  isEncryptionReady(): boolean {
+    return this.isReady;
   }
 }
 
-export const encryptionService = new EncryptionService();
+export const encryptionService = EncryptionService.getInstance();

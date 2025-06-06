@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { storageService } from '@/services/storageService';
+import { StorageService } from '@/services/storageService';
 import { errorHandler } from '@/utils/errorHandler';
 
 /**
@@ -31,8 +31,8 @@ export const initializeAppEnvironment = async () => {
       // Continue with initialization even if connection test fails
     }
     
-    // Initialize storage (create buckets if they don't exist)
-    const storageResult = await storageService.initializeStorage();
+    // Initialize storage using static method
+    const storageResult = await StorageService.initializeStorage();
     
     if (!storageResult.success) {
       console.warn("Storage initialization had issues:", storageResult.error);
