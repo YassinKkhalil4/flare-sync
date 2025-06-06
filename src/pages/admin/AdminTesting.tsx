@@ -82,35 +82,83 @@ const AdminTesting = () => {
     }
   });
 
-  // Simple test functions
-  async function runSignupTest() {
-    console.log('Running signup test...');
-    const testEmail = `test_signup_${Date.now()}@flare-sync-test.com`;
-    const { error } = await supabase.auth.signUp({
-      email: testEmail,
-      password: 'TestPassword123!'
-    });
-    if (error) throw new Error(`Signup test failed: ${error.message}`);
-    console.log('Signup test passed');
-  }
-
-  async function runLoginTest() {
-    console.log('Running login test...');
-    const { error } = await supabase.auth.signInWithPassword({
-      email: 'test@flare-sync.com',
-      password: 'testpassword'
-    });
-    if (error && !error.message.includes('Invalid')) {
-      throw new Error(`Login test failed: ${error.message}`);
+  // Test functions with better error handling
+  async function runAuthTest() {
+    console.log('Running authentication test...');
+    
+    // Test getting current session
+    const { data: session, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      throw new Error(`Session test failed: ${sessionError.message}`);
     }
-    console.log('Login test passed');
+    
+    if (!session.session) {
+      throw new Error('No active session found - authentication required');
+    }
+    
+    console.log('Authentication test passed');
   }
 
   async function runDatabaseTest() {
-    console.log('Running database test...');
-    const { data, error } = await supabase.from('profiles').select('id').limit(1);
-    if (error) throw new Error(`Database test failed: ${error.message}`);
-    console.log('Database test passed');
+    console.log('Running database connectivity test...');
+    
+    // Test basic database connectivity
+    const { data, error } = await supabase.from('profiles').select('count').limit(1);
+    if (error) {
+      throw new Error(`Database connectivity failed: ${error.message}`);
+    }
+    
+    console.log('Database connectivity test passed');
+  }
+
+  async function runProfileTest() {
+    console.log('Running profile test...');
+    
+    // Test profile access
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) {
+      throw new Error('No authenticated user found');
+    }
+    
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.user.id)
+      .single();
+      
+    if (error) {
+      throw new Error(`Profile access failed: ${error.message}`);
+    }
+    
+    if (!profile) {
+      throw new Error('User profile not found');
+    }
+    
+    console.log('Profile test passed');
+  }
+
+  async function runRoleTest() {
+    console.log('Running user role test...');
+    
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) {
+      throw new Error('No authenticated user found');
+    }
+    
+    const { data: roles, error } = await supabase
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', user.user.id);
+      
+    if (error) {
+      throw new Error(`Role check failed: ${error.message}`);
+    }
+    
+    if (!roles || roles.length === 0) {
+      throw new Error('No user roles found');
+    }
+    
+    console.log('User role test passed');
   }
 
   // Define test suites
@@ -119,15 +167,16 @@ const AdminTesting = () => {
       name: 'Authentication Tests',
       category: 'auth',
       tests: [
-        { name: 'User Signup', fn: runSignupTest },
-        { name: 'User Login', fn: runLoginTest }
+        { name: 'Session Check', fn: runAuthTest },
+        { name: 'Profile Access', fn: runProfileTest },
+        { name: 'Role Verification', fn: runRoleTest }
       ]
     },
     {
       name: 'Database Tests',
       category: 'database',
       tests: [
-        { name: 'Database Connection', fn: runDatabaseTest }
+        { name: 'Connectivity', fn: runDatabaseTest }
       ]
     }
   ];
@@ -154,7 +203,7 @@ const AdminTesting = () => {
           const duration = Date.now() - startTime;
           
           // Save successful test result
-          await supabase.from('test_results').insert({
+          const { error: insertError } = await supabase.from('test_results').insert({
             test_id: `${test.category}_${test.name.replace(/\s+/g, '_')}_${Date.now()}`,
             test_name: test.name,
             category: test.category,
@@ -163,9 +212,13 @@ const AdminTesting = () => {
             executed_at: new Date().toISOString()
           });
           
+          if (insertError) {
+            console.error('Failed to save test result:', insertError);
+          }
+          
           toast({
             title: "Test Passed",
-            description: `${test.name} completed successfully`
+            description: `${test.name} completed successfully (${duration}ms)`
           });
           
         } catch (error) {
@@ -173,7 +226,7 @@ const AdminTesting = () => {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           
           // Save failed test result
-          await supabase.from('test_results').insert({
+          const { error: insertError } = await supabase.from('test_results').insert({
             test_id: `${test.category}_${test.name.replace(/\s+/g, '_')}_${Date.now()}`,
             test_name: test.name,
             category: test.category,
@@ -182,6 +235,10 @@ const AdminTesting = () => {
             error_message: errorMessage,
             executed_at: new Date().toISOString()
           });
+          
+          if (insertError) {
+            console.error('Failed to save test result:', insertError);
+          }
           
           console.error(`Test failed: ${test.name}`, error);
           
