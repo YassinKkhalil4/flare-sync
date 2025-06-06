@@ -1,30 +1,35 @@
 
-export interface CaptionGenerationRequest {
+export interface CaptionRequest {
   description: string;
   platform: string;
   tone?: string;
   objective?: string;
-  niche?: string;
   postType?: string;
+  niche?: string;
 }
 
-export interface CaptionGenerationResponse {
-  success: boolean;
+export interface CaptionFormProps {
+  onSubmit: (request: CaptionRequest) => void;
+  isGenerating: boolean;
+}
+
+export interface CaptionResult {
+  id: string;
   captions: string[];
-  error?: string;
+  metadata: {
+    platform: string;
+    tone?: string;
+    objective?: string;
+    postType?: string;
+    niche?: string;
+  };
+  createdAt: string;
 }
 
 export interface SavedCaption {
   id: string;
-  user_id: string;
-  description: string;
+  content: string;
   platform: string;
-  tone?: string;
-  objective?: string;
-  niche?: string;
-  post_type?: string;
-  captions: string[];
-  selected_caption?: string;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  used: boolean;
 }
