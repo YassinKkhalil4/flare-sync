@@ -1212,6 +1212,45 @@ export type Database = {
           },
         ]
       }
+      test_results: {
+        Row: {
+          category: string
+          created_at: string | null
+          duration: number | null
+          error_message: string | null
+          executed_at: string | null
+          id: string
+          status: string
+          test_id: string
+          test_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          duration?: number | null
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          status: string
+          test_id: string
+          test_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          duration?: number | null
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          status?: string
+          test_id?: string
+          test_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number

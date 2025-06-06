@@ -82,28 +82,42 @@ const AdminTesting = () => {
     }
   });
 
-  // Test functions with better error handling
-  async function runAuthTest() {
+  // Enhanced test functions with better error handling
+  async function runAuthenticationTest() {
     console.log('Running authentication test...');
     
     // Test getting current session
     const { data: session, error: sessionError } = await supabase.auth.getSession();
     if (sessionError) {
-      throw new Error(`Session test failed: ${sessionError.message}`);
+      throw new Error(`Session check failed: ${sessionError.message}`);
     }
     
     if (!session.session) {
-      throw new Error('No active session found - authentication required');
+      throw new Error('No active session found - user must be authenticated to run tests');
     }
     
-    console.log('Authentication test passed');
+    // Test getting current user
+    const { data: user, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      throw new Error(`User retrieval failed: ${userError.message}`);
+    }
+    
+    if (!user.user) {
+      throw new Error('No user data found in session');
+    }
+    
+    console.log('Authentication test passed - User ID:', user.user.id);
   }
 
-  async function runDatabaseTest() {
+  async function runDatabaseConnectivityTest() {
     console.log('Running database connectivity test...');
     
-    // Test basic database connectivity
-    const { data, error } = await supabase.from('profiles').select('count').limit(1);
+    // Test basic database connectivity by querying profiles table
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .limit(1);
+      
     if (error) {
       throw new Error(`Database connectivity failed: ${error.message}`);
     }
@@ -111,15 +125,16 @@ const AdminTesting = () => {
     console.log('Database connectivity test passed');
   }
 
-  async function runProfileTest() {
-    console.log('Running profile test...');
+  async function runUserProfileTest() {
+    console.log('Running user profile test...');
     
-    // Test profile access
+    // Get current user first
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) {
-      throw new Error('No authenticated user found');
+      throw new Error('No authenticated user found for profile test');
     }
     
+    // Test profile access
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('*')
@@ -131,20 +146,21 @@ const AdminTesting = () => {
     }
     
     if (!profile) {
-      throw new Error('User profile not found');
+      throw new Error('User profile not found in database');
     }
     
-    console.log('Profile test passed');
+    console.log('User profile test passed - Profile found for user:', user.user.id);
   }
 
-  async function runRoleTest() {
+  async function runUserRoleTest() {
     console.log('Running user role test...');
     
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) {
-      throw new Error('No authenticated user found');
+      throw new Error('No authenticated user found for role test');
     }
     
+    // Test user roles access
     const { data: roles, error } = await supabase
       .from('user_roles')
       .select('*')
@@ -155,36 +171,104 @@ const AdminTesting = () => {
     }
     
     if (!roles || roles.length === 0) {
-      throw new Error('No user roles found');
+      throw new Error('No user roles found - user roles may not be properly configured');
     }
     
-    console.log('User role test passed');
+    console.log('User role test passed - Found roles:', roles.map(r => r.role).join(', '));
   }
 
-  // Define test suites
+  async function runNotificationsTableTest() {
+    console.log('Running notifications table test...');
+    
+    // Test notifications table access
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('count')
+      .limit(1);
+      
+    if (error) {
+      throw new Error(`Notifications table access failed: ${error.message}`);
+    }
+    
+    console.log('Notifications table test passed');
+  }
+
+  async function runContentPostsTableTest() {
+    console.log('Running content posts table test...');
+    
+    // Test content_posts table access
+    const { data, error } = await supabase
+      .from('content_posts')
+      .select('count')
+      .limit(1);
+      
+    if (error) {
+      throw new Error(`Content posts table access failed: ${error.message}`);
+    }
+    
+    console.log('Content posts table test passed');
+  }
+
+  async function runBrandDealsTableTest() {
+    console.log('Running brand deals table test...');
+    
+    // Test brand_deals table access
+    const { data, error } = await supabase
+      .from('brand_deals')
+      .select('count')
+      .limit(1);
+      
+    if (error) {
+      throw new Error(`Brand deals table access failed: ${error.message}`);
+    }
+    
+    console.log('Brand deals table test passed');
+  }
+
+  async function runTestResultsTableTest() {
+    console.log('Running test results table test...');
+    
+    // Test the test_results table we just created
+    const { data, error } = await supabase
+      .from('test_results')
+      .select('count')
+      .limit(1);
+      
+    if (error) {
+      throw new Error(`Test results table access failed: ${error.message}`);
+    }
+    
+    console.log('Test results table test passed');
+  }
+
+  // Define comprehensive test suites
   const testSuites = [
     {
-      name: 'Authentication Tests',
+      name: 'Authentication & Security',
       category: 'auth',
       tests: [
-        { name: 'Session Check', fn: runAuthTest },
-        { name: 'Profile Access', fn: runProfileTest },
-        { name: 'Role Verification', fn: runRoleTest }
+        { name: 'Session Validation', fn: runAuthenticationTest },
+        { name: 'User Profile Access', fn: runUserProfileTest },
+        { name: 'User Role Verification', fn: runUserRoleTest }
       ]
     },
     {
-      name: 'Database Tests',
+      name: 'Database Connectivity',
       category: 'database',
       tests: [
-        { name: 'Connectivity', fn: runDatabaseTest }
+        { name: 'Basic Connectivity', fn: runDatabaseConnectivityTest },
+        { name: 'Notifications Table', fn: runNotificationsTableTest },
+        { name: 'Content Posts Table', fn: runContentPostsTableTest },
+        { name: 'Brand Deals Table', fn: runBrandDealsTableTest },
+        { name: 'Test Results Table', fn: runTestResultsTableTest }
       ]
     }
   ];
 
-  // Run all tests mutation
+  // Run all tests mutation with improved error handling
   const runAllTestsMutation = useMutation({
     mutationFn: async () => {
-      console.log('Starting all tests...');
+      console.log('Starting comprehensive test suite...');
       setIsRunningTests(true);
       setTestProgress(0);
       
@@ -204,7 +288,7 @@ const AdminTesting = () => {
           
           // Save successful test result
           const { error: insertError } = await supabase.from('test_results').insert({
-            test_id: `${test.category}_${test.name.replace(/\s+/g, '_')}_${Date.now()}`,
+            test_id: `${test.category}_${test.name.replace(/\s+/g, '_').toLowerCase()}_${Date.now()}`,
             test_name: test.name,
             category: test.category,
             status: 'passed',
@@ -217,17 +301,17 @@ const AdminTesting = () => {
           }
           
           toast({
-            title: "Test Passed",
+            title: "✅ Test Passed",
             description: `${test.name} completed successfully (${duration}ms)`
           });
           
         } catch (error) {
           const duration = Date.now() - startTime;
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
           
           // Save failed test result
           const { error: insertError } = await supabase.from('test_results').insert({
-            test_id: `${test.category}_${test.name.replace(/\s+/g, '_')}_${Date.now()}`,
+            test_id: `${test.category}_${test.name.replace(/\s+/g, '_').toLowerCase()}_${Date.now()}`,
             test_name: test.name,
             category: test.category,
             status: 'failed',
@@ -243,7 +327,7 @@ const AdminTesting = () => {
           console.error(`Test failed: ${test.name}`, error);
           
           toast({
-            title: "Test Failed",
+            title: "❌ Test Failed",
             description: `${test.name}: ${errorMessage}`,
             variant: "destructive"
           });
@@ -251,6 +335,9 @@ const AdminTesting = () => {
         
         completedTests++;
         setTestProgress((completedTests / allTests.length) * 100);
+        
+        // Small delay between tests to prevent overwhelming the system
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
       
       setIsRunningTests(false);
@@ -260,9 +347,11 @@ const AdminTesting = () => {
       // Refresh test results
       queryClient.invalidateQueries({ queryKey: ['adminTestResults'] });
       
+      const passedCount = allTests.length - (testResults?.filter(t => t.status === 'failed').length || 0);
+      
       toast({
-        title: "Test Suite Complete",
-        description: `All ${allTests.length} tests have been executed`
+        title: "🎯 Test Suite Complete",
+        description: `Executed ${allTests.length} tests. Check results below for details.`
       });
     }
   });
@@ -372,12 +461,12 @@ const AdminTesting = () => {
                 <Progress value={testProgress} className="w-full" />
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Progress: {Math.round(testProgress)}%</span>
-                  <span>Currently running...</span>
+                  <span>Running comprehensive tests...</span>
                 </div>
                 {currentTest && (
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 animate-spin text-blue-500" />
-                    <span>Running: {currentTest}</span>
+                    <span>Currently testing: {currentTest}</span>
                   </div>
                 )}
               </div>
@@ -416,7 +505,7 @@ const AdminTesting = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">{testMetrics.failedTests}</div>
-              <p className="text-xs text-muted-foreground">Needs attention</p>
+              <p className="text-xs text-muted-foreground">Need attention</p>
             </CardContent>
           </Card>
 
@@ -457,7 +546,7 @@ const AdminTesting = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Recent Test Results</CardTitle>
-                <CardDescription>Detailed test execution history</CardDescription>
+                <CardDescription>Detailed test execution history and outcomes</CardDescription>
               </CardHeader>
               <CardContent>
                 {testResults && testResults.length > 0 ? (
@@ -469,7 +558,7 @@ const AdminTesting = () => {
                         <TableHead>Status</TableHead>
                         <TableHead>Duration</TableHead>
                         <TableHead>Executed At</TableHead>
-                        <TableHead>Error</TableHead>
+                        <TableHead>Error Details</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -481,14 +570,14 @@ const AdminTesting = () => {
                           </TableCell>
                           <TableCell>
                             <Badge variant={test.status === 'passed' ? 'default' : 'destructive'}>
-                              {test.status}
+                              {test.status === 'passed' ? '✅ Passed' : '❌ Failed'}
                             </Badge>
                           </TableCell>
                           <TableCell>{test.duration}ms</TableCell>
                           <TableCell>{new Date(test.executed_at).toLocaleString()}</TableCell>
                           <TableCell>
                             {test.error_message && (
-                              <span className="text-sm text-red-600 truncate block max-w-xs">
+                              <span className="text-sm text-red-600 truncate block max-w-xs" title={test.error_message}>
                                 {test.error_message}
                               </span>
                             )}
@@ -501,7 +590,13 @@ const AdminTesting = () => {
                   <div className="text-center py-8">
                     <TestTube className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No test results yet</h3>
-                    <p className="text-muted-foreground">Click "Run All Tests" to start testing your features</p>
+                    <p className="text-muted-foreground mb-4">
+                      Click "Run All Tests" to start testing your system functionality
+                    </p>
+                    <Button onClick={() => runAllTestsMutation.mutate()} disabled={isRunningTests}>
+                      <Play className="h-4 w-4 mr-2" />
+                      Run First Test
+                    </Button>
                   </div>
                 )}
               </CardContent>
@@ -523,14 +618,14 @@ const AdminTesting = () => {
                         <XAxis dataKey="date" />
                         <YAxis />
                         <Tooltip />
-                        <Line type="monotone" dataKey="passed" stroke="#22c55e" strokeWidth={2} />
-                        <Line type="monotone" dataKey="failed" stroke="#ef4444" strokeWidth={2} />
-                        <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} />
+                        <Line type="monotone" dataKey="passed" stroke="#22c55e" strokeWidth={2} name="Passed" />
+                        <Line type="monotone" dataKey="failed" stroke="#ef4444" strokeWidth={2} name="Failed" />
+                        <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} name="Total" />
                       </LineChart>
                     </ResponsiveContainer>
                   ) : (
                     <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                      No trend data available
+                      No trend data available - run some tests to see analytics
                     </div>
                   )}
                 </CardContent>
@@ -554,7 +649,7 @@ const AdminTesting = () => {
                     </ResponsiveContainer>
                   ) : (
                     <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                      No category data available
+                      No category data available - run tests to see coverage breakdown
                     </div>
                   )}
                 </CardContent>
