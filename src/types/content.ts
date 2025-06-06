@@ -48,6 +48,14 @@ export interface ContentApproval {
   feedback?: string;
   created_at: string;
   updated_at: string;
+  content_posts?: {
+    id: string;
+    title: string;
+    body: string;
+    platform: string;
+    media_urls?: string[];
+    created_at: string;
+  };
 }
 
 export type SocialPlatform = 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'facebook' | 'twitch';

@@ -51,7 +51,7 @@ export const useCaptionGenerator = () => {
   const captionMutation = useMutation({
     mutationFn: generateCaptions,
     onSuccess: (data) => {
-      if (data.success) {
+      if (data.captions && data.captions.length > 0) {
         toast({
           title: 'Captions Generated Successfully',
           description: `${data.captions.length} captions have been created.`

@@ -5,8 +5,23 @@ import { scheduledPostService } from '@/services/scheduledPostService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { ScheduledPost } from '@/types/content';
 import { useAuth } from '@/context/AuthContext';
+
+// Use the database type for the actual data
+type DatabaseScheduledPost = {
+  id: string;
+  content?: string;
+  platform: string;
+  scheduled_for: string;
+  status: 'scheduled' | 'published' | 'failed' | 'cancelled';
+  media_urls?: string[];
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  post_id?: string;
+  error_message?: string;
+  metadata?: any;
+};
 
 export const ScheduledPosts = () => {
   const { user } = useAuth();
@@ -42,7 +57,7 @@ export const ScheduledPosts = () => {
       {!posts || posts.length === 0 ? (
         <p className="text-muted-foreground">No scheduled posts yet.</p>
       ) : (
-        posts.map((post: ScheduledPost) => (
+        posts.map((post: DatabaseScheduledPost) => (
           <Card key={post.id}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
