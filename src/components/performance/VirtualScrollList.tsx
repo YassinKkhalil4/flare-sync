@@ -5,6 +5,7 @@ import { FixedSizeList as List } from 'react-window';
 interface VirtualScrollListProps<T> {
   items: T[];
   height: number;
+  width?: number;
   itemHeight: number;
   renderItem: ({ index, style, data }: { index: number; style: React.CSSProperties; data: T[] }) => React.ReactElement;
   className?: string;
@@ -13,6 +14,7 @@ interface VirtualScrollListProps<T> {
 const VirtualScrollList = <T,>({ 
   items, 
   height, 
+  width = 300,
   itemHeight, 
   renderItem, 
   className 
@@ -23,6 +25,7 @@ const VirtualScrollList = <T,>({
     <div className={className}>
       <List
         height={height}
+        width={width}
         itemCount={items.length}
         itemSize={itemHeight}
         itemData={memoizedItems}
