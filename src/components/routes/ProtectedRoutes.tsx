@@ -8,6 +8,8 @@ import ContentCreatePage from '@/pages/Content/ContentCreatePage';
 import ContentEditPage from '@/pages/Content/ContentEditPage';
 import ContentDetailPage from '@/pages/Content/ContentDetailPage';
 import ContentListPage from '@/pages/Content/ContentListPage';
+import ContentCalendarPage from '@/pages/Content/ContentCalendarPage';
+import ApprovalPage from '@/pages/Content/ApprovalPage';
 import SmartPostSchedulerPage from '@/pages/Content/SmartPostSchedulerPage';
 import SocialConnect from '@/pages/SocialConnect';
 import Messaging from '@/pages/Messaging';
@@ -28,6 +30,8 @@ const ProtectedRoutes: React.FC = () => {
       <Route path="/content/edit/:id" element={<ProtectedRoute><ContentEditPage /></ProtectedRoute>} />
       <Route path="/content/detail/:id" element={<ProtectedRoute><ContentDetailPage /></ProtectedRoute>} />
       <Route path="/content/list" element={<ProtectedRoute><ContentListPage /></ProtectedRoute>} />
+      <Route path="/content/calendar" element={<ProtectedRoute><ContentCalendarPage /></ProtectedRoute>} />
+      <Route path="/content/approvals" element={<ProtectedRoute><ApprovalPage /></ProtectedRoute>} />
       <Route path="/content/scheduler" element={<ProtectedRoute><SmartPostSchedulerPage /></ProtectedRoute>} />
       <Route path="/social" element={<ProtectedRoute><SocialConnect /></ProtectedRoute>} />
       <Route path="/messaging" element={<ProtectedRoute><Messaging /></ProtectedRoute>} />

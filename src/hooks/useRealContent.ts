@@ -1,179 +1,85 @@
 
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { RealContentService } from '@/services/realContentService';
 import { useAuth } from '@/context/AuthContext';
-import { StorageService } from '@/services/storageService';
-import { errorHandler } from '@/utils/errorHandler';
-import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { ContentPost, ScheduledPost } from '@/types/content';
 
 export const useRealContent = () => {
   const { user } = useAuth();
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [initError, setInitError] = useState<string | null>(null);
-  const [posts, setPosts] = useState<ContentPost[]>([]);
-  const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
-  const [isLoadingPosts, setIsLoadingPosts] = useState(false);
-  const [isLoadingScheduled, setIsLoadingScheduled] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const initializeContentSystem = async () => {
-      if (!user) return;
+  const { data: posts = [], isLoading: isLoadingPosts } = useQuery({
+    queryKey: ['content-posts', user?.id],
+    queryFn: () => RealContentService.getUserPosts(user!.id),
+    enabled: !!user?.id,
+  });
 
-      try {
-        const storageResult = await StorageService.initializeStorage();
-        
-        if (!storageResult.success) {
-          throw new Error(storageResult.error || 'Storage initialization failed');
-        }
+  const { data: scheduledPosts = [], isLoading: isLoadingScheduled } = useQuery({
+    queryKey: ['scheduled-posts', user?.id],
+    queryFn: () => RealContentService.getScheduledPosts(user!.id),
+    enabled: !!user?.id,
+  });
 
-        setIsInitialized(true);
-        setInitError(null);
-        
-        // Load posts after initialization
-        await loadPosts();
-        await loadScheduledPosts();
-      } catch (error) {
-        console.error('Content system initialization error:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        setInitError(errorMessage);
-        errorHandler.logError(error as Error, 'Content system initialization', user.id);
-      }
-    };
+  const createPostMutation = useMutation({
+    mutationFn: (postData: Omit<ContentPost, 'id' | 'created_at' | 'updated_at' | 'user_id'>) =>
+      RealContentService.createPost(postData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['content-posts'] });
+      toast({ title: 'Success', description: 'Post created successfully' });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to create post',
+        variant: 'destructive',
+      });
+    },
+  });
 
-    initializeContentSystem();
-  }, [user]);
+  const schedulePostMutation = useMutation({
+    mutationFn: (postData: Omit<ScheduledPost, 'id' | 'created_at' | 'updated_at' | 'user_id'>) =>
+      RealContentService.schedulePost(postData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['scheduled-posts'] });
+      toast({ title: 'Success', description: 'Post scheduled successfully' });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to schedule post',
+        variant: 'destructive',
+      });
+    },
+  });
 
-  const loadPosts = async () => {
-    if (!user) return;
-    
-    setIsLoadingPosts(true);
-    try {
-      const { data, error } = await supabase
-        .from('content_posts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setPosts(data || []);
-    } catch (error) {
-      console.error('Error loading posts:', error);
-      errorHandler.logError(error as Error, 'Load posts', user.id);
-    } finally {
-      setIsLoadingPosts(false);
-    }
-  };
-
-  const loadScheduledPosts = async () => {
-    if (!user) return;
-    
-    setIsLoadingScheduled(true);
-    try {
-      const { data, error } = await supabase
-        .from('scheduled_posts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('scheduled_for', { ascending: true });
-
-      if (error) throw error;
-      setScheduledPosts(data || []);
-    } catch (error) {
-      console.error('Error loading scheduled posts:', error);
-      errorHandler.logError(error as Error, 'Load scheduled posts', user.id);
-    } finally {
-      setIsLoadingScheduled(false);
-    }
-  };
-
-  const schedulePost = async (postData: any) => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('scheduled_posts')
-        .insert({
-          user_id: user.id,
-          content: postData.content,
-          platform: postData.platform,
-          scheduled_for: postData.scheduled_for,
-          status: 'scheduled',
-          metadata: {
-            title: postData.title,
-            media_urls: postData.media_urls
-          }
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      await loadScheduledPosts();
-      return data;
-    } catch (error) {
-      console.error('Error scheduling post:', error);
-      errorHandler.logError(error as Error, 'Schedule post', user.id);
-      throw error;
-    }
-  };
-
-  const publishPost = async (postId: string) => {
-    setIsPublishing(true);
-    try {
-      const { error } = await supabase
-        .from('content_posts')
-        .update({
-          status: 'published',
-          published_at: new Date().toISOString()
-        })
-        .eq('id', postId);
-
-      if (error) throw error;
-      
-      await loadPosts();
-    } catch (error) {
-      console.error('Error publishing post:', error);
-      errorHandler.logError(error as Error, 'Publish post', user?.id);
-      throw error;
-    } finally {
-      setIsPublishing(false);
-    }
-  };
-
-  const deletePost = async (postId: string) => {
-    setIsDeleting(true);
-    try {
-      const { error } = await supabase
-        .from('content_posts')
-        .delete()
-        .eq('id', postId);
-
-      if (error) throw error;
-      
-      await loadPosts();
-    } catch (error) {
-      console.error('Error deleting post:', error);
-      errorHandler.logError(error as Error, 'Delete post', user?.id);
-      throw error;
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+  const publishPostMutation = useMutation({
+    mutationFn: (postId: string) => RealContentService.publishPost(postId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['content-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['scheduled-posts'] });
+      toast({ title: 'Success', description: 'Post published successfully' });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to publish post',
+        variant: 'destructive',
+      });
+    },
+  });
 
   return {
-    isInitialized,
-    initError,
     posts,
     scheduledPosts,
     isLoadingPosts,
     isLoadingScheduled,
-    isDeleting,
-    isPublishing,
-    schedulePost,
-    publishPost,
-    deletePost,
-    loadPosts,
-    loadScheduledPosts,
+    createPost: createPostMutation.mutate,
+    schedulePost: schedulePostMutation.mutate,
+    publishPost: publishPostMutation.mutate,
+    isCreatingPost: createPostMutation.isPending,
+    isSchedulingPost: schedulePostMutation.isPending,
+    isPublishingPost: publishPostMutation.isPending,
   };
 };

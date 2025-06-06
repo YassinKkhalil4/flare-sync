@@ -1,94 +1,50 @@
 
-interface ErrorLog {
-  timestamp: string;
-  error: string;
-  context?: string;
-  userId?: string;
-  stack?: string;
+interface ApiResponse<T> {
+  data?: T;
+  error?: string;
 }
 
-class ErrorHandler {
-  private static instance: ErrorHandler;
-  private errorQueue: ErrorLog[] = [];
+export const errorHandler = (error: any): string => {
+  console.error('Error:', error);
   
-  static getInstance(): ErrorHandler {
-    if (!ErrorHandler.instance) {
-      ErrorHandler.instance = new ErrorHandler();
-    }
-    return ErrorHandler.instance;
+  if (error?.message) {
+    return error.message;
   }
-
-  logError(error: Error | string, context?: string, userId?: string) {
-    const errorLog: ErrorLog = {
-      timestamp: new Date().toISOString(),
-      error: error instanceof Error ? error.message : error,
-      context,
-      userId,
-      stack: error instanceof Error ? error.stack : undefined
-    };
-
-    // Add to queue
-    this.errorQueue.push(errorLog);
-    
-    // Log to console in development
-    if (import.meta.env.DEV) {
-      console.error('[Error Handler]', errorLog);
-    }
-
-    // In production, you would send this to your error tracking service
-    // this.sendToErrorTrackingService(errorLog);
+  
+  if (typeof error === 'string') {
+    return error;
   }
+  
+  return 'An unexpected error occurred';
+};
 
-  getRecentErrors(): ErrorLog[] {
-    return this.errorQueue.slice(-50); // Return last 50 errors
-  }
-
-  clearErrors() {
-    this.errorQueue = [];
-  }
-
-  // Future: Send to error tracking service
-  private async sendToErrorTrackingService(errorLog: ErrorLog) {
-    try {
-      // This would integrate with services like Sentry, LogRocket, etc.
-      // await fetch('/api/errors', {
-      //   method: 'POST',
-      //   body: JSON.stringify(errorLog)
-      // });
-    } catch (e) {
-      console.error('Failed to send error to tracking service:', e);
-    }
-  }
-}
-
-export const errorHandler = ErrorHandler.getInstance();
-
-// Global error boundary helper
-export const handleAsyncError = async <T>(
+export const apiCall = async <T>(
   operation: () => Promise<T>,
-  context?: string,
+  operationName: string,
   userId?: string
-): Promise<T | null> => {
+): Promise<ApiResponse<T>> => {
   try {
-    return await operation();
+    console.log(`Starting ${operationName}${userId ? ` for user ${userId}` : ''}`);
+    const data = await operation();
+    console.log(`${operationName} completed successfully`);
+    return { data };
   } catch (error) {
-    errorHandler.logError(error as Error, context, userId);
-    throw error; // Re-throw so calling code can handle it
+    const errorMessage = errorHandler(error);
+    console.error(`${operationName} failed:`, errorMessage);
+    return { error: errorMessage };
   }
 };
 
-// Wrapper for API calls
-export const apiCall = async <T>(
-  apiFunction: () => Promise<T>,
-  errorContext: string,
-  userId?: string
-): Promise<{ data?: T; error?: string }> => {
-  try {
-    const data = await handleAsyncError(apiFunction, errorContext, userId);
-    return { data: data || undefined };
-  } catch (error) {
-    return { 
-      error: error instanceof Error ? error.message : 'An unexpected error occurred' 
-    };
-  }
+export const withErrorBoundary = <T extends (...args: any[]) => any>(
+  fn: T,
+  fallback?: any
+): T => {
+  return ((...args: any[]) => {
+    try {
+      return fn(...args);
+    } catch (error) {
+      console.error('Error in function:', error);
+      return fallback;
+    }
+  }) as T;
 };

@@ -4,9 +4,12 @@ import { ContentPost, ScheduledPost } from '@/types/content';
 
 export class RealContentService {
   static async createPost(postData: Omit<ContentPost, 'id' | 'created_at' | 'updated_at'>): Promise<ContentPost> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
     const { data, error } = await supabase
       .from('content_posts')
-      .insert([postData])
+      .insert([{ ...postData, user_id: user.id }])
       .select()
       .single();
 
@@ -47,9 +50,12 @@ export class RealContentService {
   }
 
   static async schedulePost(postData: Omit<ScheduledPost, 'id' | 'created_at' | 'updated_at'>): Promise<ScheduledPost> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
     const { data, error } = await supabase
       .from('scheduled_posts')
-      .insert([postData])
+      .insert([{ ...postData, user_id: user.id }])
       .select()
       .single();
 

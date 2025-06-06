@@ -1,39 +1,15 @@
 
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { scheduledPostService } from '@/services/scheduledPostService';
+import { useRealContent } from '@/hooks/useRealContent';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, Loader2, Play, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { useAuth } from '@/context/AuthContext';
-
-// Use the database type for the actual data
-type DatabaseScheduledPost = {
-  id: string;
-  content?: string;
-  platform: string;
-  scheduled_for: string;
-  status: 'scheduled' | 'published' | 'failed' | 'cancelled';
-  media_urls?: string[];
-  user_id: string;
-  created_at: string;
-  updated_at: string;
-  post_id?: string;
-  error_message?: string;
-  metadata?: any;
-};
 
 export const ScheduledPosts = () => {
-  const { user } = useAuth();
-  const userId = user?.id || '';
+  const { scheduledPosts, isLoadingScheduled, publishPost, isPublishingPost } = useRealContent();
   
-  const { data: posts, isLoading, error } = useQuery({
-    queryKey: ['scheduledPosts', userId],
-    queryFn: () => scheduledPostService.getScheduledPosts(userId),
-    enabled: !!userId,
-  });
-
-  if (isLoading) {
+  if (isLoadingScheduled) {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -41,35 +17,72 @@ export const ScheduledPosts = () => {
       </div>
     );
   }
-  
-  if (error) {
-    return (
-      <div className="text-center py-8 text-destructive">
-        <p>Error loading scheduled posts.</p>
-        <p className="text-sm">{error instanceof Error ? error.message : 'Unknown error'}</p>
-      </div>
-    );
-  }
+
+  const handlePublishNow = (postId: string) => {
+    publishPost(postId);
+  };
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold">Upcoming Posts</h2>
-      {!posts || posts.length === 0 ? (
-        <p className="text-muted-foreground">No scheduled posts yet.</p>
+      <h2 className="text-2xl font-bold">Upcoming Posts ({scheduledPosts.length})</h2>
+      {scheduledPosts.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">No scheduled posts</h3>
+            <p className="text-muted-foreground">
+              Use the content scheduler to plan your posts in advance
+            </p>
+          </CardContent>
+        </Card>
       ) : (
-        posts.map((post: DatabaseScheduledPost) => (
-          <Card key={post.id}>
+        scheduledPosts.map((post) => (
+          <Card key={post.id} className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                {post.platform && post.platform.charAt(0).toUpperCase() + post.platform.slice(1)} Post
+                {post.metadata?.title || `${post.platform.charAt(0).toUpperCase() + post.platform.slice(1)} Post`}
               </CardTitle>
               <div className="flex items-center text-sm text-muted-foreground">
                 <Calendar className="mr-1 h-4 w-4" />
-                {post.scheduled_for ? format(new Date(post.scheduled_for), 'PPp') : 'Not scheduled'}
+                {format(new Date(post.scheduled_for), 'PPp')}
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm">{post.content || 'No content'}</p>
+              <p className="text-sm mb-4 line-clamp-2">{post.content || 'No content'}</p>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    {post.platform}
+                  </span>
+                  <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
+                    {post.status}
+                  </span>
+                  {post.media_urls && post.media_urls.length > 0 && (
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                      {post.media_urls.length} media
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handlePublishNow(post.id)}
+                    disabled={isPublishingPost}
+                  >
+                    <Play className="h-4 w-4 mr-1" />
+                    Publish Now
+                  </Button>
+                  <Button size="sm" variant="ghost">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button size="sm" variant="ghost">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         ))

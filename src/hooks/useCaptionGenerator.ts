@@ -4,7 +4,20 @@ import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { CaptionGenerationRequest, CaptionGenerationResponse, SavedCaption } from '@/types/caption';
+import { CaptionGenerationRequest, SavedCaption } from '@/types/caption';
+
+interface CaptionGenerationResponse {
+  id: string;
+  captions: string[];
+  metadata: {
+    platform: string;
+    tone?: string;
+    objective?: string;
+    postType?: string;
+    niche?: string;
+  };
+  createdAt: string;
+}
 
 export const useCaptionGenerator = () => {
   const { user, session } = useAuth();

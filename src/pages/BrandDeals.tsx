@@ -1,225 +1,311 @@
 
-import React, { useState } from 'react';
-import MainLayout from '@/components/layouts/MainLayout';
+import React from 'react';
+import { useRealDeals } from '@/hooks/useRealDeals';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { useRealDeals } from '@/hooks/useRealDeals';
 import { useUserRole } from '@/hooks/useUserRole';
-import { Handshake, DollarSign, Calendar, Package } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+import { 
+  HandHeart, 
+  DollarSign, 
+  Calendar, 
+  CheckCircle, 
+  XCircle, 
+  Clock,
+  Plus,
+  Building2 
+} from 'lucide-react';
+import { format } from 'date-fns';
 
-const BrandDeals = () => {
-  const { deals, isLoading, createDeal, respondToDeal } = useRealDeals();
+const BrandDeals: React.FC = () => {
   const { userRole } = useUserRole();
-  const [isCreatingDeal, setIsCreatingDeal] = useState(false);
-  const [newDeal, setNewDeal] = useState({
-    title: '',
-    description: '',
-    budget: 0,
-    creator_id: '',
-    requirements: [] as string[],
-    deliverables: [] as string[]
-  });
+  const { deals, isLoading, createDeal, respondToDeal } = useRealDeals();
 
-  const handleCreateDeal = async () => {
-    if (!newDeal.title || !newDeal.description || !newDeal.creator_id) return;
-    
-    await createDeal({
-      ...newDeal,
-      requirements: newDeal.requirements.filter(r => r.trim()),
-      deliverables: newDeal.deliverables.filter(d => d.trim())
-    });
-    
-    setNewDeal({
-      title: '',
-      description: '',
-      budget: 0,
-      creator_id: '',
-      requirements: [],
-      deliverables: []
-    });
-    setIsCreatingDeal(false);
-  };
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="text-center">Loading deals...</div>
+      </div>
+    );
+  }
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'accepted': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'pending':
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
+      case 'accepted':
+        return <Badge variant="outline" className="bg-green-50 text-green-700"><CheckCircle className="h-3 w-3 mr-1" />Accepted</Badge>;
+      case 'rejected':
+        return <Badge variant="outline" className="bg-red-50 text-red-700"><XCircle className="h-3 w-3 mr-1" />Rejected</Badge>;
+      case 'completed':
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700"><CheckCircle className="h-3 w-3 mr-1" />Completed</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
+
+  const pendingDeals = deals.filter(deal => deal.status === 'pending');
+  const activeDeals = deals.filter(deal => deal.status === 'accepted');
+  const completedDeals = deals.filter(deal => deal.status === 'completed');
+
   return (
-    <MainLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Brand Deals</h1>
-            <p className="text-muted-foreground">
-              {userRole === 'brand' ? 'Manage your brand partnerships' : 'View and respond to brand opportunities'}
-            </p>
-          </div>
-
-          {userRole === 'brand' && (
-            <Button onClick={() => setIsCreatingDeal(true)}>
-              <Handshake className="h-4 w-4 mr-2" />
-              Create Deal
-            </Button>
-          )}
+    <div className="container mx-auto py-8 space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <HandHeart className="h-8 w-8" />
+            Brand Partnerships
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            {userRole === 'creator' 
+              ? 'Manage collaboration opportunities with brands'
+              : 'Find and partner with talented creators'
+            }
+          </p>
         </div>
-
-        {isCreatingDeal && userRole === 'brand' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Create New Deal</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Input
-                placeholder="Deal title"
-                value={newDeal.title}
-                onChange={(e) => setNewDeal({ ...newDeal, title: e.target.value })}
-              />
-              <Textarea
-                placeholder="Deal description"
-                value={newDeal.description}
-                onChange={(e) => setNewDeal({ ...newDeal, description: e.target.value })}
-              />
-              <Input
-                placeholder="Creator ID"
-                value={newDeal.creator_id}
-                onChange={(e) => setNewDeal({ ...newDeal, creator_id: e.target.value })}
-              />
-              <Input
-                type="number"
-                placeholder="Budget"
-                value={newDeal.budget}
-                onChange={(e) => setNewDeal({ ...newDeal, budget: Number(e.target.value) })}
-              />
-              <div className="flex gap-2">
-                <Button onClick={handleCreateDeal}>Create Deal</Button>
-                <Button variant="outline" onClick={() => setIsCreatingDeal(false)}>Cancel</Button>
-              </div>
-            </CardContent>
-          </Card>
+        {userRole === 'brand' && (
+          <Button className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Create Deal
+          </Button>
         )}
+      </div>
 
-        <div className="grid gap-6">
-          {isLoading ? (
-            <Card>
-              <CardContent className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </CardContent>
-            </Card>
-          ) : deals.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                <Handshake className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No deals yet</h3>
-                <p className="text-muted-foreground">
-                  {userRole === 'brand' 
-                    ? 'Create your first brand deal to start collaborating with creators'
-                    : 'Brand deals will appear here when you receive offers'
-                  }
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            deals.map((deal) => (
-              <Card key={deal.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Deals</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{pendingDeals.length}</div>
+            <p className="text-xs text-muted-foreground">
+              Awaiting response
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Deals</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{activeDeals.length}</div>
+            <p className="text-xs text-muted-foreground">
+              In progress
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completed</CardTitle>
+            <CheckCircle className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{completedDeals.length}</div>
+            <p className="text-xs text-muted-foreground">
+              Successfully delivered
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {formatCurrency(
+                completedDeals.reduce((sum, deal) => sum + deal.budget, 0)
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              From completed deals
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Pending Deals */}
+      {pendingDeals.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Pending Deals ({pendingDeals.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {pendingDeals.map((deal) => (
+                <div key={deal.id} className="border rounded-lg p-4 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2">
+                      <h3 className="font-medium flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
                         {deal.title}
-                        <Badge className={getStatusColor(deal.status)}>
-                          {deal.status}
-                        </Badge>
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {deal.brand_name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {deal.description}
                       </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-1 text-lg font-semibold">
-                        <DollarSign className="h-4 w-4" />
-                        {formatCurrency(deal.budget)}
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="flex items-center gap-1">
+                          <DollarSign className="h-4 w-4" />
+                          {formatCurrency(deal.budget)}
+                        </span>
+                        {deal.deadline && (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            Due {format(new Date(deal.deadline), 'MMM d, yyyy')}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        From {deal.brand_name} • {format(new Date(deal.created_at), 'MMM d, yyyy')}
                       </div>
                     </div>
+                    {getStatusBadge(deal.status)}
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">{deal.description}</p>
-                  
+
                   {deal.requirements && deal.requirements.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="text-sm font-medium mb-2">Requirements:</h4>
-                      <ul className="text-sm text-muted-foreground list-disc list-inside">
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Requirements:</h4>
+                      <ul className="text-sm text-muted-foreground space-y-1">
                         {deal.requirements.map((req, index) => (
-                          <li key={index}>{req}</li>
+                          <li key={index} className="flex items-start gap-2">
+                            <span className="text-blue-600">•</span>
+                            {req}
+                          </li>
                         ))}
                       </ul>
                     </div>
                   )}
 
                   {deal.deliverables && deal.deliverables.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="text-sm font-medium mb-2">Deliverables:</h4>
-                      <ul className="text-sm text-muted-foreground list-disc list-inside">
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Deliverables:</h4>
+                      <ul className="text-sm text-muted-foreground space-y-1">
                         {deal.deliverables.map((deliverable, index) => (
-                          <li key={index}>{deliverable}</li>
+                          <li key={index} className="flex items-start gap-2">
+                            <span className="text-green-600">•</span>
+                            {deliverable}
+                          </li>
                         ))}
                       </ul>
                     </div>
                   )}
 
-                  {deal.deadline && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-                      <Calendar className="h-4 w-4" />
-                      Deadline: {new Date(deal.deadline).toLocaleDateString()}
-                    </div>
-                  )}
-
-                  {userRole === 'creator' && deal.status === 'pending' && (
-                    <div className="flex gap-2 pt-4 border-t">
-                      <Button 
-                        size="sm" 
-                        onClick={() => respondToDeal({ dealId: deal.id, status: 'accepted' })}
+                  {userRole === 'creator' && (
+                    <div className="flex items-center gap-2 pt-2 border-t">
+                      <Button
+                        size="sm"
+                        onClick={() => respondToDeal(deal.id, 'accepted')}
+                        className="bg-green-600 hover:bg-green-700"
                       >
+                        <CheckCircle className="h-4 w-4 mr-1" />
                         Accept Deal
                       </Button>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         variant="outline"
-                        onClick={() => respondToDeal({ dealId: deal.id, status: 'rejected' })}
+                        onClick={() => respondToDeal(deal.id, 'rejected')}
+                        className="text-red-600 border-red-200 hover:bg-red-50"
                       >
+                        <XCircle className="h-4 w-4 mr-1" />
                         Decline
                       </Button>
                     </div>
                   )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-                  {deal.status === 'accepted' && (
-                    <div className="pt-4 border-t">
-                      <Button 
+      {/* Active Deals */}
+      {activeDeals.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Active Deals ({activeDeals.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {activeDeals.map((deal) => (
+                <div key={deal.id} className="border rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2">
+                      <h3 className="font-medium">{deal.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {deal.description}
+                      </p>
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="flex items-center gap-1">
+                          <DollarSign className="h-4 w-4" />
+                          {formatCurrency(deal.budget)}
+                        </span>
+                        {deal.deadline && (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            Due {format(new Date(deal.deadline), 'MMM d, yyyy')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(deal.status)}
+                      <Button
                         size="sm"
-                        onClick={() => respondToDeal({ dealId: deal.id, status: 'completed' })}
+                        onClick={() => respondToDeal(deal.id, 'completed')}
+                        className="bg-blue-600 hover:bg-blue-700"
                       >
-                        <Package className="h-4 w-4 mr-2" />
-                        Mark as Completed
+                        Mark Complete
                       </Button>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
-      </div>
-    </MainLayout>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* All Deals Empty State */}
+      {deals.length === 0 && (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <HandHeart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">No deals yet</h3>
+            <p className="text-muted-foreground mb-4">
+              {userRole === 'creator' 
+                ? 'Brands will send you collaboration opportunities here'
+                : 'Start creating deals to partner with creators'
+              }
+            </p>
+            {userRole === 'brand' && (
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Your First Deal
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
 
