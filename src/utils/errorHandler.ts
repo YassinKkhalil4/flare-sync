@@ -4,19 +4,31 @@ interface ApiResponse<T> {
   error?: string;
 }
 
-export const errorHandler = (error: any): string => {
-  console.error('Error:', error);
-  
-  if (error?.message) {
-    return error.message;
+export const errorHandler = {
+  logError: (error: any, context?: string): void => {
+    console.error(`[${context || 'Error'}]:`, error);
+    
+    // In production, you might want to send this to a logging service
+    if (import.meta.env.PROD) {
+      // Could send to Sentry, LogRocket, etc.
+    }
+  },
+
+  getErrorMessage: (error: any): string => {
+    if (error?.message) {
+      return error.message;
+    }
+    
+    if (typeof error === 'string') {
+      return error;
+    }
+    
+    return 'An unexpected error occurred';
   }
-  
-  if (typeof error === 'string') {
-    return error;
-  }
-  
-  return 'An unexpected error occurred';
 };
+
+// Legacy function for backward compatibility
+export const getErrorMessage = errorHandler.getErrorMessage;
 
 export const apiCall = async <T>(
   operation: () => Promise<T>,
@@ -29,8 +41,8 @@ export const apiCall = async <T>(
     console.log(`${operationName} completed successfully`);
     return { data };
   } catch (error) {
-    const errorMessage = errorHandler(error);
-    console.error(`${operationName} failed:`, errorMessage);
+    const errorMessage = errorHandler.getErrorMessage(error);
+    errorHandler.logError(error, operationName);
     return { error: errorMessage };
   }
 };
@@ -43,7 +55,7 @@ export const withErrorBoundary = <T extends (...args: any[]) => any>(
     try {
       return fn(...args);
     } catch (error) {
-      console.error('Error in function:', error);
+      errorHandler.logError(error, 'Function execution');
       return fallback;
     }
   }) as T;

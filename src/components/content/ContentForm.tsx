@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +21,7 @@ interface ContentFormProps {
 const ContentForm: React.FC<ContentFormProps> = ({ initialData, onSuccess }) => {
   const [title, setTitle] = useState(initialData?.title || '');
   const [body, setBody] = useState(initialData?.body || '');
-  const [platform, setPlatform] = useState<SocialPlatform>(initialData?.platform || 'instagram');
+  const [platform, setPlatform] = useState<SocialPlatform>(initialData?.platform as SocialPlatform || 'instagram');
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(
     initialData?.scheduled_for ? new Date(initialData.scheduled_for) : undefined
   );
@@ -63,7 +62,7 @@ const ContentForm: React.FC<ContentFormProps> = ({ initialData, onSuccess }) => 
           content: body,
           platform,
           scheduled_for: scheduledDateTime.toISOString(),
-          status: 'scheduled',
+          status: 'pending',
           media_urls: mediaUrls,
           metadata: {
             title,
@@ -137,7 +136,7 @@ const ContentForm: React.FC<ContentFormProps> = ({ initialData, onSuccess }) => 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Platform</Label>
-              <Select value={platform} onValueChange={(value) => setPlatform(value as SocialPlatform)}>
+              <Select value={platform} onValueChange={(value: SocialPlatform) => setPlatform(value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

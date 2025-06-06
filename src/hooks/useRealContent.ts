@@ -24,7 +24,7 @@ export const useRealContent = () => {
 
   const createPostMutation = useMutation({
     mutationFn: (postData: Omit<ContentPost, 'id' | 'created_at' | 'updated_at' | 'user_id'>) =>
-      RealContentService.createPost(postData),
+      RealContentService.createPost({ ...postData, user_id: user!.id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['content-posts'] });
       toast({ title: 'Success', description: 'Post created successfully' });
@@ -40,7 +40,7 @@ export const useRealContent = () => {
 
   const schedulePostMutation = useMutation({
     mutationFn: (postData: Omit<ScheduledPost, 'id' | 'created_at' | 'updated_at' | 'user_id'>) =>
-      RealContentService.schedulePost(postData),
+      RealContentService.schedulePost({ ...postData, user_id: user!.id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scheduled-posts'] });
       toast({ title: 'Success', description: 'Post scheduled successfully' });

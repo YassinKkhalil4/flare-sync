@@ -12,30 +12,29 @@ export interface EngagementPredictionRequest {
 export interface EngagementPredictionResult {
   id: string;
   platform: string;
-  caption: string;
-  scheduled_time: string;
+  content: string;
+  scheduled_for?: string;
   overall_score?: number;
   overallScore?: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  reach: number;
-  confidence: number;
-  insights: string[];
+  predicted_likes?: number;
+  predicted_comments?: number;
+  predicted_shares?: number;
+  confidence_score?: number;
+  insights?: string[];
   recommended_times?: string[];
   recommendedTimes?: string[];
-  metrics: {
-    likes: {
-      estimatedCount: number;
-      confidence: number;
-    };
-    comments: {
-      estimatedCount: number;
-      confidence: number;
-    };
-    shares: {
-      estimatedCount: number;
-      confidence: number;
-    };
-  };
+  hashtags?: string[];
+  media_urls?: string[];
+  post_time?: string;
+  metadata?: any;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  
+  // Legacy aliases for backward compatibility
+  likes?: number;
+  comments?: number;
+  shares?: number;
+  reach?: number;
+  confidence?: number;
 }

@@ -37,9 +37,8 @@ export const useScheduler = () => {
       postCount: number;
     }) => AIService.getOptimalPostingTimes(params),
     onSuccess: (data) => {
-      // Transform the raw data into our expected format
       const transformedData: SchedulingData = {
-        optimalTimes: [
+        optimalTimes: data.optimalTimes || [
           { day: 'Monday', times: ['09:00', '14:30'] },
           { day: 'Tuesday', times: ['10:00', '15:00'] },
           { day: 'Wednesday', times: ['11:00', '16:00'] },
@@ -52,10 +51,10 @@ export const useScheduler = () => {
           Array.from({ length: 24 }, (_, hour) => ({
             day,
             hour,
-            value: Math.random() * 0.9 // Simulated engagement value
+            value: Math.random() * 0.9
           }))
         ).flat(),
-        recommendations: [
+        recommendations: data.recommendations || [
           'Post during peak engagement hours for better reach',
           'Weekday afternoons show higher engagement rates',
           'Consider your audience timezone for optimal timing',
@@ -88,13 +87,12 @@ export const useScheduler = () => {
   }) => {
     setIsAnalyzing(true);
     try {
-      // If content and scheduled time are provided, create a scheduled post
       if (params.content && params.scheduledTime) {
         schedulePost({
           content: params.content,
           platform: params.platform,
           scheduled_for: params.scheduledTime,
-          status: 'scheduled',
+          status: 'pending',
           metadata: {
             contentType: params.contentType,
             audienceLocation: params.audienceLocation,
