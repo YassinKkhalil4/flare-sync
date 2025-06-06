@@ -29,6 +29,7 @@ export interface ContentPost {
   updated_at: string;
   platform_post_id?: string;
   metrics?: any;
+  tags?: { id: string; name: string }[];
 }
 
 export interface MediaFile {
@@ -38,3 +39,17 @@ export interface MediaFile {
   type: 'image' | 'video';
   size: number;
 }
+
+export interface ContentApproval {
+  id: string;
+  post_id: string;
+  approver_id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  feedback?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type SocialPlatform = 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'facebook' | 'twitch';
+
+export type ContentStatus = 'draft' | 'pending' | 'pending_approval' | 'scheduled' | 'published' | 'failed' | 'cancelled';

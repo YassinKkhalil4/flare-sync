@@ -1,5 +1,4 @@
 
-
 import { ContentPost, ScheduledPost, ContentStatus, SocialPlatform } from './content';
 
 // PostFormData type that's compatible with both ContentPost and ScheduledPost
@@ -54,11 +53,11 @@ export function toContentPost(data: PostFormData): Omit<ContentPost, 'id' | 'cre
 // Helper function to convert PostFormData to ScheduledPost format
 export function toScheduledPost(data: PostFormData): Partial<ScheduledPost> {
   // Map ContentStatus to ScheduledPost status values
-  let scheduledStatus: 'scheduled' | 'published' | 'failed' | 'cancelled';
+  let scheduledStatus: 'pending' | 'published' | 'failed' | 'cancelled';
   
   switch (data.status) {
     case 'scheduled':
-      scheduledStatus = 'scheduled';
+      scheduledStatus = 'pending';
       break;
     case 'published':
       scheduledStatus = 'published';
@@ -70,8 +69,8 @@ export function toScheduledPost(data: PostFormData): Partial<ScheduledPost> {
       scheduledStatus = 'cancelled';
       break;
     default:
-      // For all other statuses (draft, pending, etc.), default to scheduled
-      scheduledStatus = 'scheduled';
+      // For all other statuses (draft, pending, etc.), default to pending
+      scheduledStatus = 'pending';
       break;
   }
   
@@ -87,4 +86,3 @@ export function toScheduledPost(data: PostFormData): Partial<ScheduledPost> {
     }
   };
 }
-

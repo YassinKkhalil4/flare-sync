@@ -11,11 +11,13 @@ import { format } from 'date-fns';
 interface SavedCaptionsProps {
   captions: SavedCaption[];
   isLoading: boolean;
+  onDeleteCaption?: (id: string) => void;
 }
 
 export const SavedCaptions: React.FC<SavedCaptionsProps> = ({
   captions,
   isLoading,
+  onDeleteCaption,
 }) => {
   const { toast } = useToast();
 
@@ -88,7 +90,7 @@ export const SavedCaptions: React.FC<SavedCaptionsProps> = ({
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                {format(new Date(caption.created_at), 'MMM d, yyyy')}
+                {format(new Date(caption.created_at || caption.createdAt), 'MMM d, yyyy')}
               </p>
             </div>
           </CardHeader>
@@ -105,7 +107,7 @@ export const SavedCaptions: React.FC<SavedCaptionsProps> = ({
               <p className="text-xs text-muted-foreground mb-1">Selected Caption:</p>
               <div className="bg-muted/30 rounded-lg p-3">
                 <p className="text-sm leading-relaxed whitespace-pre-line">
-                  {caption.selected_caption || caption.captions[0]}
+                  {caption.selected_caption || caption.content || (caption.captions && caption.captions[0])}
                 </p>
               </div>
             </div>
@@ -114,20 +116,23 @@ export const SavedCaptions: React.FC<SavedCaptionsProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => copyToClipboard(caption.selected_caption || caption.captions[0])}
+                onClick={() => copyToClipboard(caption.selected_caption || caption.content || (caption.captions && caption.captions[0]) || '')}
                 className="flex-1"
               >
                 <Copy className="h-4 w-4 mr-2" />
                 Copy
               </Button>
               
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {onDeleteCaption && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDeleteCaption(caption.id)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -135,3 +140,5 @@ export const SavedCaptions: React.FC<SavedCaptionsProps> = ({
     </div>
   );
 };
+
+export default SavedCaptions;

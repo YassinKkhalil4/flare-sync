@@ -2,40 +2,47 @@
 import React, { useState } from 'react';
 import { useCaptionGenerator } from '@/hooks/useCaptionGenerator';
 import CaptionForm from '@/components/caption-generator/CaptionForm';
-import CaptionResults from '@/components/caption-generator/CaptionResults';
-import SavedCaptions from '@/components/caption-generator/SavedCaptions';
+import { CaptionResults } from '@/components/caption-generator/CaptionResults';
+import { SavedCaptions } from '@/components/caption-generator/SavedCaptions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CaptionRequest } from '@/types/caption';
 
 const CaptionGeneratorPage: React.FC = () => {
   const {
     generateCaptions,
-    saveCaption,
-    deleteCaption,
-    captions,
+    saveSelectedCaption,
     savedCaptions,
     isGenerating,
-    isLoading
+    isLoadingSavedCaptions,
   } = useCaptionGenerator();
 
   const [currentCaptions, setCurrentCaptions] = useState<string[]>([]);
+  const [currentCaptionId, setCurrentCaptionId] = useState<string>('');
 
   const handleGenerateCaptions = async (request: CaptionRequest) => {
     try {
-      const result = await generateCaptions(request);
-      if (result && result.captions) {
-        setCurrentCaptions(result.captions);
-      }
+      generateCaptions(request, {
+        onSuccess: (result) => {
+          if (result && result.captions) {
+            setCurrentCaptions(result.captions);
+            setCurrentCaptionId(result.id);
+          }
+        },
+        onError: (error) => {
+          console.error('Error generating captions:', error);
+        }
+      });
     } catch (error) {
       console.error('Error generating captions:', error);
     }
   };
 
-  const handleSaveCaption = async (caption: string, platform: string) => {
+  const handleSaveCaption = async (captionId: string, selectedCaption: string) => {
     try {
-      await saveCaption({ caption, platform });
+      return await saveSelectedCaption(captionId, selectedCaption);
     } catch (error) {
       console.error('Error saving caption:', error);
+      return false;
     }
   };
 
@@ -64,6 +71,7 @@ const CaptionGeneratorPage: React.FC = () => {
             {currentCaptions.length > 0 && (
               <CaptionResults
                 captions={currentCaptions}
+                captionId={currentCaptionId}
                 onSaveCaption={handleSaveCaption}
                 isSaving={false}
               />
@@ -74,8 +82,7 @@ const CaptionGeneratorPage: React.FC = () => {
         <TabsContent value="saved">
           <SavedCaptions
             captions={savedCaptions || []}
-            onDeleteCaption={deleteCaption}
-            isLoading={isLoading}
+            isLoading={isLoadingSavedCaptions}
           />
         </TabsContent>
       </Tabs>

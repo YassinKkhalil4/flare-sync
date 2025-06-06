@@ -8,14 +8,16 @@ import { useToast } from '@/hooks/use-toast';
 
 interface CaptionResultsProps {
   captions: string[];
-  captionId: string;
+  captionId?: string;
   onSaveCaption: (captionId: string, selectedCaption: string) => Promise<boolean>;
+  isSaving?: boolean;
 }
 
 export const CaptionResults: React.FC<CaptionResultsProps> = ({
   captions,
-  captionId,
+  captionId = '',
   onSaveCaption,
+  isSaving = false,
 }) => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [savedIndex, setSavedIndex] = useState<number | null>(null);
@@ -139,6 +141,7 @@ export const CaptionResults: React.FC<CaptionResultsProps> = ({
                 size="sm"
                 onClick={() => saveCaption(caption, index)}
                 className="flex-1"
+                disabled={isSaving}
               >
                 {savedIndex === index ? (
                   <>
@@ -156,3 +159,5 @@ export const CaptionResults: React.FC<CaptionResultsProps> = ({
     </div>
   );
 };
+
+export default CaptionResults;

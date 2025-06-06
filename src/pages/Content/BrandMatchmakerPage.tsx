@@ -1,23 +1,29 @@
 
 import React, { useState } from 'react';
 import { useBrandMatchmaker } from '@/hooks/useBrandMatchmaker';
-import MatchmakerForm from '@/components/brand-matchmaker/MatchmakerForm';
-import MatchResults from '@/components/brand-matchmaker/MatchResults';
+import { MatchmakerForm } from '@/components/brand-matchmaker/MatchmakerForm';
+import { MatchResults } from '@/components/brand-matchmaker/MatchResults';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, TrendingUp, DollarSign } from 'lucide-react';
 import { BrandMatchRequest, BrandMatchResult } from '@/types/brandMatchmaking';
 
 const BrandMatchmakerPage: React.FC = () => {
-  const { findMatches, isMatching } = useBrandMatchmaker();
+  const { findBrandMatches, isMatching } = useBrandMatchmaker();
   const [matchResults, setMatchResults] = useState<BrandMatchResult[]>([]);
 
   const handleFindMatches = async (request: BrandMatchRequest) => {
     try {
-      const results = await findMatches(request);
-      if (results) {
-        setMatchResults(results);
-      }
+      findBrandMatches(request, {
+        onSuccess: (results) => {
+          if (results) {
+            setMatchResults(results);
+          }
+        },
+        onError: (error) => {
+          console.error('Error finding matches:', error);
+        }
+      });
     } catch (error) {
       console.error('Error finding matches:', error);
     }

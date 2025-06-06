@@ -1,269 +1,190 @@
 
 import React from 'react';
-import { z } from 'zod';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, Search } from 'lucide-react';
 import { BrandMatchRequest } from '@/types/brandMatchmaking';
-import { Loader2, Search, DollarSign, Briefcase, Building } from 'lucide-react';
-
-const formSchema = z.object({
-  minBudget: z.string().optional(),
-  maxBudget: z.string().optional(),
-  campaignTypes: z.array(z.string()).optional(),
-  industries: z.array(z.string()).optional(),
-});
-
-const campaignTypeOptions = [
-  { id: 'sponsored_post', label: 'Sponsored Post', icon: '📱' },
-  { id: 'affiliate', label: 'Affiliate Marketing', icon: '🤝' },
-  { id: 'brand_ambassador', label: 'Brand Ambassador', icon: '👑' },
-  { id: 'product_review', label: 'Product Review', icon: '⭐' },
-  { id: 'event', label: 'Event Promotion', icon: '🎉' },
-];
-
-const industryOptions = [
-  { id: 'fashion', label: 'Fashion', icon: '👗' },
-  { id: 'beauty', label: 'Beauty', icon: '💄' },
-  { id: 'technology', label: 'Technology', icon: '💻' },
-  { id: 'fitness', label: 'Fitness & Health', icon: '💪' },
-  { id: 'food', label: 'Food & Beverage', icon: '🍕' },
-  { id: 'travel', label: 'Travel', icon: '✈️' },
-  { id: 'gaming', label: 'Gaming', icon: '🎮' },
-  { id: 'finance', label: 'Finance', icon: '💰' },
-];
 
 interface MatchmakerFormProps {
-  onFindMatches: (request: BrandMatchRequest) => void;
+  onSubmit: (request: BrandMatchRequest) => void;
   isLoading: boolean;
-  creatorId: string;
 }
 
-export function MatchmakerForm({ onFindMatches, isLoading, creatorId }: MatchmakerFormProps) {
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      minBudget: '',
-      maxBudget: '',
-      campaignTypes: [],
-      industries: [],
-    },
-  });
+export const MatchmakerForm: React.FC<MatchmakerFormProps> = ({ onSubmit, isLoading }) => {
+  const { register, handleSubmit, setValue, watch } = useForm<BrandMatchRequest>();
 
-  const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    const request: BrandMatchRequest = {
-      creatorId,
-      filters: {
-        minBudget: values.minBudget ? parseInt(values.minBudget) : undefined,
-        maxBudget: values.maxBudget ? parseInt(values.maxBudget) : undefined,
-        campaignTypes: values.campaignTypes,
-        industries: values.industries,
-      }
-    };
-    
-    onFindMatches(request);
+  const industries = [
+    'Fashion & Beauty',
+    'Technology',
+    'Food & Beverage',
+    'Travel',
+    'Fitness & Health',
+    'Gaming',
+    'Entertainment',
+    'Education',
+    'Finance',
+    'Automotive'
+  ];
+
+  const campaignTypes = [
+    'Product Review',
+    'Brand Ambassador',
+    'Event Coverage',
+    'Tutorial/How-to',
+    'Unboxing',
+    'Lifestyle Integration'
+  ];
+
+  const onFormSubmit = (data: BrandMatchRequest) => {
+    onSubmit(data);
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        {/* Budget Section */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center text-lg">
-              <DollarSign className="h-5 w-5 mr-2 text-primary" />
-              Budget Range
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="minBudget"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Minimum Budget ($)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        {...field}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="maxBudget"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Maximum Budget ($)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="No limit"
-                        {...field}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Search className="h-5 w-5" />
+          Find Brand Matches
+        </CardTitle>
+        <CardDescription>
+          Tell us about your content and audience to find the perfect brand partnerships
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="niche">Your Niche</Label>
+              <Input
+                id="niche"
+                placeholder="e.g., Fitness, Beauty, Tech"
+                {...register('niche')}
               />
             </div>
-          </CardContent>
-        </Card>
+            
+            <div className="space-y-2">
+              <Label htmlFor="audienceSize">Audience Size</Label>
+              <Input
+                id="audienceSize"
+                type="number"
+                placeholder="10000"
+                {...register('audienceSize', { valueAsNumber: true })}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="engagementRate">Engagement Rate (%)</Label>
+              <Input
+                id="engagementRate"
+                type="number"
+                step="0.1"
+                placeholder="3.5"
+                {...register('engagementRate', { valueAsNumber: true })}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                placeholder="e.g., United States, Global"
+                {...register('location')}
+              />
+            </div>
+          </div>
 
-        {/* Campaign Types Section */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center text-lg">
-              <Briefcase className="h-5 w-5 mr-2 text-primary" />
-              Campaign Types
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FormField
-              control={form.control}
-              name="campaignTypes"
-              render={() => (
-                <FormItem>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {campaignTypeOptions.map((option) => (
-                      <FormField
-                        key={option.id}
-                        control={form.control}
-                        name="campaignTypes"
-                        render={({ field }) => {
-                          return (
-                            <FormItem
-                              key={option.id}
-                              className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-3 hover:bg-muted/50 transition-colors"
-                            >
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(option.id)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...field.value || [], option.id])
-                                      : field.onChange(
-                                          field.value?.filter(
-                                            (value) => value !== option.id
-                                          )
-                                        )
-                                  }}
-                                  disabled={isLoading}
-                                />
-                              </FormControl>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-lg">{option.icon}</span>
-                                <FormLabel className="text-sm font-normal cursor-pointer">
-                                  {option.label}
-                                </FormLabel>
-                              </div>
-                            </FormItem>
-                          )
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-base font-medium">Budget Range</Label>
+              <div className="grid grid-cols-2 gap-4 mt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="minBudget">Minimum ($)</Label>
+                  <Input
+                    id="minBudget"
+                    type="number"
+                    placeholder="500"
+                    {...register('filters.minBudget', { valueAsNumber: true })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="maxBudget">Maximum ($)</Label>
+                  <Input
+                    id="maxBudget"
+                    type="number"
+                    placeholder="5000"
+                    {...register('filters.maxBudget', { valueAsNumber: true })}
+                  />
+                </div>
+              </div>
+            </div>
 
-        {/* Industries Section */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center text-lg">
-              <Building className="h-5 w-5 mr-2 text-primary" />
-              Industries
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FormField
-              control={form.control}
-              name="industries"
-              render={() => (
-                <FormItem>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {industryOptions.map((option) => (
-                      <FormField
-                        key={option.id}
-                        control={form.control}
-                        name="industries"
-                        render={({ field }) => {
-                          return (
-                            <FormItem
-                              key={option.id}
-                              className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-3 hover:bg-muted/50 transition-colors"
-                            >
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(option.id)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...field.value || [], option.id])
-                                      : field.onChange(
-                                          field.value?.filter(
-                                            (value) => value !== option.id
-                                          )
-                                        )
-                                  }}
-                                  disabled={isLoading}
-                                />
-                              </FormControl>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-lg">{option.icon}</span>
-                                <FormLabel className="text-sm font-normal cursor-pointer">
-                                  {option.label}
-                                </FormLabel>
-                              </div>
-                            </FormItem>
-                          )
-                        }}
-                      />
-                    ))}
+            <div>
+              <Label className="text-base font-medium mb-3 block">Preferred Industries</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {industries.map((industry) => (
+                  <div key={industry} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={industry}
+                      onCheckedChange={(checked) => {
+                        const currentIndustries = watch('filters.industries') || [];
+                        if (checked) {
+                          setValue('filters.industries', [...currentIndustries, industry]);
+                        } else {
+                          setValue('filters.industries', currentIndustries.filter(i => i !== industry));
+                        }
+                      }}
+                    />
+                    <Label htmlFor={industry} className="text-sm">{industry}</Label>
                   </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-        
-        {/* Submit Button */}
-        <div className="pt-4">
-          <Button 
-            type="submit" 
-            disabled={isLoading}
-            className="w-full h-12 text-lg font-semibold"
-            size="lg"
-          >
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-base font-medium mb-3 block">Campaign Types</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {campaignTypes.map((type) => (
+                  <div key={type} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={type}
+                      onCheckedChange={(checked) => {
+                        const currentTypes = watch('filters.campaignTypes') || [];
+                        if (checked) {
+                          setValue('filters.campaignTypes', [...currentTypes, type]);
+                        } else {
+                          setValue('filters.campaignTypes', currentTypes.filter(t => t !== type));
+                        }
+                      }}
+                    />
+                    <Label htmlFor={type} className="text-sm">{type}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
               <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" /> 
-                Finding Perfect Matches...
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Finding Matches...
               </>
             ) : (
               <>
-                <Search className="mr-2 h-5 w-5" /> 
-                Find My Brand Matches
+                <Search className="mr-2 h-4 w-4" />
+                Find Brand Matches
               </>
             )}
           </Button>
-        </div>
-      </form>
-    </Form>
+        </form>
+      </CardContent>
+    </Card>
   );
-}
+};
+
+export default MatchmakerForm;
