@@ -1,23 +1,52 @@
 
 export interface BrandMatchRequest {
-  niche: string;
-  audienceSize: number;
-  engagementRate: number;
+  creatorId: string;
+  filters?: {
+    minBudget?: number;
+    maxBudget?: number;
+    campaignTypes?: string[];
+    industries?: string[];
+  };
+  niche?: string;
+  audienceSize?: number;
+  engagementRate?: number;
   location?: string;
-  platforms: string[];
+  platforms?: string[];
 }
 
 export interface BrandMatchResult {
   id: string;
-  name: string;
+  brandId: string;
+  brandName: string;
   description: string;
   logo?: string;
   industry: string;
   budget_range: string;
   requirements: string[];
   contact_email: string;
+  matchScore: number;
   match_score: number;
+  reasonForMatch: string[];
   compatibility_reasons: string[];
+  estimatedMetrics: {
+    cpm: number;
+    ctr: number;
+    roi: number;
+  };
+}
+
+export interface BrandMatch {
+  id: string;
+  brandId: string;
+  brandName: string;
+  matchScore: number;
+  compatibility: string;
+  estimatedMetrics: {
+    cpm: number;
+    ctr: number;
+    roi: number;
+  };
+  reasonForMatch: string[];
 }
 
 export interface CreatorProfile {
