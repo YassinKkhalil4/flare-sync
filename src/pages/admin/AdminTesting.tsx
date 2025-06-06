@@ -232,17 +232,21 @@ const AdminTesting = () => {
 
   async function runContentCreationTest() {
     const { data: { user } } = await supabase.auth.getUser();
+    let userId = user?.id;
+
     if (!user) {
       // Create a test user for this test
-      const { data: signUpData } = await supabase.auth.signUp({
-        email: `test_content_${Date.now()}@test.com`,
+      const testEmail = `test_content_${Date.now()}@test.com`;
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: testEmail,
         password: 'TestPassword123!'
       });
-      if (!signUpData.user) throw new Error('Failed to create test user');
+      if (signUpError || !signUpData.user) throw new Error('Failed to create test user');
+      userId = signUpData.user.id;
     }
 
     const { error } = await supabase.from('content_posts').insert({
-      user_id: user?.id || signUpData.user.id,
+      user_id: userId,
       title: 'Test Content Post',
       body: 'This is a test content post',
       platform: 'instagram',
