@@ -89,6 +89,7 @@ export const useScheduler = () => {
     try {
       if (params.content && params.scheduledTime) {
         schedulePost({
+          title: `Scheduled ${params.platform} post`,
           content: params.content,
           platform: params.platform,
           scheduled_for: params.scheduledTime,

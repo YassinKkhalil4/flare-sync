@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,13 +60,13 @@ const ContentForm: React.FC<ContentFormProps> = ({ initialData, onSuccess }) => 
         scheduledDateTime.setHours(parseInt(hours), parseInt(minutes));
 
         await schedulePost({
+          title,
           content: body,
           platform,
           scheduled_for: scheduledDateTime.toISOString(),
           status: 'pending',
           media_urls: mediaUrls,
           metadata: {
-            title,
             created_via: 'content_form',
           },
         });

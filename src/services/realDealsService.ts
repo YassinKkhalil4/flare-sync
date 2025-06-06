@@ -19,6 +19,36 @@ export interface BrandDeal {
 }
 
 export class RealDealsService {
+  static async getUserDeals(userId: string): Promise<{ data: BrandDeal[] | null; error: any }> {
+    try {
+      const { data, error } = await supabase
+        .from('brand_deals')
+        .select(`
+          *,
+          brand_profile:profiles!brand_deals_brand_id_fkey(full_name, avatar_url),
+          creator_profile:profiles!brand_deals_creator_id_fkey(full_name, avatar_url)
+        `)
+        .eq('creator_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching deals:', error);
+        return { data: null, error };
+      }
+
+      const transformedData = (data || []).map(deal => ({
+        ...deal,
+        brand_name: deal.brand_profile?.full_name || 'Unknown Brand',
+        brand_logo: deal.brand_profile?.avatar_url || ''
+      }));
+
+      return { data: transformedData, error: null };
+    } catch (error) {
+      console.error('Error in getUserDeals:', error);
+      return { data: null, error };
+    }
+  }
+
   static async getDealsForUser(userId: string, userType: 'creator' | 'brand'): Promise<BrandDeal[]> {
     let query = supabase
       .from('brand_deals')
