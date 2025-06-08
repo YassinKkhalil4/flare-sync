@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { StorageService } from '@/services/storageService';
 import { errorHandler } from '@/utils/errorHandler';
 
 /**
@@ -31,15 +30,25 @@ export const initializeAppEnvironment = async () => {
       // Continue with initialization even if connection test fails
     }
     
-    // Initialize storage using static method
-    const storageResult = await StorageService.initializeStorage();
-    
-    if (!storageResult.success) {
-      console.warn("Storage initialization had issues:", storageResult.error);
-      errorHandler.logError(storageResult.error || 'Storage initialization failed', 'Storage setup');
-      // Don't fail the app for storage issues
-    } else {
-      console.log("Storage initialized:", storageResult.message);
+    // Check if storage buckets exist
+    try {
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      
+      if (bucketsError) {
+        console.warn("Could not check storage buckets:", bucketsError);
+      } else {
+        const bucketNames = buckets.map(bucket => bucket.name);
+        console.log("Available storage buckets:", bucketNames);
+        
+        if (bucketNames.includes('content-uploads') && bucketNames.includes('avatars')) {
+          console.log("Storage buckets are properly configured");
+        } else {
+          console.warn("Some storage buckets may be missing. Expected: content-uploads, avatars");
+        }
+      }
+    } catch (storageError) {
+      console.warn("Error checking storage configuration:", storageError);
+      errorHandler.logError(storageError as Error, 'Storage check');
     }
 
     // Initialize content tags if none exist
