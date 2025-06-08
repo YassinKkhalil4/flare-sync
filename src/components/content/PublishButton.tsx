@@ -17,7 +17,7 @@ export const PublishButton: React.FC<PublishButtonProps> = ({
   const [isPublishing, setIsPublishing] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { publishPost } = useRealContent();
+  const { publishNow } = useRealContent();
 
   const handlePublish = async () => {
     if (!user) {
@@ -31,7 +31,7 @@ export const PublishButton: React.FC<PublishButtonProps> = ({
 
     setIsPublishing(true);
     try {
-      await publishPost(post.id);
+      await publishNow(post.id);
       
       if (onPublishSuccess) {
         onPublishSuccess();
