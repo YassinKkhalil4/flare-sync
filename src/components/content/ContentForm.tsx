@@ -8,11 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Upload } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { useRealContent } from '@/hooks/useRealContent';
 import { useToast } from '@/hooks/use-toast';
 import { ContentPost, SocialPlatform } from '@/types/content';
+import { MediaUpload } from './MediaUpload';
 
 interface ContentFormProps {
   initialData?: Partial<ContentPost>;
@@ -27,7 +28,7 @@ const ContentForm: React.FC<ContentFormProps> = ({ initialData, onSuccess }) => 
     initialData?.scheduled_for ? new Date(initialData.scheduled_for) : undefined
   );
   const [scheduledTime, setScheduledTime] = useState('');
-  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [mediaUrls, setMediaUrls] = useState<string[]>(initialData?.media_urls || []);
   const [postType, setPostType] = useState<'immediate' | 'scheduled' | 'draft'>('immediate');
 
   const { createPost, schedulePost, isCreatingPost, isSchedulingPost } = useRealContent();
@@ -46,14 +47,6 @@ const ContentForm: React.FC<ContentFormProps> = ({ initialData, onSuccess }) => 
     }
 
     try {
-      const mediaUrls: string[] = [];
-      
-      // TODO: Implement file upload to Supabase Storage
-      // For now, we'll simulate uploaded URLs
-      if (mediaFiles.length > 0) {
-        mediaUrls.push(...mediaFiles.map((_, index) => `https://example.com/media/${Date.now()}_${index}`));
-      }
-
       if (postType === 'scheduled' && scheduledDate && scheduledTime) {
         const [hours, minutes] = scheduledTime.split(':');
         const scheduledDateTime = new Date(scheduledDate);
@@ -89,18 +82,12 @@ const ContentForm: React.FC<ContentFormProps> = ({ initialData, onSuccess }) => 
       setPlatform('instagram');
       setScheduledDate(undefined);
       setScheduledTime('');
-      setMediaFiles([]);
+      setMediaUrls([]);
       setPostType('immediate');
 
       onSuccess?.();
     } catch (error) {
       console.error('Error submitting post:', error);
-    }
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setMediaFiles(Array.from(e.target.files));
     }
   };
 
@@ -202,30 +189,12 @@ const ContentForm: React.FC<ContentFormProps> = ({ initialData, onSuccess }) => 
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="media">Media Files</Label>
-            <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center">
-              <input
-                id="media"
-                type="file"
-                multiple
-                accept="image/*,video/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              <Label htmlFor="media" className="cursor-pointer">
-                <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  Click to upload images or videos
-                </p>
-              </Label>
-              {mediaFiles.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-sm text-green-600">
-                    {mediaFiles.length} file(s) selected
-                  </p>
-                </div>
-              )}
-            </div>
+            <Label>Media Files</Label>
+            <MediaUpload 
+              onMediaUpload={setMediaUrls}
+              existingUrls={mediaUrls}
+              maxFiles={5}
+            />
           </div>
 
           <Button 

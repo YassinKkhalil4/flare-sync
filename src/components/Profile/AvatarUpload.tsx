@@ -4,6 +4,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, Camera, User } from 'lucide-react';
+import { StorageService } from '@/services/storageService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AvatarUploadProps {
   userInitials: string;
@@ -11,14 +13,14 @@ interface AvatarUploadProps {
 }
 
 const AvatarUpload = ({ userInitials, avatarUrl }: AvatarUploadProps) => {
-  const { uploadAvatar } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState(avatarUrl);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
     
     if (!file.type.startsWith('image/')) {
       toast({
@@ -29,30 +31,37 @@ const AvatarUpload = ({ userInitials, avatarUrl }: AvatarUploadProps) => {
       return;
     }
     
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: 'File too large',
-        description: 'Please upload an image smaller than 5MB.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
     setIsUploading(true);
     try {
-      const newAvatarUrl = await uploadAvatar(file);
-      if (newAvatarUrl) {
-        setCurrentAvatarUrl(newAvatarUrl);
+      // Upload to storage
+      const uploadResult = await StorageService.uploadAvatar(file, user.id);
+      
+      if (uploadResult.error) {
+        throw new Error(uploadResult.error);
+      }
+
+      if (uploadResult.url) {
+        // Update user profile with new avatar URL
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ avatar_url: uploadResult.url })
+          .eq('id', user.id);
+
+        if (updateError) {
+          throw new Error(`Failed to update profile: ${updateError.message}`);
+        }
+
+        setCurrentAvatarUrl(uploadResult.url);
         toast({
           title: 'Avatar updated',
-          description: 'Your profile picture has been updated.',
+          description: 'Your profile picture has been updated successfully.',
         });
       }
     } catch (error) {
       console.error('Error uploading avatar:', error);
       toast({
         title: 'Upload failed',
-        description: 'Could not upload your profile picture. Please try again.',
+        description: error instanceof Error ? error.message : 'Could not upload your profile picture. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -65,7 +74,15 @@ const AvatarUpload = ({ userInitials, avatarUrl }: AvatarUploadProps) => {
       <div className="relative group mb-4">
         <Avatar className="h-32 w-32">
           {currentAvatarUrl ? (
-            <AvatarImage src={currentAvatarUrl} alt="Profile" />
+            <AvatarImage 
+              src={currentAvatarUrl} 
+              alt="Profile" 
+              onError={(e) => {
+                // Fallback if image fails to load
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
+            />
           ) : (
             <AvatarFallback className="text-2xl">
               <User className="h-10 w-10" />
