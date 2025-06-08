@@ -1,33 +1,15 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
-import { createHmac } from "https://deno.land/std@0.168.0/node/crypto.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createHmac } from "https://deno.land/std@0.168.0/node/crypto.ts"
+import { corsHeaders } from '../_shared/cors.ts'
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+)
 
-const API_KEY = Deno.env.get("TWITTER_CONSUMER_KEY")?.trim();
-const API_SECRET = Deno.env.get("TWITTER_CONSUMER_SECRET")?.trim();
-const ACCESS_TOKEN = Deno.env.get("TWITTER_ACCESS_TOKEN")?.trim();
-const ACCESS_TOKEN_SECRET = Deno.env.get("TWITTER_ACCESS_TOKEN_SECRET")?.trim();
-
-function validateEnvironmentVariables() {
-  if (!API_KEY) {
-    throw new Error("Missing TWITTER_CONSUMER_KEY environment variable");
-  }
-  if (!API_SECRET) {
-    throw new Error("Missing TWITTER_CONSUMER_SECRET environment variable");
-  }
-  if (!ACCESS_TOKEN) {
-    throw new Error("Missing TWITTER_ACCESS_TOKEN environment variable");
-  }
-  if (!ACCESS_TOKEN_SECRET) {
-    throw new Error("Missing TWITTER_ACCESS_TOKEN_SECRET environment variable");
-  }
-}
-
+// Twitter OAuth 1.0a helper functions
 function generateOAuthSignature(
   method: string,
   url: string,
@@ -35,163 +17,153 @@ function generateOAuthSignature(
   consumerSecret: string,
   tokenSecret: string
 ): string {
-  const signatureBaseString = `${method}&${encodeURIComponent(
-    url
-  )}&${encodeURIComponent(
+  const signatureBaseString = `${method}&${encodeURIComponent(url)}&${encodeURIComponent(
     Object.entries(params)
       .sort()
       .map(([k, v]) => `${k}=${v}`)
       .join("&")
   )}`;
-  const signingKey = `${encodeURIComponent(
-    consumerSecret
-  )}&${encodeURIComponent(tokenSecret)}`;
+  
+  const signingKey = `${encodeURIComponent(consumerSecret)}&${encodeURIComponent(tokenSecret)}`;
   const hmacSha1 = createHmac("sha1", signingKey);
   const signature = hmacSha1.update(signatureBaseString).digest("base64");
-
-  console.log("Signature Base String:", signatureBaseString);
-  console.log("Signing Key:", signingKey);
-  console.log("Generated Signature:", signature);
-
+  
   return signature;
 }
 
-function generateOAuthHeader(method: string, url: string): string {
+function generateOAuthHeader(method: string, url: string, accessToken: string, tokenSecret: string): string {
+  const TWITTER_CLIENT_ID = Deno.env.get('TWITTER_CLIENT_ID')!;
+  const TWITTER_CLIENT_SECRET = Deno.env.get('TWITTER_CLIENT_SECRET')!;
+
   const oauthParams = {
-    oauth_consumer_key: API_KEY!,
+    oauth_consumer_key: TWITTER_CLIENT_ID,
     oauth_nonce: Math.random().toString(36).substring(2),
     oauth_signature_method: "HMAC-SHA1",
     oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
-    oauth_token: ACCESS_TOKEN!,
+    oauth_token: accessToken,
     oauth_version: "1.0",
   };
 
-  const signature = generateOAuthSignature(
-    method,
-    url,
-    oauthParams,
-    API_SECRET!,
-    ACCESS_TOKEN_SECRET!
-  );
+  const signature = generateOAuthSignature(method, url, oauthParams, TWITTER_CLIENT_SECRET, tokenSecret);
 
   const signedOAuthParams = {
     ...oauthParams,
     oauth_signature: signature,
   };
 
-  const entries = Object.entries(signedOAuthParams).sort((a, b) =>
-    a[0].localeCompare(b[0])
-  );
+  const entries = Object.entries(signedOAuthParams).sort((a, b) => a[0].localeCompare(b[0]));
 
-  return (
-    "OAuth " +
-    entries
-      .map(([k, v]) => `${encodeURIComponent(k)}="${encodeURIComponent(v)}"`)
-      .join(", ")
-  );
-}
-
-async function sendTweet(tweetText: string): Promise<any> {
-  const url = `https://api.x.com/2/tweets`;
-  const method = "POST";
-  const params = { text: tweetText };
-
-  const oauthHeader = generateOAuthHeader(method, url);
-  console.log("OAuth Header:", oauthHeader);
-
-  const response = await fetch(url, {
-    method: method,
-    headers: {
-      Authorization: oauthHeader,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(params),
-  });
-
-  const responseText = await response.text();
-  console.log("Response Body:", responseText);
-
-  if (!response.ok) {
-    throw new Error(
-      `HTTP error! status: ${response.status}, body: ${responseText}`
-    );
-  }
-
-  return JSON.parse(responseText);
+  return "OAuth " + entries
+    .map(([k, v]) => `${encodeURIComponent(k)}="${encodeURIComponent(v)}"`)
+    .join(", ");
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    validateEnvironmentVariables();
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('No authorization header')
+    }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing Supabase credentials');
+    if (authError || !user) {
+      throw new Error('Invalid authentication')
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const { text, media_urls, post_id } = await req.json()
 
-    const { postId } = await req.json();
-
-    if (!postId) {
-      return new Response(
-        JSON.stringify({ error: 'Missing postId' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+    if (!text || text.length > 280) {
+      throw new Error('Tweet text is required and must be 280 characters or less')
     }
 
-    // Get the scheduled post
-    const { data: post, error: postError } = await supabaseAdmin
-      .from('scheduled_posts')
+    // Get Twitter profile
+    const { data: profile, error: profileError } = await supabase
+      .from('social_profiles')
       .select('*')
-      .eq('id', postId)
-      .single();
+      .eq('user_id', user.id)
+      .eq('platform', 'twitter')
+      .eq('connected', true)
+      .single()
 
-    if (postError || !post) {
-      console.error('Error fetching post:', postError);
-      return new Response(
-        JSON.stringify({ error: 'Post not found' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-      );
+    if (profileError || !profile) {
+      throw new Error('Twitter account not connected')
     }
 
-    // Send the tweet
-    const tweetResult = await sendTweet(post.content);
-
-    // Update post status
-    const { error: updateError } = await supabaseAdmin
-      .from('scheduled_posts')
-      .update({ 
-        status: 'published',
-        post_id: tweetResult.data.id,
-        metadata: { tweet_result: tweetResult }
-      })
-      .eq('id', postId);
-
-    if (updateError) {
-      console.error('Error updating post status:', updateError);
+    if (!profile.access_token || !profile.refresh_token) {
+      throw new Error('No access tokens available for Twitter')
     }
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Tweet posted successfully',
-        tweetId: tweetResult.data.id
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    // Post tweet using Twitter API v2
+    const url = 'https://api.twitter.com/2/tweets';
+    const method = 'POST';
+    
+    const oauthHeader = generateOAuthHeader(method, url, profile.access_token, profile.refresh_token);
+
+    const tweetData: any = { text };
+    
+    // Handle media uploads if present
+    if (media_urls && media_urls.length > 0) {
+      // For now, Twitter media upload requires additional implementation
+      // This would involve uploading media first, then attaching to tweet
+      console.log('Media attachments not yet implemented for Twitter');
+    }
+
+    const response = await fetch(url, {
+      method: method,
+      headers: {
+        'Authorization': oauthHeader,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(tweetData),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Twitter API error: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    const twitterPostId = result.data?.id;
+
+    // Update post record with platform post ID
+    if (post_id) {
+      const { error: updateError } = await supabase
+        .from('content_posts')
+        .update({
+          platform_post_id: twitterPostId,
+          status: 'published',
+          published_at: new Date().toISOString()
+        })
+        .eq('id', post_id)
+
+      if (updateError) {
+        console.error('Failed to update post record:', updateError)
+      }
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      platform_post_id: twitterPostId,
+      message: 'Tweet posted successfully'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    })
 
   } catch (error) {
-    console.error('Error posting tweet:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    );
+    console.error('Twitter posting error:', error)
+    return new Response(JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400
+    })
   }
-});
+})

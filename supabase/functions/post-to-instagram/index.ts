@@ -1,122 +1,134 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.0'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders } from '../_shared/cors.ts'
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+)
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('No authorization header')
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing Supabase credentials');
+    if (authError || !user) {
+      throw new Error('Invalid authentication')
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const { caption, media_urls, post_id } = await req.json()
 
-    const { postId, userId } = await req.json();
+    // Get Instagram profile
+    const { data: profile, error: profileError } = await supabase
+      .from('social_profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('platform', 'instagram')
+      .eq('connected', true)
+      .single()
 
-    if (!postId || !userId) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields: postId and userId' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
+    if (profileError || !profile) {
+      throw new Error('Instagram account not connected')
     }
 
-    // Get the post and Instagram profile
-    const { data: post, error: postError } = await supabaseAdmin
-      .from('scheduled_posts')
-      .select('*, social_profiles!inner(*)')
-      .eq('id', postId)
-      .eq('user_id', userId)
-      .single();
-
-    if (postError || !post) {
-      console.error('Error fetching post:', postError);
-      return new Response(
-        JSON.stringify({ error: 'Post not found or access denied' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-      );
+    if (!profile.access_token) {
+      throw new Error('No access token available for Instagram')
     }
 
-    // Check if we have media to post
-    if (!post.media_urls || post.media_urls.length === 0) {
-      throw new Error('Instagram posts require media (image or video)');
-    }
+    let mediaObject
+    let instagramPostId
 
-    const accessToken = post.social_profiles.access_token;
-    if (!accessToken) {
-      throw new Error('No access token found for Instagram account');
-    }
-
-    // Create Instagram media container
-    const createMediaResponse = await fetch(
-      `https://graph.instagram.com/me/media?access_token=${accessToken}`,
-      {
+    // Handle different media types
+    if (media_urls && media_urls.length > 0) {
+      const mediaUrl = media_urls[0] // Use first media for now
+      
+      // Create media object
+      const mediaResponse = await fetch(`https://graph.instagram.com/me/media`, {
         method: 'POST',
-        body: JSON.stringify({
-          image_url: post.media_urls[0],
-          caption: post.content
-        })
-      }
-    );
-
-    if (!createMediaResponse.ok) {
-      throw new Error('Failed to create Instagram media');
-    }
-
-    const mediaData = await createMediaResponse.json();
-    const mediaId = mediaData.id;
-
-    // Publish the media
-    const publishResponse = await fetch(
-      `https://graph.instagram.com/${mediaId}/publish?access_token=${accessToken}`,
-      {
-        method: 'POST'
-      }
-    );
-
-    if (!publishResponse.ok) {
-      throw new Error('Failed to publish Instagram media');
-    }
-
-    // Update post status
-    const { error: updateError } = await supabaseAdmin
-      .from('scheduled_posts')
-      .update({ 
-        status: 'published',
-        platform_post_id: mediaId,
-        published_at: new Date().toISOString()
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          image_url: mediaUrl,
+          caption: caption || '',
+          access_token: profile.access_token,
+        }),
       })
-      .eq('id', postId);
 
-    if (updateError) {
-      console.error('Error updating post status:', updateError);
-      throw new Error('Failed to update post status');
+      if (!mediaResponse.ok) {
+        const errorText = await mediaResponse.text()
+        throw new Error(`Failed to create Instagram media: ${errorText}`)
+      }
+
+      mediaObject = await mediaResponse.json()
+
+      // Publish the media
+      const publishResponse = await fetch(`https://graph.instagram.com/me/media_publish`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          creation_id: mediaObject.id,
+          access_token: profile.access_token,
+        }),
+      })
+
+      if (!publishResponse.ok) {
+        const errorText = await publishResponse.text()
+        throw new Error(`Failed to publish Instagram post: ${errorText}`)
+      }
+
+      const publishResult = await publishResponse.json()
+      instagramPostId = publishResult.id
+    } else {
+      // Text-only post (not supported by Instagram Basic Display API)
+      throw new Error('Instagram requires media content for posts')
     }
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Post published to Instagram',
-        mediaId: mediaId
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    // Update post record with platform post ID
+    if (post_id) {
+      const { error: updateError } = await supabase
+        .from('content_posts')
+        .update({
+          platform_post_id: instagramPostId,
+          status: 'published',
+          published_at: new Date().toISOString()
+        })
+        .eq('id', post_id)
+
+      if (updateError) {
+        console.error('Failed to update post record:', updateError)
+      }
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      platform_post_id: instagramPostId,
+      message: 'Post published to Instagram successfully'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    })
 
   } catch (error) {
-    console.error('Error in post-to-instagram function:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    );
+    console.error('Instagram posting error:', error)
+    return new Response(JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400
+    })
   }
-});
+})

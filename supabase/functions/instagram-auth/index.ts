@@ -1,129 +1,139 @@
 
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders } from '../_shared/cors.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+)
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { code, state } = await req.json();
-    if (!code) throw new Error('No authorization code provided');
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('No authorization header')
+    }
 
-    // Get Instagram credentials from environment variables
-    const clientId = Deno.env.get('INSTAGRAM_APP_ID');
-    const clientSecret = Deno.env.get('INSTAGRAM_APP_SECRET');
-    const redirectUri = `${new URL(req.url).origin}/social-connect`;
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    
+    if (authError || !user) {
+      throw new Error('Invalid authentication')
+    }
 
-    if (!clientId || !clientSecret) {
-      throw new Error('Instagram credentials not configured');
+    const { code } = await req.json()
+    
+    if (!code) {
+      throw new Error('Authorization code is required')
+    }
+
+    // Get Instagram credentials from secrets
+    const INSTAGRAM_CLIENT_ID = Deno.env.get('INSTAGRAM_CLIENT_ID')
+    const INSTAGRAM_CLIENT_SECRET = Deno.env.get('INSTAGRAM_CLIENT_SECRET')
+    const REDIRECT_URI = `${Deno.env.get('SITE_URL') || 'http://localhost:3000'}/social-connect`
+
+    if (!INSTAGRAM_CLIENT_ID || !INSTAGRAM_CLIENT_SECRET) {
+      throw new Error('Instagram API credentials not configured')
     }
 
     // Exchange code for access token
     const tokenResponse = await fetch('https://api.instagram.com/oauth/access_token', {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
       body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
+        client_id: INSTAGRAM_CLIENT_ID,
+        client_secret: INSTAGRAM_CLIENT_SECRET,
         grant_type: 'authorization_code',
-        redirect_uri: redirectUri,
-        code: code
-      })
-    });
+        redirect_uri: REDIRECT_URI,
+        code: code,
+      }),
+    })
 
     if (!tokenResponse.ok) {
-      throw new Error('Failed to exchange code for token');
+      const errorText = await tokenResponse.text()
+      throw new Error(`Instagram token exchange failed: ${errorText}`)
     }
 
-    const tokenData = await tokenResponse.json();
-    const shortLivedToken = tokenData.access_token;
-    const userId = tokenData.user_id;
+    const tokenData = await tokenResponse.json()
 
-    // Exchange short-lived token for long-lived token
-    const longLivedTokenResponse = await fetch(
-      `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${clientSecret}&access_token=${shortLivedToken}`
-    );
-
-    if (!longLivedTokenResponse.ok) {
-      throw new Error('Failed to get long-lived token');
-    }
-
-    const longLivedTokenData = await longLivedTokenResponse.json();
-    const accessToken = longLivedTokenData.access_token;
-
-    // Get user profile information
-    const userResponse = await fetch(
-      `https://graph.instagram.com/me?fields=id,username,account_type,media_count&access_token=${accessToken}`
-    );
-
+    // Get user info from Instagram
+    const userResponse = await fetch(`https://graph.instagram.com/me?fields=id,username,account_type,media_count&access_token=${tokenData.access_token}`)
+    
     if (!userResponse.ok) {
-      throw new Error('Failed to fetch user data');
+      throw new Error('Failed to fetch Instagram user info')
     }
 
-    const userData = await userResponse.json();
+    const userData = await userResponse.json()
 
-    // Get recent media metrics
-    const mediaResponse = await fetch(
-      `https://graph.instagram.com/me/media?fields=id,media_type,media_url,thumbnail_url,permalink,timestamp&access_token=${accessToken}`
-    );
-
-    if (!mediaResponse.ok) {
-      throw new Error('Failed to fetch media data');
-    }
-
-    const mediaData = await mediaResponse.json();
-
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') as string;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') as string;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-    // Get user from state (contains JWT)
-    const { data: authData } = await supabase.auth.getUser(state);
-    if (!authData.user) {
-      throw new Error('User not authenticated');
-    }
-
-    // Store profile in database
-    const { data: profile, error } = await supabase
+    // Store/update social profile
+    const { data: existingProfile } = await supabase
       .from('social_profiles')
-      .upsert({
-        user_id: authData.user.id,
-        platform: 'instagram',
-        username: userData.username,
-        profile_url: `https://instagram.com/${userData.username}`,
-        connected: true,
-        last_synced: new Date().toISOString(),
-        access_token: accessToken,
-        posts: userData.media_count || mediaData.data?.length || 0,
-        followers: 0, // Basic Display API doesn't provide follower count
-        engagement: 0 // Will be calculated in sync function
-      }, {
-        onConflict: 'user_id, platform'
-      })
-      .select()
-      .single();
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('platform', 'instagram')
+      .single()
 
-    if (error) throw error;
+    const profileData = {
+      user_id: user.id,
+      platform: 'instagram',
+      username: userData.username,
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token || null,
+      followers: 0, // Will be updated in sync
+      posts: userData.media_count || 0,
+      engagement: 0, // Will be calculated in sync
+      connected: true,
+      last_synced: new Date().toISOString(),
+      profile_url: `https://instagram.com/${userData.username}`,
+      stats: userData
+    }
 
-    return new Response(JSON.stringify({ success: true, profile }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    let savedProfile
+    if (existingProfile) {
+      const { data, error } = await supabase
+        .from('social_profiles')
+        .update(profileData)
+        .eq('id', existingProfile.id)
+        .select()
+        .single()
+      
+      if (error) throw error
+      savedProfile = data
+    } else {
+      const { data, error } = await supabase
+        .from('social_profiles')
+        .insert(profileData)
+        .select()
+        .single()
+      
+      if (error) throw error
+      savedProfile = data
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      profile: savedProfile,
+      message: 'Instagram account connected successfully'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    })
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Instagram auth error:', error)
     return new Response(JSON.stringify({
-      error: error.message || 'An unknown error occurred'
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
     }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400
+    })
   }
-});
+})

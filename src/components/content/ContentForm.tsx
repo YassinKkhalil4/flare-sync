@@ -53,15 +53,10 @@ const ContentForm: React.FC<ContentFormProps> = ({ initialData, onSuccess }) => 
         scheduledDateTime.setHours(parseInt(hours), parseInt(minutes));
 
         await schedulePost({
-          title,
-          content: body,
           platform,
-          scheduled_for: scheduledDateTime.toISOString(),
-          status: 'pending',
+          content: body || title,
           media_urls: mediaUrls,
-          metadata: {
-            created_via: 'content_form',
-          },
+          scheduled_for: scheduledDateTime.toISOString(),
         });
       } else {
         const status = postType === 'draft' ? 'draft' : 'published';

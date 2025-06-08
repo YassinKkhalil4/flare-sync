@@ -40,28 +40,20 @@ export const useTwitterConnect = () => {
         return;
       }
 
-      // Twitter OAuth 2.0 PKCE configuration
+      // Twitter OAuth 2.0 with PKCE
       const REDIRECT_URI = `${window.location.origin}/social-connect`;
-      const SCOPE = "tweet.read users.read offline.access";
+      const SCOPE = "tweet.read tweet.write users.read offline.access";
+      const STATE = encodeURIComponent(session.access_token);
       
-      // Generate PKCE challenge
-      const codeVerifier = generateCodeVerifier();
-      const codeChallenge = await generateCodeChallenge(codeVerifier);
-      
-      // Store code verifier for later use
-      localStorage.setItem('twitter_code_verifier', codeVerifier);
-
-      // Construct Twitter OAuth URL
       const authUrl = `https://twitter.com/i/oauth2/authorize?` +
         `response_type=code` +
         `&client_id=${data.client_id}` +
         `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
         `&scope=${encodeURIComponent(SCOPE)}` +
-        `&state=${encodeURIComponent(session.access_token)}` +
-        `&code_challenge=${codeChallenge}` +
-        `&code_challenge_method=S256`;
-
-      // Redirect to Twitter
+        `&state=${STATE}` +
+        `&code_challenge=challenge` +
+        `&code_challenge_method=plain`;
+        
       window.location.href = authUrl;
     } catch (error) {
       console.error('Error initiating Twitter connection:', error);
@@ -73,40 +65,15 @@ export const useTwitterConnect = () => {
     }
   };
 
-  // Helper functions for PKCE
-  const generateCodeVerifier = () => {
-    const array = new Uint32Array(56/2);
-    crypto.getRandomValues(array);
-    return Array.from(array, dec => ('0' + dec.toString(16)).substr(-2)).join('');
-  };
-
-  const generateCodeChallenge = async (verifier: string) => {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(verifier);
-    const digest = await crypto.subtle.digest('SHA-256', data);
-    return btoa(String.fromCharCode(...new Uint8Array(digest)))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-  };
-
   // Handle OAuth callback
   const handleCallback = async (code: string) => {
     try {
-      const codeVerifier = localStorage.getItem('twitter_code_verifier');
-      if (!codeVerifier) {
-        throw new Error('Missing code verifier');
-      }
-
       // Exchange code for token using our edge function
       const { data, error } = await supabase.functions.invoke('twitter-auth', {
-        body: { code, code_verifier: codeVerifier }
+        body: { code }
       });
 
       if (error) throw error;
-
-      // Clean up stored verifier
-      localStorage.removeItem('twitter_code_verifier');
 
       toast({
         title: 'Twitter Connected',

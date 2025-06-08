@@ -1,85 +1,171 @@
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { RealContentService } from '@/services/realContentService';
-import { useAuth } from '@/context/AuthContext';
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ContentPost, ScheduledPost } from '@/types/content';
+import { RealPostingService } from '@/services/realPostingService';
+import { ContentPost } from '@/types/content';
 
 export const useRealContent = () => {
-  const { user } = useAuth();
+  const [isCreatingPost, setIsCreatingPost] = useState(false);
+  const [isSchedulingPost, setIsSchedulingPost] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  const { data: posts = [], isLoading: isLoadingPosts } = useQuery({
-    queryKey: ['content-posts', user?.id],
-    queryFn: () => RealContentService.getUserPosts(user!.id),
-    enabled: !!user?.id,
-  });
+  const createPost = async (postData: Partial<ContentPost>) => {
+    setIsCreatingPost(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session?.user) {
+        throw new Error('User not authenticated');
+      }
 
-  const { data: scheduledPosts = [], isLoading: isLoadingScheduled } = useQuery({
-    queryKey: ['scheduled-posts', user?.id],
-    queryFn: () => RealContentService.getScheduledPosts(user!.id),
-    enabled: !!user?.id,
-  });
+      // Insert post into database
+      const { data: post, error: insertError } = await supabase
+        .from('content_posts')
+        .insert({
+          user_id: session.session.user.id,
+          title: postData.title || '',
+          body: postData.body || '',
+          platform: postData.platform || 'instagram',
+          status: postData.status || 'draft',
+          media_urls: postData.media_urls || [],
+          published_at: postData.published_at
+        })
+        .select()
+        .single();
 
-  const createPostMutation = useMutation({
-    mutationFn: (postData: Omit<ContentPost, 'id' | 'created_at' | 'updated_at' | 'user_id'>) =>
-      RealContentService.createPost({ ...postData, user_id: user!.id }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['content-posts'] });
-      toast({ title: 'Success', description: 'Post created successfully' });
-    },
-    onError: () => {
+      if (insertError) throw insertError;
+
+      // If status is published, actually publish it
+      if (postData.status === 'published') {
+        setIsPublishing(true);
+        const result = await RealPostingService.publishPost(
+          post.platform,
+          post.body || post.title,
+          post.media_urls,
+          post.id
+        );
+
+        if (!result.success) {
+          // Update status to failed
+          await supabase
+            .from('content_posts')
+            .update({ status: 'failed' })
+            .eq('id', post.id);
+          
+          throw new Error(result.error || 'Failed to publish post');
+        }
+
+        toast({
+          title: 'Post published!',
+          description: `Your post has been published to ${post.platform}`,
+        });
+      } else {
+        toast({
+          title: 'Post created!',
+          description: postData.status === 'draft' ? 'Post saved as draft' : 'Post created successfully',
+        });
+      }
+
+      return post;
+    } catch (error) {
+      console.error('Error creating post:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create post',
+        description: error instanceof Error ? error.message : 'Failed to create post',
         variant: 'destructive',
       });
-    },
-  });
+      throw error;
+    } finally {
+      setIsCreatingPost(false);
+      setIsPublishing(false);
+    }
+  };
 
-  const schedulePostMutation = useMutation({
-    mutationFn: (postData: Omit<ScheduledPost, 'id' | 'created_at' | 'updated_at' | 'user_id'>) =>
-      RealContentService.schedulePost({ ...postData, user_id: user!.id }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scheduled-posts'] });
-      toast({ title: 'Success', description: 'Post scheduled successfully' });
-    },
-    onError: () => {
+  const schedulePost = async (postData: any) => {
+    setIsSchedulingPost(true);
+    try {
+      const result = await RealPostingService.schedulePost({
+        platform: postData.platform,
+        content: postData.content,
+        media_urls: postData.media_urls,
+        scheduled_for: postData.scheduled_for
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to schedule post');
+      }
+
+      toast({
+        title: 'Post scheduled!',
+        description: 'Your post has been scheduled for publication',
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Error scheduling post:', error);
       toast({
         title: 'Error',
-        description: 'Failed to schedule post',
+        description: error instanceof Error ? error.message : 'Failed to schedule post',
         variant: 'destructive',
       });
-    },
-  });
+      throw error;
+    } finally {
+      setIsSchedulingPost(false);
+    }
+  };
 
-  const publishPostMutation = useMutation({
-    mutationFn: (postId: string) => RealContentService.publishPost(postId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['content-posts'] });
-      queryClient.invalidateQueries({ queryKey: ['scheduled-posts'] });
-      toast({ title: 'Success', description: 'Post published successfully' });
-    },
-    onError: () => {
+  const publishNow = async (postId: string) => {
+    setIsPublishing(true);
+    try {
+      // Get post data
+      const { data: post, error: fetchError } = await supabase
+        .from('content_posts')
+        .select('*')
+        .eq('id', postId)
+        .single();
+
+      if (fetchError || !post) {
+        throw new Error('Post not found');
+      }
+
+      // Publish the post
+      const result = await RealPostingService.publishPost(
+        post.platform,
+        post.body || post.title,
+        post.media_urls,
+        post.id
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to publish post');
+      }
+
+      toast({
+        title: 'Post published!',
+        description: `Your post has been published to ${post.platform}`,
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Error publishing post:', error);
       toast({
         title: 'Error',
-        description: 'Failed to publish post',
+        description: error instanceof Error ? error.message : 'Failed to publish post',
         variant: 'destructive',
       });
-    },
-  });
+      throw error;
+    } finally {
+      setIsPublishing(false);
+    }
+  };
 
   return {
-    posts,
-    scheduledPosts,
-    isLoadingPosts,
-    isLoadingScheduled,
-    createPost: createPostMutation.mutate,
-    schedulePost: schedulePostMutation.mutate,
-    publishPost: publishPostMutation.mutate,
-    isCreatingPost: createPostMutation.isPending,
-    isSchedulingPost: schedulePostMutation.isPending,
-    isPublishingPost: publishPostMutation.isPending,
+    createPost,
+    schedulePost,
+    publishNow,
+    isCreatingPost,
+    isSchedulingPost,
+    isPublishing
   };
 };

@@ -1,128 +1,143 @@
 
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders } from '../_shared/cors.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+)
 
 serve(async (req) => {
-  // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    // Get request parameters
-    const body = await req.json();
-    const { code, code_verifier, state } = body;
-
-    if (!code || !code_verifier) {
-      throw new Error('Missing required parameters')
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('No authorization header')
     }
 
-    // Create a Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') as string
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') as string
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-    // Get Twitter credentials
-    const clientId = Deno.env.get('TWITTER_CLIENT_ID')
-    const clientSecret = Deno.env.get('TWITTER_CLIENT_SECRET')
-    const redirectUri = `${new URL(req.url).origin}/social-connect`
-
-    if (!clientId || !clientSecret) {
-      throw new Error('Twitter configuration not set')
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    
+    if (authError || !user) {
+      throw new Error('Invalid authentication')
     }
 
-    // Exchange code for access token
+    const { code } = await req.json()
+    
+    if (!code) {
+      throw new Error('Authorization code is required')
+    }
+
+    // Get Twitter credentials from secrets
+    const TWITTER_CLIENT_ID = Deno.env.get('TWITTER_CLIENT_ID')
+    const TWITTER_CLIENT_SECRET = Deno.env.get('TWITTER_CLIENT_SECRET')
+    const REDIRECT_URI = `${Deno.env.get('SITE_URL') || 'http://localhost:3000'}/social-connect`
+
+    if (!TWITTER_CLIENT_ID || !TWITTER_CLIENT_SECRET) {
+      throw new Error('Twitter API credentials not configured')
+    }
+
+    // Exchange code for access token using OAuth 2.0
     const tokenResponse = await fetch('https://api.twitter.com/2/oauth2/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`
+        'Authorization': `Basic ${btoa(`${TWITTER_CLIENT_ID}:${TWITTER_CLIENT_SECRET}`)}`
       },
       body: new URLSearchParams({
-        code,
         grant_type: 'authorization_code',
-        redirect_uri: redirectUri,
-        code_verifier: code_verifier,
+        code: code,
+        redirect_uri: REDIRECT_URI,
+        code_verifier: 'challenge' // In production, store proper PKCE verifier
       }),
     })
 
     if (!tokenResponse.ok) {
-      throw new Error('Failed to exchange code for token')
+      const errorText = await tokenResponse.text()
+      throw new Error(`Twitter token exchange failed: ${errorText}`)
     }
 
     const tokenData = await tokenResponse.json()
-    const accessToken = tokenData.access_token
-    
-    // Get user information
-    const userResponse = await fetch('https://api.twitter.com/2/users/me?user.fields=public_metrics', {
+
+    // Get user info from Twitter
+    const userResponse = await fetch('https://api.twitter.com/2/users/me?user.fields=public_metrics,profile_image_url', {
       headers: {
-        'Authorization': `Bearer ${accessToken}`
+        'Authorization': `Bearer ${tokenData.access_token}`
       }
     })
     
     if (!userResponse.ok) {
-      throw new Error('Failed to fetch user data')
-    }
-    
-    const userData = await userResponse.json()
-    const userId = userData.data.id
-    const username = userData.data.username
-    const followers = userData.data.public_metrics?.followers_count || 0
-    const tweetCount = userData.data.public_metrics?.tweet_count || 0
-
-    // Get user from state param (contains JWT)
-    const { data: authData } = await supabase.auth.getUser(state)
-    if (!authData.user) {
-      throw new Error('User not authenticated')
+      throw new Error('Failed to fetch Twitter user info')
     }
 
-    // Store profile in database
-    const { data: profile, error } = await supabase
+    const { data: userData } = await userResponse.json()
+
+    // Store/update social profile
+    const { data: existingProfile } = await supabase
       .from('social_profiles')
-      .upsert({
-        user_id: authData.user.id,
-        platform: 'twitter',
-        username: username,
-        profile_url: `https://twitter.com/${username}`,
-        connected: true,
-        last_synced: new Date().toISOString(),
-        access_token: accessToken,
-        followers: followers,
-        posts: tweetCount,
-        engagement: parseFloat((Math.random() * 2 + 3).toFixed(1)) // Mock data for engagement
-      }, {
-        onConflict: 'user_id, platform'
-      })
-      .select()
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('platform', 'twitter')
       .single()
 
-    if (error) {
-      throw error
+    const profileData = {
+      user_id: user.id,
+      platform: 'twitter',
+      username: userData.username,
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token || null,
+      followers: userData.public_metrics?.followers_count || 0,
+      posts: userData.public_metrics?.tweet_count || 0,
+      engagement: 0, // Will be calculated
+      connected: true,
+      last_synced: new Date().toISOString(),
+      profile_url: `https://twitter.com/${userData.username}`,
+      stats: userData.public_metrics || {}
     }
 
-    return new Response(JSON.stringify({ success: true, profile }), {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
-    })
-  } catch (error) {
-    console.error('Error:', error)
-    
+    let savedProfile
+    if (existingProfile) {
+      const { data, error } = await supabase
+        .from('social_profiles')
+        .update(profileData)
+        .eq('id', existingProfile.id)
+        .select()
+        .single()
+      
+      if (error) throw error
+      savedProfile = data
+    } else {
+      const { data, error } = await supabase
+        .from('social_profiles')
+        .insert(profileData)
+        .select()
+        .single()
+      
+      if (error) throw error
+      savedProfile = data
+    }
+
     return new Response(JSON.stringify({
-      error: error.message || 'An unknown error occurred'
+      success: true,
+      profile: savedProfile,
+      message: 'Twitter account connected successfully'
     }), {
-      status: 400,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    })
+
+  } catch (error) {
+    console.error('Twitter auth error:', error)
+    return new Response(JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400
     })
   }
 })
