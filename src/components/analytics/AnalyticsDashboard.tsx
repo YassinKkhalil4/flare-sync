@@ -3,18 +3,42 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { EngagementChart } from './EngagementChart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Users, Heart, MessageCircle, Share, Eye } from 'lucide-react';
+import { EngagementChart } from './EngagementChart';
+import { Loader2, TrendingUp, Users, Heart, MessageCircle, Share2, Eye } from 'lucide-react';
 
 export const AnalyticsDashboard: React.FC = () => {
   const { user } = useAuth();
-  const [timeRange, setTimeRange] = useState('30d');
+  const [timeRange, setTimeRange] = useState('7d');
 
-  const { data: socialProfiles = [] } = useQuery({
-    queryKey: ['socialProfiles', user?.id],
+  const { data: analytics, isLoading } = useQuery({
+    queryKey: ['analytics', user?.id, timeRange],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('post_analytics')
+        .select(`
+          *,
+          posts (
+            title,
+            platform,
+            created_at
+          )
+        `)
+        .eq('posts.user_id', user.id)
+        .gte('created_at', getDateRange(timeRange))
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const { data: socialProfiles } = useQuery({
+    queryKey: ['social-profiles', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       
@@ -30,224 +54,161 @@ export const AnalyticsDashboard: React.FC = () => {
     enabled: !!user?.id,
   });
 
-  const { data: postMetrics = [] } = useQuery({
-    queryKey: ['postMetrics', user?.id, timeRange],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      
-      const daysAgo = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
-      const since = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString();
-      
-      const { data, error } = await supabase
-        .from('content_posts')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'published')
-        .gte('published_at', since)
-        .order('published_at', { ascending: true });
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id,
-  });
-
-  // Calculate summary metrics
-  const totalFollowers = socialProfiles.reduce((sum, profile) => sum + (profile.followers || 0), 0);
-  const averageEngagement = socialProfiles.length 
-    ? socialProfiles.reduce((sum, profile) => sum + (profile.engagement || 0), 0) / socialProfiles.length 
-    : 0;
-  
-  const totalPosts = postMetrics.length;
-  const totalLikes = postMetrics.reduce((sum, post) => {
-    const metrics = post.metrics || {};
-    return sum + (metrics.likes || 0);
-  }, 0);
-  
-  const totalComments = postMetrics.reduce((sum, post) => {
-    const metrics = post.metrics || {};
-    return sum + (metrics.comments || 0);
-  }, 0);
-
-  const totalShares = postMetrics.reduce((sum, post) => {
-    const metrics = post.metrics || {};
-    return sum + (metrics.shares || 0);
-  }, 0);
-
-  // Generate mock engagement chart data
-  const generateChartData = () => {
-    const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
-    const data = [];
-    
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-      const instagram = 3 + Math.random() * 4; // 3-7%
-      const twitter = 2 + Math.random() * 3; // 2-5%
-      const youtube = 4 + Math.random() * 6; // 4-10%
-      
-      data.push({
-        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        instagram: parseFloat(instagram.toFixed(2)),
-        twitter: parseFloat(twitter.toFixed(2)),
-        youtube: parseFloat(youtube.toFixed(2)),
-        average: parseFloat(((instagram + twitter + youtube) / 3).toFixed(2))
-      });
-    }
-    
-    return data;
+  const getDateRange = (range: string) => {
+    const now = new Date();
+    const days = parseInt(range.replace('d', ''));
+    const pastDate = new Date(now.getTime() - (days * 24 * 60 * 60 * 1000));
+    return pastDate.toISOString();
   };
 
-  const chartData = generateChartData();
+  const processEngagementData = () => {
+    if (!analytics) return [];
+    
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      return date.toISOString().split('T')[0];
+    }).reverse();
 
-  const MetricCard = ({ title, value, change, icon: Icon, color }: {
-    title: string;
-    value: string | number;
-    change?: number;
-    icon: React.ElementType;
-    color: string;
-  }) => (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-2xl font-bold">{value}</p>
-            {change !== undefined && (
-              <div className="flex items-center mt-1">
-                {change >= 0 ? (
-                  <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-                ) : (
-                  <TrendingDown className="h-3 w-3 text-red-600 mr-1" />
-                )}
-                <span className={`text-xs font-medium ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {Math.abs(change)}%
-                </span>
-              </div>
-            )}
-          </div>
-          <div className={`p-3 rounded-full ${color}`}>
-            <Icon className="h-6 w-6 text-white" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+    return last7Days.map(date => {
+      const dayAnalytics = analytics.filter(a => 
+        a.created_at?.startsWith(date)
+      );
+
+      const instagramData = dayAnalytics.filter(a => a.posts?.platform === 'instagram');
+      const twitterData = dayAnalytics.filter(a => a.posts?.platform === 'twitter');
+      const youtubeData = dayAnalytics.filter(a => a.posts?.platform === 'youtube');
+
+      const calculateEngagement = (data: any[]) => {
+        if (data.length === 0) return 0;
+        const total = data.reduce((sum, item) => {
+          const engagement = (item.likes + item.comments + item.shares) / Math.max(item.reach, 1) * 100;
+          return sum + engagement;
+        }, 0);
+        return total / data.length;
+      };
+
+      const instagram = calculateEngagement(instagramData);
+      const twitter = calculateEngagement(twitterData);
+      const youtube = calculateEngagement(youtubeData);
+      const average = (instagram + twitter + youtube) / 3;
+
+      return {
+        date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        instagram,
+        twitter,
+        youtube,
+        average
+      };
+    });
+  };
+
+  const getTotalMetrics = () => {
+    if (!analytics) return { likes: 0, comments: 0, shares: 0, reach: 0 };
+    
+    return analytics.reduce((totals, item) => ({
+      likes: totals.likes + (item.likes || 0),
+      comments: totals.comments + (item.comments || 0),
+      shares: totals.shares + (item.shares || 0),
+      reach: totals.reach + (item.reach || 0)
+    }), { likes: 0, comments: 0, shares: 0, reach: 0 });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading analytics...</span>
+      </div>
+    );
+  }
+
+  const engagementData = processEngagementData();
+  const totalMetrics = getTotalMetrics();
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
-          <p className="text-muted-foreground">Track your social media performance and engagement</p>
-        </div>
-        
+        <h2 className="text-2xl font-bold">Analytics Dashboard</h2>
         <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-32">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="7d">Last 7 days</SelectItem>
-            <SelectItem value="30d">Last 30 days</SelectItem>
-            <SelectItem value="90d">Last 90 days</SelectItem>
+            <SelectItem value="7d">7 days</SelectItem>
+            <SelectItem value="30d">30 days</SelectItem>
+            <SelectItem value="90d">90 days</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title="Total Followers"
-          value={totalFollowers.toLocaleString()}
-          change={Math.random() > 0.5 ? Math.floor(Math.random() * 15) : -Math.floor(Math.random() * 5)}
-          icon={Users}
-          color="bg-blue-500"
-        />
-        <MetricCard
-          title="Avg Engagement"
-          value={`${averageEngagement.toFixed(1)}%`}
-          change={Math.random() > 0.5 ? Math.floor(Math.random() * 10) : -Math.floor(Math.random() * 3)}
-          icon={TrendingUp}
-          color="bg-green-500"
-        />
-        <MetricCard
-          title="Total Likes"
-          value={totalLikes.toLocaleString()}
-          change={Math.random() > 0.5 ? Math.floor(Math.random() * 20) : -Math.floor(Math.random() * 8)}
-          icon={Heart}
-          color="bg-red-500"
-        />
-        <MetricCard
-          title="Total Comments"
-          value={totalComments.toLocaleString()}
-          change={Math.random() > 0.5 ? Math.floor(Math.random() * 25) : -Math.floor(Math.random() * 10)}
-          icon={MessageCircle}
-          color="bg-purple-500"
-        />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Likes</CardTitle>
+            <Heart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalMetrics.likes.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Comments</CardTitle>
+            <MessageCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalMetrics.comments.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Shares</CardTitle>
+            <Share2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalMetrics.shares.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Reach</CardTitle>
+            <Eye className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalMetrics.reach.toLocaleString()}</div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Engagement Chart */}
-      <EngagementChart data={chartData} timeRange={timeRange} />
+      <EngagementChart data={engagementData} timeRange={timeRange} />
 
-      {/* Platform Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {socialProfiles && socialProfiles.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Platform Performance</CardTitle>
+            <CardTitle>Connected Platforms</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {socialProfiles.map((profile) => (
-              <div key={profile.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Badge variant="outline">{profile.platform}</Badge>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              {socialProfiles.map((profile) => (
+                <div key={profile.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
-                    <p className="font-medium">@{profile.username}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {profile.followers?.toLocaleString()} followers
-                    </p>
+                    <h4 className="font-medium capitalize">{profile.platform}</h4>
+                    <p className="text-sm text-muted-foreground">@{profile.username}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">{(profile.followers || 0).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">followers</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-green-600">{profile.engagement}%</p>
-                  <p className="text-xs text-muted-foreground">engagement</p>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Post Performance</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {postMetrics.slice(0, 5).map((post) => {
-              const metrics = post.metrics || {};
-              return (
-                <div key={post.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <div className="flex-1">
-                    <p className="font-medium line-clamp-1">{post.title}</p>
-                    <p className="text-sm text-muted-foreground">{post.platform}</p>
-                  </div>
-                  <div className="flex gap-4 text-sm">
-                    <div className="flex items-center gap-1">
-                      <Heart className="h-3 w-3" />
-                      {metrics.likes || 0}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MessageCircle className="h-3 w-3" />
-                      {metrics.comments || 0}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Share className="h-3 w-3" />
-                      {metrics.shares || 0}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      </div>
+      )}
     </div>
   );
 };
