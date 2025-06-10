@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -113,6 +112,20 @@ export const AnalyticsDashboard: React.FC = () => {
   const engagementData = processEngagementData();
   const totalMetrics = getTotalMetrics();
 
+  // Convert timeRange to timeframe format needed by the EngagementChart component
+  const getTimeframeFromRange = (range: string): 'week' | 'month' | 'quarter' => {
+    switch (range) {
+      case '7d':
+        return 'week';
+      case '30d':
+        return 'month';
+      case '90d':
+        return 'quarter';
+      default:
+        return 'week';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -171,7 +184,10 @@ export const AnalyticsDashboard: React.FC = () => {
         </Card>
       </div>
 
-      <EngagementChart data={engagementData} timeRange={timeRange} />
+      <EngagementChart 
+        data={engagementData} 
+        timeframe={getTimeframeFromRange(timeRange)} 
+      />
 
       {socialProfiles && socialProfiles.length > 0 && (
         <Card>
