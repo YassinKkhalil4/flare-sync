@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -48,6 +47,7 @@ import AdminTesting from '@/pages/admin/AdminTesting';
 import Privacy from '@/pages/Privacy';
 import TermsOfUse from '@/pages/TermsOfUse';
 import Legal from '@/pages/Legal';
+import { RouteErrorBoundary } from '@/components/error/RouteErrorBoundary';
 
 const AppRoutes: React.FC = () => {
   const { user } = useAuth();
@@ -55,208 +55,303 @@ const AppRoutes: React.FC = () => {
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Landing />} />
-      <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
-      <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <Signup />} />
+      <Route path="/" element={
+        <RouteErrorBoundary routeName="Landing">
+          {user ? <Navigate to="/dashboard" replace /> : <Landing />}
+        </RouteErrorBoundary>
+      } />
+      
+      <Route path="/login" element={
+        <RouteErrorBoundary routeName="Login">
+          {user ? <Navigate to="/dashboard" replace /> : <Login />}
+        </RouteErrorBoundary>
+      } />
+      
+      <Route path="/signup" element={
+        <RouteErrorBoundary routeName="Signup">
+          {user ? <Navigate to="/dashboard" replace /> : <Signup />}
+        </RouteErrorBoundary>
+      } />
       
       {/* Legal routes */}
-      <Route path="/privacy" element={<Privacy />} />
-      <Route path="/terms" element={<TermsOfUse />} />
-      <Route path="/legal" element={<Legal />} />
+      <Route path="/privacy" element={
+        <RouteErrorBoundary routeName="Privacy">
+          <Privacy />
+        </RouteErrorBoundary>
+      } />
+      
+      <Route path="/terms" element={
+        <RouteErrorBoundary routeName="Terms">
+          <TermsOfUse />
+        </RouteErrorBoundary>
+      } />
+      
+      <Route path="/legal" element={
+        <RouteErrorBoundary routeName="Legal">
+          <Legal />
+        </RouteErrorBoundary>
+      } />
 
-      {/* Protected routes */}
+      {/* Protected routes - all wrapped with error boundaries */}
       <Route path="/dashboard" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <Dashboard />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Dashboard">
+          <ProtectedRoute>
+            <MainLayout>
+              <Dashboard />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
       
       <Route path="/content" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <Content />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Content">
+          <ProtectedRoute>
+            <MainLayout>
+              <Content />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
       
       <Route path="/content/create" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <ContentCreatePage />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Content Create">
+          <ProtectedRoute>
+            <MainLayout>
+              <ContentCreatePage />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
       
       <Route path="/content/calendar" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <ContentCalendarPage />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Content Calendar">
+          <ProtectedRoute>
+            <MainLayout>
+              <ContentCalendarPage />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
       
       <Route path="/content/caption-generator" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <CaptionGeneratorPage />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Caption Generator">
+          <ProtectedRoute>
+            <MainLayout>
+              <CaptionGeneratorPage />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
       
       <Route path="/content/engagement-predictor" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <EngagementPredictorPage />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Engagement Predictor">
+          <ProtectedRoute>
+            <MainLayout>
+              <EngagementPredictorPage />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
       
       <Route path="/content/brand-matchmaker" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <BrandMatchmakerPage />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Brand Matchmaker">
+          <ProtectedRoute>
+            <MainLayout>
+              <BrandMatchmakerPage />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
       
       <Route path="/content/content-plan-generator" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <ContentPlanGeneratorPage />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Content Plan Generator">
+          <ProtectedRoute>
+            <MainLayout>
+              <ContentPlanGeneratorPage />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
       
       <Route path="/content/smart-assistant" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <SmartAssistantPage />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Smart Assistant">
+          <ProtectedRoute>
+            <MainLayout>
+              <SmartAssistantPage />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
 
       <Route path="/profile" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <CreatorProfile />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Profile">
+          <ProtectedRoute>
+            <MainLayout>
+              <CreatorProfile />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
 
       <Route path="/brand-deals" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <BrandDeals />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Brand Deals">
+          <ProtectedRoute>
+            <MainLayout>
+              <BrandDeals />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
 
       <Route path="/messaging" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <Messaging />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Messaging">
+          <ProtectedRoute>
+            <MainLayout>
+              <Messaging />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
 
       <Route path="/analytics" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <Analytics />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Analytics">
+          <ProtectedRoute>
+            <MainLayout>
+              <Analytics />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
 
       <Route path="/plans" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <Plans />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Plans">
+          <ProtectedRoute>
+            <MainLayout>
+              <Plans />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
 
       <Route path="/settings" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <Settings />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Settings">
+          <ProtectedRoute>
+            <MainLayout>
+              <Settings />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
 
       <Route path="/social-connect" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <SocialConnect />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Social Connect">
+          <ProtectedRoute>
+            <MainLayout>
+              <SocialConnect />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
 
       <Route path="/payment-history" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <PaymentHistory />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Payment History">
+          <ProtectedRoute>
+            <MainLayout>
+              <PaymentHistory />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
 
       <Route path="/notifications" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <NotificationsPage />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Notifications">
+          <ProtectedRoute>
+            <MainLayout>
+              <NotificationsPage />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
 
       <Route path="/api-configuration" element={
-        <ProtectedRoute>
-          <MainLayout>
-            <ApiConfiguration />
-          </MainLayout>
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="API Configuration">
+          <ProtectedRoute>
+            <MainLayout>
+              <ApiConfiguration />
+            </MainLayout>
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
 
       {/* Admin routes */}
-      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin/login" element={
+        <RouteErrorBoundary routeName="Admin Login">
+          <AdminLogin />
+        </RouteErrorBoundary>
+      } />
+      
       <Route path="/admin" element={
-        <ProtectedRoute requireAdmin>
-          <AdminDashboard />
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Admin Dashboard">
+          <ProtectedRoute requireAdmin>
+            <AdminDashboard />
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
+      
       <Route path="/admin/users" element={
-        <ProtectedRoute requireAdmin>
-          <AdminUsers />
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Admin Users">
+          <ProtectedRoute requireAdmin>
+            <AdminUsers />
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
+      
       <Route path="/admin/content" element={
-        <ProtectedRoute requireAdmin>
-          <AdminContent />
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Admin Content">
+          <ProtectedRoute requireAdmin>
+            <AdminContent />
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
+      
       <Route path="/admin/analytics" element={
-        <ProtectedRoute requireAdmin>
-          <AdminAnalytics />
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Admin Analytics">
+          <ProtectedRoute requireAdmin>
+            <AdminAnalytics />
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
+      
       <Route path="/admin/billing" element={
-        <ProtectedRoute requireAdmin>
-          <AdminBilling />
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Admin Billing">
+          <ProtectedRoute requireAdmin>
+            <AdminBilling />
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
+      
       <Route path="/admin/notifications" element={
-        <ProtectedRoute requireAdmin>
-          <AdminNotifications />
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Admin Notifications">
+          <ProtectedRoute requireAdmin>
+            <AdminNotifications />
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
+      
       <Route path="/admin/testing" element={
-        <ProtectedRoute requireAdmin>
-          <AdminTesting />
-        </ProtectedRoute>
+        <RouteErrorBoundary routeName="Admin Testing">
+          <ProtectedRoute requireAdmin>
+            <AdminTesting />
+          </ProtectedRoute>
+        </RouteErrorBoundary>
       } />
 
       {/* 404 route */}
-      <Route path="*" element={<NotFound />} />
+      <Route path="*" element={
+        <RouteErrorBoundary routeName="404">
+          <NotFound />
+        </RouteErrorBoundary>
+      } />
     </Routes>
   );
 };

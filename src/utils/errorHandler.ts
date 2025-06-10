@@ -1,62 +1,87 @@
-
-interface ApiResponse<T> {
-  data?: T;
-  error?: string;
+interface ErrorLogEntry {
+  error: Error;
+  context: string;
+  timestamp: Date;
+  userId?: string;
+  url: string;
+  userAgent: string;
 }
 
-export const errorHandler = {
-  logError: (error: any, context?: string): void => {
-    console.error(`[${context || 'Error'}]:`, error);
+class ErrorHandler {
+  private errorQueue: ErrorLogEntry[] = [];
+  private maxQueueSize = 100;
+
+  logError(error: Error, context: string = '', userId?: string) {
+    const logEntry: ErrorLogEntry = {
+      error,
+      context,
+      timestamp: new Date(),
+      userId,
+      url: window.location.href,
+      userAgent: navigator.userAgent
+    };
+
+    // Add to queue
+    this.errorQueue.push(logEntry);
     
-    // In production, you might want to send this to a logging service
+    // Keep queue size manageable
+    if (this.errorQueue.length > this.maxQueueSize) {
+      this.errorQueue.shift();
+    }
+
+    // Log to console in development
+    if (import.meta.env.DEV) {
+      console.group(`🚨 Error: ${context}`);
+      console.error('Error:', error);
+      console.info('Context:', context);
+      console.info('URL:', logEntry.url);
+      console.info('User:', userId || 'Anonymous');
+      console.groupEnd();
+    }
+
+    // Send to monitoring service in production
     if (import.meta.env.PROD) {
-      // Could send to Sentry, LogRocket, etc.
+      this.sendToMonitoringService(logEntry);
     }
-  },
-
-  getErrorMessage: (error: any): string => {
-    if (error?.message) {
-      return error.message;
-    }
-    
-    if (typeof error === 'string') {
-      return error;
-    }
-    
-    return 'An unexpected error occurred';
   }
-};
 
-// Legacy function for backward compatibility
-export const getErrorMessage = errorHandler.getErrorMessage;
-
-export const apiCall = async <T>(
-  operation: () => Promise<T>,
-  operationName: string,
-  userId?: string
-): Promise<ApiResponse<T>> => {
-  try {
-    console.log(`Starting ${operationName}${userId ? ` for user ${userId}` : ''}`);
-    const data = await operation();
-    console.log(`${operationName} completed successfully`);
-    return { data };
-  } catch (error) {
-    const errorMessage = errorHandler.getErrorMessage(error);
-    errorHandler.logError(error, operationName);
-    return { error: errorMessage };
-  }
-};
-
-export const withErrorBoundary = <T extends (...args: any[]) => any>(
-  fn: T,
-  fallback?: any
-): T => {
-  return ((...args: any[]) => {
+  private async sendToMonitoringService(logEntry: ErrorLogEntry) {
     try {
-      return fn(...args);
-    } catch (error) {
-      errorHandler.logError(error, 'Function execution');
-      return fallback;
+      // Example: Send to Sentry, LogRocket, or custom service
+      // await fetch('/api/errors', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({
+      //     message: logEntry.error.message,
+      //     stack: logEntry.error.stack,
+      //     context: logEntry.context,
+      //     timestamp: logEntry.timestamp,
+      //     userId: logEntry.userId,
+      //     url: logEntry.url,
+      //     userAgent: logEntry.userAgent
+      //   })
+      // });
+    } catch (e) {
+      // Silent failure for error reporting
     }
-  }) as T;
-};
+  }
+
+  getErrorQueue(): ErrorLogEntry[] {
+    return [...this.errorQueue];
+  }
+
+  clearErrorQueue() {
+    this.errorQueue = [];
+  }
+
+  async handleAsyncError(promise: Promise<any>, context: string = ''): Promise<any> {
+    try {
+      return await promise;
+    } catch (error) {
+      this.logError(error as Error, `Async Error: ${context}`);
+      throw error;
+    }
+  }
+}
+
+export const errorHandler = new ErrorHandler();
