@@ -33,43 +33,43 @@ export class SecureAPI {
         }
       }
 
-      let query = supabase.from(table);
       let result;
 
       switch (operation) {
         case 'select':
-          query = query.select(data || '*');
+          let selectQuery = supabase.from(table).select(data || '*');
           if (filters) {
             Object.entries(filters).forEach(([key, value]) => {
-              query = query.eq(key, value);
+              selectQuery = selectQuery.eq(key, value);
             });
           }
-          result = await query;
+          result = await selectQuery;
           break;
 
         case 'insert':
           if (!data) throw new Error('Data required for insert operation');
-          result = await query.insert(data).select();
+          result = await supabase.from(table).insert(data).select();
           break;
 
         case 'update':
           if (!data) throw new Error('Data required for update operation');
-          query = query.update(data);
+          let updateQuery = supabase.from(table).update(data);
           if (filters) {
             Object.entries(filters).forEach(([key, value]) => {
-              query = query.eq(key, value);
+              updateQuery = updateQuery.eq(key, value);
             });
           }
-          result = await query.select();
+          result = await updateQuery.select();
           break;
 
         case 'delete':
+          let deleteQuery = supabase.from(table).delete();
           if (filters) {
             Object.entries(filters).forEach(([key, value]) => {
-              query = query.eq(key, value);
+              deleteQuery = deleteQuery.eq(key, value);
             });
           }
-          result = await query;
+          result = await deleteQuery;
           break;
 
         default:

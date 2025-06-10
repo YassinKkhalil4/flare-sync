@@ -75,30 +75,17 @@ export const AnalyticsDashboard: React.FC = () => {
         a.created_at?.startsWith(date)
       );
 
-      const instagramData = dayAnalytics.filter(a => a.posts?.platform === 'instagram');
-      const twitterData = dayAnalytics.filter(a => a.posts?.platform === 'twitter');
-      const youtubeData = dayAnalytics.filter(a => a.posts?.platform === 'youtube');
-
-      const calculateEngagement = (data: any[]) => {
-        if (data.length === 0) return 0;
-        const total = data.reduce((sum, item) => {
-          const engagement = (item.likes + item.comments + item.shares) / Math.max(item.reach, 1) * 100;
-          return sum + engagement;
-        }, 0);
-        return total / data.length;
-      };
-
-      const instagram = calculateEngagement(instagramData);
-      const twitter = calculateEngagement(twitterData);
-      const youtube = calculateEngagement(youtubeData);
-      const average = (instagram + twitter + youtube) / 3;
+      const totalLikes = dayAnalytics.reduce((sum, item) => sum + (item.likes || 0), 0);
+      const totalComments = dayAnalytics.reduce((sum, item) => sum + (item.comments || 0), 0);
+      const totalShares = dayAnalytics.reduce((sum, item) => sum + (item.shares || 0), 0);
+      const totalReach = dayAnalytics.reduce((sum, item) => sum + (item.reach || 0), 0);
 
       return {
         date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        instagram,
-        twitter,
-        youtube,
-        average
+        likes: totalLikes,
+        comments: totalComments,
+        shares: totalShares,
+        reach: totalReach
       };
     });
   };
