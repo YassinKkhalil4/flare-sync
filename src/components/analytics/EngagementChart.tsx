@@ -14,19 +14,32 @@ interface EngagementData {
 
 interface EngagementChartProps {
   data: EngagementData[];
-  timeRange: string;
+  timeframe: 'week' | 'month' | 'quarter';
 }
 
-export const EngagementChart: React.FC<EngagementChartProps> = ({ data, timeRange }) => {
+export const EngagementChart: React.FC<EngagementChartProps> = ({ data, timeframe }) => {
   const processedData = data.map(item => ({
     ...item,
     engagement_rate: item.reach > 0 ? ((item.likes + item.comments + item.shares) / item.reach) * 100 : 0
   }));
 
+  const getTimeframeLabel = (timeframe: string) => {
+    switch (timeframe) {
+      case 'week':
+        return 'Last Week';
+      case 'month':
+        return 'Last Month';
+      case 'quarter':
+        return 'Last Quarter';
+      default:
+        return timeframe;
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Engagement Metrics ({timeRange})</CardTitle>
+        <CardTitle>Engagement Metrics ({getTimeframeLabel(timeframe)})</CardTitle>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
