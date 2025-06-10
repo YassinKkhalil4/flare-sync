@@ -135,7 +135,6 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error publishing post:', error)
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { 

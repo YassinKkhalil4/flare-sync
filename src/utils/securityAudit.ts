@@ -7,25 +7,21 @@ export class SecurityAudit {
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {
-        console.error('Session check failed:', error);
         return false;
       }
       
       if (!session) {
-        console.warn('No active session found');
         return false;
       }
       
       // Check if session is expired
       const now = new Date().getTime() / 1000;
       if (session.expires_at && session.expires_at < now) {
-        console.warn('Session has expired');
         return false;
       }
       
       return true;
     } catch (error) {
-      console.error('Security audit failed:', error);
       return false;
     }
   }
@@ -75,12 +71,10 @@ export class SecurityAudit {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('Permission audit failed:', error);
         return false;
       }
 
       if (!userRoles || userRoles.length === 0) {
-        console.warn('No roles found for user');
         return false;
       }
 
@@ -90,7 +84,6 @@ export class SecurityAudit {
 
       return true;
     } catch (error) {
-      console.error('Permission audit error:', error);
       return false;
     }
   }
@@ -114,7 +107,6 @@ export class SecurityAudit {
       }
       
       if (count >= limit) {
-        console.warn(`Rate limit exceeded for action: ${action}`);
         return false;
       }
       
@@ -134,8 +126,6 @@ export class SecurityAudit {
       userAgent: navigator.userAgent,
       url: window.location.href
     };
-    
-    console.log('Security Event:', logEntry);
     
     // In production, send to security monitoring service
     // await sendToSecurityService(logEntry);

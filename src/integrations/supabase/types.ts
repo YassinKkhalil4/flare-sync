@@ -1362,12 +1362,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_plan_limit: {
         Args: { resource_name: string }
         Returns: number
       }
       has_role: {
         Args: { required_role: string }
+        Returns: boolean
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       user_has_feature_access: {

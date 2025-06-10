@@ -16,7 +16,6 @@ export const useUserRole = () => {
   useEffect(() => {
     const fetchUserRole = async () => {
       if (!user?.id) {
-        console.log('useUserRole: No user ID, resetting state');
         setUserRole(null);
         setIsAdmin(false);
         setAdminTier(null);
@@ -25,7 +24,6 @@ export const useUserRole = () => {
       }
 
       try {
-        console.log('useUserRole: Fetching role for user:', user.id);
         setIsLoading(true);
         setError(null);
 
@@ -35,10 +33,7 @@ export const useUserRole = () => {
           .select('role')
           .eq('user_id', user.id);
 
-        console.log('useUserRole: user_roles query result:', { roleData, roleError });
-
         if (roleError) {
-          console.error('useUserRole: Error fetching roles:', roleError);
           setError(roleError.message);
           
           // Fallback to creator role on error
@@ -59,7 +54,6 @@ export const useUserRole = () => {
           );
           
           if (adminRole) {
-            console.log('useUserRole: Found admin role:', adminRole.role);
             setUserRole(adminRole.role as UserRole);
             setIsAdmin(true);
             
@@ -76,7 +70,6 @@ export const useUserRole = () => {
           
           // If no admin role, use the first regular role
           const regularRole = roleData[0].role as UserRole;
-          console.log('useUserRole: Found regular role:', regularRole);
           setUserRole(regularRole);
           setIsAdmin(false);
           setAdminTier(null);
@@ -85,14 +78,11 @@ export const useUserRole = () => {
         }
 
         // No roles found in user_roles table - fallback to profiles table
-        console.log('useUserRole: No roles in user_roles, checking profiles table');
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', user.id)
           .maybeSingle();
-
-        console.log('useUserRole: profiles query result:', { profileData, profileError });
 
         if (profileData && profileData.role) {
           const role = profileData.role as UserRole;
@@ -101,14 +91,12 @@ export const useUserRole = () => {
           setAdminTier(null);
         } else {
           // Default to creator
-          console.log('useUserRole: No role found anywhere, defaulting to creator');
           setUserRole('creator');
           setIsAdmin(false);
           setAdminTier(null);
         }
 
       } catch (err) {
-        console.error('useUserRole: Error fetching user role:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch user role');
         setUserRole('creator');
         setIsAdmin(false);

@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 
@@ -12,16 +13,14 @@ export const persistSession = (session: any) => {
   if (session) {
     try {
       localStorage.setItem('supabase_session', JSON.stringify(session));
-      console.log("Session persisted to localStorage");
     } catch (error) {
-      console.error("Error persisting session:", error);
+      // Silent error handling
     }
   } else {
     try {
       localStorage.removeItem('supabase_session');
-      console.log("Session removed from localStorage");
     } catch (error) {
-      console.error("Error removing session:", error);
+      // Silent error handling
     }
   }
 };
@@ -32,10 +31,8 @@ export const getPersistedSession = () => {
     if (!sessionStr) return null;
     
     const session = JSON.parse(sessionStr);
-    console.log("Retrieved persisted session from localStorage");
     return session;
   } catch (error) {
-    console.error("Error retrieving persisted session:", error);
     return null;
   }
 };

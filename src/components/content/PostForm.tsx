@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -98,7 +99,6 @@ const PostForm: React.FC<PostFormProps> = ({ onSubmit, onCancel, initialValues, 
         description: 'Post saved successfully!',
       });
     } catch (error: any) {
-      console.error("Error saving post:", error);
       toast({
         title: 'Error',
         description: error?.message || 'Failed to save post. Please try again.',
@@ -116,7 +116,6 @@ const PostForm: React.FC<PostFormProps> = ({ onSubmit, onCancel, initialValues, 
       });
       navigate('/content');
     } catch (error: any) {
-      console.error("Error scheduling post:", error);
       toast({
         title: 'Error',
         description: error?.message || 'Failed to schedule post. Please try again.',
