@@ -1,0 +1,34 @@
+
+version: '3.8'
+
+services:
+  flaresync-app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+  # Optional: Add monitoring
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:0.10.0
+    command:
+      - '-nginx.scrape-uri=http://flaresync-app/nginx_status'
+    ports:
+      - "9113:9113"
+    depends_on:
+      - flaresync-app
+    restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge

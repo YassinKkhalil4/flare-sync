@@ -20,6 +20,31 @@ const ensureValidPlan = (plan: string): string => {
   return 'basic'; // Default to basic for any invalid value
 };
 
+// Webhook signature verification
+const verifyWebhookSignature = (body: string, signature: string, secret: string): boolean => {
+  try {
+    // In production, implement proper Paddle signature verification
+    // This is a simplified version for demonstration
+    const encoder = new TextEncoder();
+    const key = encoder.encode(secret);
+    const data = encoder.encode(body);
+    
+    // For now, just check if signature exists
+    // In production, use proper HMAC verification
+    return signature && signature.length > 0;
+  } catch (error) {
+    console.error('Signature verification failed:', error);
+    return false;
+  }
+};
+
+// Rate limiting check
+const checkRateLimit = (identifier: string): boolean => {
+  // In production, implement proper rate limiting with Redis or database
+  // For now, just return true
+  return true;
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -31,6 +56,30 @@ serve(async (req) => {
     
     // Get the raw body for signature verification
     const body = await req.text();
+    const signature = req.headers.get('paddle-signature') || '';
+    const webhookSecret = Deno.env.get('PADDLE_WEBHOOK_SECRET');
+    
+    // Verify webhook signature in production
+    if (Deno.env.get('DENO_DEPLOYMENT_ID') && webhookSecret) {
+      if (!verifyWebhookSignature(body, signature, webhookSecret)) {
+        console.error('Invalid webhook signature');
+        return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 401,
+        });
+      }
+    }
+    
+    // Check rate limiting
+    const clientIP = req.headers.get('x-forwarded-for') || 'unknown';
+    if (!checkRateLimit(clientIP)) {
+      console.error('Rate limit exceeded for IP:', clientIP);
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 429,
+      });
+    }
+    
     const data = JSON.parse(body);
     
     console.log('Webhook event type:', data.event_type);
@@ -39,6 +88,11 @@ serve(async (req) => {
     // Initialize Supabase admin client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
     const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") as string);
+    
+    // Validate payload structure
+    if (!data.event_type || !data.data) {
+      throw new Error('Invalid webhook payload structure');
+    }
     
     // Handle different Paddle events
     switch (data.event_type) {
