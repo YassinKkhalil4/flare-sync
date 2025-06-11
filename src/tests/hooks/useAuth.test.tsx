@@ -31,7 +31,10 @@ describe('useAuth', () => {
   it('should provide authentication context', async () => {
     const mockSession = {
       user: { id: '123', email: 'test@example.com' },
-      access_token: 'token'
+      access_token: 'token',
+      refresh_token: 'refresh_token',
+      expires_in: 3600,
+      token_type: 'bearer'
     };
 
     vi.mocked(supabase.auth.getSession).mockResolvedValue({
