@@ -1,11 +1,9 @@
-
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import RealPostList from '@/components/content/RealPostList';
 import { useRealContent } from '@/hooks/useRealContent';
-import { ContentPost } from '@/types/content';
 import { useNavigate } from 'react-router-dom';
 
 const ContentPage: React.FC = () => {
@@ -16,12 +14,12 @@ const ContentPage: React.FC = () => {
     navigate('/content/create');
   };
 
-  const handleEditPost = (post: ContentPost) => {
-    navigate(`/content/edit/${post.id}`);
+  const handleEditPost = (postId: string) => {
+    navigate(`/content/edit/${postId}`);
   };
 
-  const handleViewAnalytics = (post: ContentPost) => {
-    navigate(`/analytics/post/${post.id}`);
+  const handleViewAnalytics = (postId: string) => {
+    navigate(`/analytics/post/${postId}`);
   };
 
   if (isLoadingPosts || isLoadingScheduled) {

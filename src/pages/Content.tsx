@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRealContent } from '@/hooks/useRealContent';
@@ -17,12 +16,12 @@ const Content: React.FC = () => {
     navigate('/content/create');
   };
 
-  const handleEditPost = (post: ContentPost) => {
-    navigate(`/content/edit/${post.id}`);
+  const handleEditPost = (postId: string) => {
+    navigate(`/content/edit/${postId}`);
   };
 
-  const handleViewAnalytics = (post: ContentPost) => {
-    navigate(`/analytics/post/${post.id}`);
+  const handleViewAnalytics = (postId: string) => {
+    navigate(`/analytics/post/${postId}`);
   };
 
   if (isLoadingPosts || isLoadingScheduled) {
