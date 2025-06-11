@@ -116,7 +116,7 @@ export const useAnalytics = () => {
         return {
           id: post.id,
           title: post.title,
-          type: 'photo' as const, // Default type
+          type: 'photo' as const,
           platform: post.platform,
           publishedAt: post.published_at || post.created_at,
           likes,
@@ -124,7 +124,7 @@ export const useAnalytics = () => {
           shares,
           reach,
           engagementRate,
-          hashtags: [], // Extract from content if needed
+          hashtags: [],
           performance
         };
       });
@@ -134,7 +134,6 @@ export const useAnalytics = () => {
         const date = new Date();
         date.setDate(date.getDate() - (29 - i));
         
-        // Find posts from this date
         const dayPosts = contentPosts?.filter(post => {
           const postDate = new Date(post.published_at || post.created_at);
           return postDate.toDateString() === date.toDateString();
@@ -156,23 +155,66 @@ export const useAnalytics = () => {
         };
       });
 
-      // Generate hashtags analysis (placeholder for now)
-      const topHashtags = [
-        { tag: 'socialmedia', usage: 45, performance: 6.8 },
-        { tag: 'marketing', usage: 38, performance: 5.2 },
-        { tag: 'content', usage: 52, performance: 4.9 },
-        { tag: 'engagement', usage: 29, performance: 7.1 },
-        { tag: 'digital', usage: 33, performance: 3.8 }
-      ];
+      // Calculate real hashtag performance from posts
+      const hashtagMap = new Map();
+      contentPosts?.forEach(post => {
+        const content = post.body || '';
+        const hashtags = content.match(/#\w+/g) || [];
+        const metrics = post.metrics as any || {};
+        const engagement = (metrics.likes || 0) + (metrics.comments || 0) + (metrics.shares || 0);
+        
+        hashtags.forEach(tag => {
+          const cleanTag = tag.slice(1); // Remove #
+          if (hashtagMap.has(cleanTag)) {
+            const existing = hashtagMap.get(cleanTag);
+            existing.usage += 1;
+            existing.totalEngagement += engagement;
+          } else {
+            hashtagMap.set(cleanTag, { usage: 1, totalEngagement: engagement });
+          }
+        });
+      });
 
-      // Generate best posting times (placeholder for now)
-      const bestTimes = [
-        { time: '9:00 AM', day: 'Monday', score: 85 },
-        { time: '2:00 PM', day: 'Wednesday', score: 92 },
-        { time: '6:00 PM', day: 'Friday', score: 78 },
-        { time: '11:00 AM', day: 'Saturday', score: 88 },
-        { time: '8:00 PM', day: 'Sunday', score: 73 }
-      ];
+      const topHashtags = Array.from(hashtagMap.entries())
+        .map(([tag, data]) => ({
+          tag,
+          usage: data.usage,
+          performance: data.usage > 0 ? Math.round((data.totalEngagement / data.usage) / 10) : 0
+        }))
+        .sort((a, b) => b.usage - a.usage)
+        .slice(0, 5);
+
+      // Calculate best posting times from real data
+      const timeMap = new Map();
+      contentPosts?.forEach(post => {
+        if (post.published_at) {
+          const date = new Date(post.published_at);
+          const hour = date.getHours();
+          const day = date.toLocaleDateString('en-US', { weekday: 'long' });
+          const timeSlot = `${hour}:00`;
+          const key = `${day}-${timeSlot}`;
+          
+          const metrics = post.metrics as any || {};
+          const engagement = (metrics.likes || 0) + (metrics.comments || 0) + (metrics.shares || 0);
+          
+          if (timeMap.has(key)) {
+            const existing = timeMap.get(key);
+            existing.count += 1;
+            existing.totalEngagement += engagement;
+          } else {
+            timeMap.set(key, { day, time: timeSlot, count: 1, totalEngagement: engagement });
+          }
+        }
+      });
+
+      const bestTimes = Array.from(timeMap.values())
+        .map(data => ({
+          time: data.time,
+          day: data.day,
+          score: data.count > 0 ? Math.round((data.totalEngagement / data.count) / 10) : 0
+        }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5);
 
       setAnalyticsData({
         engagement,

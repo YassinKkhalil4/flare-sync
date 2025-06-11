@@ -12,9 +12,6 @@ import PaymentHistoryWidget from '@/components/Dashboard/PaymentHistoryWidget';
 import NotificationsWidget from '@/components/Dashboard/NotificationsWidget';
 import { Loader2, Users, Calendar, BarChart3, Clock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { scheduledPostService } from '@/services/scheduledPostService';
-import { dealsService } from '@/services/dealsService';
-import { SocialAPI } from '@/services/socialService'; 
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -35,49 +32,72 @@ const Dashboard = () => {
       
       setIsLoadingStats(true);
       try {
-        // Fetch scheduled posts
-        let postsCount = 0;
-        try {
-          const posts = await scheduledPostService.getScheduledPosts(user.id);
-          postsCount = posts.filter(post => post.status === 'scheduled').length;
-        } catch (err) {
-          console.error('Error fetching posts:', err);
-          postsCount = Math.floor(Math.random() * 5) + 3; // Fallback to mock data
+        // Fetch real scheduled posts count
+        const { data: scheduledPosts, error: postsError } = await supabase
+          .from('scheduled_posts')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('status', 'scheduled');
+
+        if (postsError) {
+          console.error('Error fetching scheduled posts:', postsError);
         }
-        
-        // Fetch connected social accounts
-        let socialProfiles = [];
-        try {
-          socialProfiles = await SocialAPI.getProfiles();
-        } catch (err) {
-          console.error('Error fetching social profiles:', err);
+
+        // Fetch real connected social accounts
+        const { data: socialProfiles, error: profilesError } = await supabase
+          .from('social_profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('connected', true);
+
+        if (profilesError) {
+          console.error('Error fetching social profiles:', profilesError);
         }
-        const connectedAccounts = socialProfiles.filter(profile => profile.connected).length;
-        
-        // Fetch pending deals
-        let deals = [];
-        try {
-          deals = await dealsService.getDeals();
-        } catch (err) {
-          console.error('Error fetching deals:', err);
+
+        // Fetch real content posts for engagement calculation
+        const { data: contentPosts, error: contentError } = await supabase
+          .from('content_posts')
+          .select('metrics')
+          .eq('user_id', user.id);
+
+        if (contentError) {
+          console.error('Error fetching content posts:', contentError);
         }
-        const pendingDeals = deals.filter(deal => deal.status === 'pending').length;
-        
-        // Set the dashboard stats
+
+        // Calculate total engagement from real data
+        let totalEngagement = 0;
+        if (contentPosts) {
+          totalEngagement = contentPosts.reduce((sum, post) => {
+            const metrics = post.metrics as any || {};
+            return sum + (metrics.likes || 0) + (metrics.comments || 0) + (metrics.shares || 0);
+          }, 0);
+        }
+
+        // Fetch real pending deals
+        const { data: deals, error: dealsError } = await supabase
+          .from('brand_deals')
+          .select('id')
+          .eq('creator_id', user.id)
+          .eq('status', 'pending');
+
+        if (dealsError) {
+          console.error('Error fetching deals:', dealsError);
+        }
+
         setStats({
-          scheduledPosts: postsCount || Math.floor(Math.random() * 5) + 3,
-          socialAccounts: connectedAccounts || Math.floor(Math.random() * 3) + 1,
-          totalEngagement: Math.floor(Math.random() * 10000) + 5000, // Mock engagement data
-          pendingDeals: pendingDeals || Math.floor(Math.random() * 3) + 1,
+          scheduledPosts: scheduledPosts?.length || 0,
+          socialAccounts: socialProfiles?.length || 0,
+          totalEngagement: totalEngagement,
+          pendingDeals: deals?.length || 0,
         });
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
-        // Use fallback mock data if real data fetch fails
+        // Set all stats to 0 on error
         setStats({
-          scheduledPosts: Math.floor(Math.random() * 5) + 3,
-          socialAccounts: Math.floor(Math.random() * 3) + 1,
-          totalEngagement: Math.floor(Math.random() * 10000) + 5000,
-          pendingDeals: Math.floor(Math.random() * 3) + 1,
+          scheduledPosts: 0,
+          socialAccounts: 0,
+          totalEngagement: 0,
+          pendingDeals: 0,
         });
       } finally {
         setIsLoadingStats(false);
