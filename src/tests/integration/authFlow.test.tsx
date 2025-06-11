@@ -1,5 +1,7 @@
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render } from '@testing-library/react';
+import { screen } from '@testing-library/dom';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import Login from '@/pages/Login';
@@ -42,16 +44,15 @@ describe('Authentication Flow', () => {
   });
 
   it('should validate email format', async () => {
+    const user = userEvent.setup();
     renderWithProviders(<Login />);
     
     const emailInput = screen.getByLabelText(/email/i);
     const submitButton = screen.getByRole('button', { name: /sign in/i });
     
-    fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
-    fireEvent.click(submitButton);
+    await user.type(emailInput, 'invalid-email');
+    await user.click(submitButton);
     
-    await waitFor(() => {
-      expect(screen.getByText(/invalid email/i)).toBeInTheDocument();
-    });
+    expect(await screen.findByText(/invalid email/i)).toBeInTheDocument();
   });
 });

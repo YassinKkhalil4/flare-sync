@@ -1,5 +1,5 @@
 
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,10 +41,8 @@ describe('useAuth', () => {
 
     const { result } = renderHook(() => useAuth());
 
-    await waitFor(() => {
-      expect(result.current).toBeDefined();
-      expect(typeof result.current.signIn).toBe('function');
-      expect(typeof result.current.signOut).toBe('function');
-    });
+    expect(result.current).toBeDefined();
+    expect(typeof result.current.signIn).toBe('function');
+    expect(typeof result.current.signOut).toBe('function');
   });
 });

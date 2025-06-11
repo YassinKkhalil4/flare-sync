@@ -1,6 +1,8 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render } from '@testing-library/react';
+import { screen } from '@testing-library/dom';
+import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/context/AuthContext';
@@ -33,19 +35,16 @@ describe('User Journey E2E Tests', () => {
   it('should render landing page for unauthenticated users', async () => {
     renderApp();
     
-    await waitFor(() => {
-      expect(screen.getByText(/FlareSync/i)).toBeInTheDocument();
-    });
+    expect(await screen.findByText(/FlareSync/i)).toBeInTheDocument();
   });
 
   it('should navigate to login page', async () => {
+    const user = userEvent.setup();
     renderApp();
     
     const loginButton = await screen.findByText(/sign in/i);
-    fireEvent.click(loginButton);
+    await user.click(loginButton);
     
-    await waitFor(() => {
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    });
+    expect(await screen.findByLabelText(/email/i)).toBeInTheDocument();
   });
 });
