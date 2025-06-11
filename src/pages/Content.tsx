@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRealContent } from '@/hooks/useRealContent';
@@ -5,8 +6,7 @@ import RealPostList from '@/components/content/RealPostList';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Calendar, BarChart3, Clock, FileText } from 'lucide-react';
-import { ContentPost } from '@/types/content';
+import { Plus, Calendar, BarChart3, Clock, FileText, Media, Settings } from 'lucide-react';
 
 const Content: React.FC = () => {
   const navigate = useNavigate();
@@ -63,9 +63,7 @@ const Content: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalPosts}</div>
-            <p className="text-xs text-muted-foreground">
-              All content pieces
-            </p>
+            <p className="text-xs text-muted-foreground">All content pieces</p>
           </CardContent>
         </Card>
         
@@ -76,9 +74,7 @@ const Content: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{stats.published}</div>
-            <p className="text-xs text-muted-foreground">
-              Live on platforms
-            </p>
+            <p className="text-xs text-muted-foreground">Live on platforms</p>
           </CardContent>
         </Card>
         
@@ -89,9 +85,7 @@ const Content: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{stats.scheduled}</div>
-            <p className="text-xs text-muted-foreground">
-              Queued for publishing
-            </p>
+            <p className="text-xs text-muted-foreground">Queued for publishing</p>
           </CardContent>
         </Card>
         
@@ -102,9 +96,7 @@ const Content: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">{stats.drafts}</div>
-            <p className="text-xs text-muted-foreground">
-              Work in progress
-            </p>
+            <p className="text-xs text-muted-foreground">Work in progress</p>
           </CardContent>
         </Card>
       </div>
@@ -115,7 +107,7 @@ const Content: React.FC = () => {
           <CardTitle>Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <Button 
               variant="outline" 
               onClick={() => navigate('/content/calendar')}
@@ -142,11 +134,19 @@ const Content: React.FC = () => {
             </Button>
             <Button 
               variant="outline" 
-              onClick={() => navigate('/engagement-predictor')}
+              onClick={() => navigate('/media-manager')}
               className="h-20 flex flex-col gap-2"
             >
-              <BarChart3 className="h-6 w-6" />
-              <span>Analytics</span>
+              <Media className="h-6 w-6" />
+              <span>Media Manager</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/social-connect')}
+              className="h-20 flex flex-col gap-2"
+            >
+              <Settings className="h-6 w-6" />
+              <span>Social Accounts</span>
             </Button>
           </div>
         </CardContent>
