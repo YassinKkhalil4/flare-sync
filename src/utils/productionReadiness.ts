@@ -139,18 +139,7 @@ export class ProductionReadiness {
   static enablePerformanceMonitoring() {
     if (!isProduction() || !deploymentConfig.enableAnalytics) return;
     
-    // Monitor Core Web Vitals
-    if ('web-vital' in window) {
-      import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
-        getCLS(console.log);
-        getFID(console.log);
-        getFCP(console.log);
-        getLCP(console.log);
-        getTTFB(console.log);
-      });
-    }
-    
-    // Monitor resource loading
+    // Monitor resource loading without web-vitals dependency
     const observer = new PerformanceObserver((list) => {
       list.getEntries().forEach((entry) => {
         if (entry.duration > 1000) { // Resources taking longer than 1s
