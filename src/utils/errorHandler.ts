@@ -1,3 +1,4 @@
+
 interface ErrorLogEntry {
   error: Error;
   context: string;
@@ -85,3 +86,19 @@ class ErrorHandler {
 }
 
 export const errorHandler = new ErrorHandler();
+
+// New apiCall function for enhanced services
+export async function apiCall<T>(
+  operation: () => Promise<T>,
+  context: string,
+  userId?: string
+): Promise<{ data?: T; error?: string }> {
+  try {
+    const data = await operation();
+    return { data };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    errorHandler.logError(error as Error, context, userId);
+    return { error: errorMessage };
+  }
+}

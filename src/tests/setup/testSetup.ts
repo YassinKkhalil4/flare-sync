@@ -1,6 +1,7 @@
 
 import { beforeAll, afterAll, afterEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { testHelper } from '../utils/testHelpers';
 
 // Setup for all tests

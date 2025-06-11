@@ -19,7 +19,7 @@ export const initializeAppEnvironment = async () => {
       
       if (pingError) {
         console.warn("Supabase connection warning:", pingError);
-        errorHandler.logError(pingError.message, 'Supabase connection test');
+        errorHandler.logError(new Error(pingError.message), 'Supabase connection test');
         // Don't fail completely for connection issues
       } else {
         console.log("Supabase connection successful");
