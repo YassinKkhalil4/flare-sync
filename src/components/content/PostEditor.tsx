@@ -2,24 +2,52 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ArrowLeft, Save, Eye, Calendar as CalendarIcon, Clock, Media, Tags, Settings } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { ContentPost, SocialPlatform, ContentStatus } from '@/types/content';
-import { MediaManager } from '../media/MediaManager';
+import { MediaManager } from '@/components/media/MediaManager';
+import { 
+  Save, 
+  Send, 
+  Clock, 
+  Image, 
+  Video, 
+  Hash, 
+  Calendar as CalendarIcon, 
+  ArrowLeft,
+  FileText,
+  Settings
+} from 'lucide-react';
 import { format } from 'date-fns';
+import { realContentService } from '@/services/realContentService';
+import { useAuth } from '@/context/AuthContext';
+
+type ContentStatus = 'draft' | 'scheduled' | 'published' | 'failed';
+
+interface PostFormData {
+  title: string;
+  content: string;
+  platform: string;
+  status: ContentStatus;
+  scheduled_for?: string;
+  tags: string[];
+  media_urls: string[];
+  metadata: {
+    caption?: string;
+    hashtags?: string[];
+    location?: string;
+    mentions?: string[];
+  };
+}
 
 export const PostEditor: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,305 +55,372 @@ export const PostEditor: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-  const [platform, setPlatform] = useState<SocialPlatform>('instagram');
-  const [status, setStatus] = useState<ContentStatus>('draft');
-  const [scheduledDate, setScheduledDate] = useState<Date | undefined>();
-  const [scheduledTime, setScheduledTime] = useState('');
-  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState('');
-  const [showMediaManager, setShowMediaManager] = useState(false);
-  const [activeTab, setActiveTab] = useState('content');
 
-  // Fetch post data
-  const { data: post, isLoading } = useQuery({
-    queryKey: ['content-post', id],
-    queryFn: async () => {
-      if (!id) return null;
-      const { data, error } = await supabase
-        .from('content_posts')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (error) throw error;
-      return data as ContentPost;
-    },
-    enabled: !!id
+  const [formData, setFormData] = useState<PostFormData>({
+    title: '',
+    content: '',
+    platform: 'instagram',
+    status: 'draft' as ContentStatus,
+    tags: [],
+    media_urls: [],
+    metadata: {}
   });
 
-  // Update form when post data loads
+  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedTime, setSelectedTime] = useState('12:00');
+  const [newTag, setNewTag] = useState('');
+
+  // Fetch existing post if editing
+  const { data: existingPost, isLoading } = useQuery({
+    queryKey: ['post', id],
+    queryFn: () => id ? realContentService.getPost(id) : null,
+    enabled: !!id && id !== 'new',
+  });
+
+  // Load existing post data
   useEffect(() => {
-    if (post) {
-      setTitle(post.title);
-      setBody(post.body || '');
-      setPlatform(post.platform as SocialPlatform);
-      setStatus(post.status as ContentStatus);
-      setMediaUrls(post.media_urls || []);
+    if (existingPost) {
+      setFormData({
+        title: existingPost.title || '',
+        content: existingPost.content || '',
+        platform: existingPost.platform || 'instagram',
+        status: (existingPost.status as ContentStatus) || 'draft',
+        scheduled_for: existingPost.scheduled_for,
+        tags: existingPost.tags || [],
+        media_urls: existingPost.media_urls || [],
+        metadata: existingPost.metadata || {}
+      });
       
-      if (post.scheduled_for) {
-        const scheduledDateTime = new Date(post.scheduled_for);
-        setScheduledDate(scheduledDateTime);
-        setScheduledTime(format(scheduledDateTime, 'HH:mm'));
+      if (existingPost.scheduled_for) {
+        const scheduledDate = new Date(existingPost.scheduled_for);
+        setSelectedDate(scheduledDate);
+        setSelectedTime(format(scheduledDate, 'HH:mm'));
       }
     }
-  }, [post]);
+  }, [existingPost]);
 
   // Save post mutation
   const savePostMutation = useMutation({
-    mutationFn: async (postData: Partial<ContentPost>) => {
-      if (!id || !user) throw new Error('Missing required data');
+    mutationFn: async (data: PostFormData) => {
+      if (!user?.id) throw new Error('User not authenticated');
       
-      const { error } = await supabase
-        .from('content_posts')
-        .update(postData)
-        .eq('id', id)
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
+      const postData = {
+        ...data,
+        user_id: user.id,
+        scheduled_for: selectedDate && formData.status === 'scheduled' 
+          ? new Date(`${format(selectedDate, 'yyyy-MM-dd')} ${selectedTime}`).toISOString()
+          : undefined
+      };
+
+      if (id && id !== 'new') {
+        return realContentService.updatePost(id, postData);
+      } else {
+        return realContentService.createPost(postData);
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['content-post', id] });
-      queryClient.invalidateQueries({ queryKey: ['content-posts'] });
       toast({
         title: 'Success',
-        description: 'Post updated successfully',
+        description: id && id !== 'new' ? 'Post updated successfully' : 'Post created successfully',
       });
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      navigate('/content');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: 'Error',
-        description: 'Failed to update post',
+        description: error.message || 'Failed to save post',
         variant: 'destructive',
       });
-      console.error('Error updating post:', error);
-    }
+    },
   });
 
-  const handleSave = () => {
-    let scheduledFor = null;
-    if (status === 'scheduled' && scheduledDate && scheduledTime) {
-      const [hours, minutes] = scheduledTime.split(':');
-      const scheduledDateTime = new Date(scheduledDate);
-      scheduledDateTime.setHours(parseInt(hours), parseInt(minutes));
-      scheduledFor = scheduledDateTime.toISOString();
-    }
-
-    const updateData: Partial<ContentPost> = {
-      title,
-      body,
-      platform,
-      status,
-      media_urls: mediaUrls,
-      scheduled_for: scheduledFor,
-      updated_at: new Date().toISOString(),
-    };
-
-    savePostMutation.mutate(updateData);
+  const handleInputChange = (field: keyof PostFormData, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  const handleMediaSelect = (files: any[]) => {
-    const urls = files.map(file => file.url);
-    setMediaUrls(prev => [...prev, ...urls]);
-    setShowMediaManager(false);
+  const handleMetadataChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      metadata: {
+        ...prev.metadata,
+        [field]: value
+      }
+    }));
   };
 
-  const removeMediaUrl = (urlToRemove: string) => {
-    setMediaUrls(prev => prev.filter(url => url !== urlToRemove));
-  };
-
-  const addTag = () => {
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags(prev => [...prev, newTag.trim()]);
+  const handleAddTag = () => {
+    if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
+      handleInputChange('tags', [...formData.tags, newTag.trim()]);
       setNewTag('');
     }
   };
 
-  const removeTag = (tagToRemove: string) => {
-    setTags(prev => prev.filter(tag => tag !== tagToRemove));
+  const handleRemoveTag = (tagToRemove: string) => {
+    handleInputChange('tags', formData.tags.filter(tag => tag !== tagToRemove));
   };
 
-  const handlePublishNow = () => {
-    const updateData: Partial<ContentPost> = {
-      title,
-      body,
-      platform,
-      status: 'published',
-      media_urls: mediaUrls,
-      published_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+  const handleSave = (status: ContentStatus) => {
+    handleInputChange('status', status);
+    savePostMutation.mutate({ ...formData, status });
+  };
 
-    savePostMutation.mutate(updateData);
+  const handleMediaSelect = (selectedMedia: any[]) => {
+    const mediaUrls = selectedMedia.map(media => media.url);
+    handleInputChange('media_urls', mediaUrls);
   };
 
   if (isLoading) {
-    return <div className="p-6">Loading post...</div>;
-  }
-
-  if (!post) {
-    return <div className="p-6">Post not found</div>;
+    return (
+      <div className="container mx-auto py-8">
+        <div className="text-center">Loading post...</div>
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto py-6 max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="container mx-auto py-8 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/content')}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/content')}
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Content
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Edit Post</h1>
-            <p className="text-muted-foreground">
-              Last updated: {format(new Date(post.updated_at), 'PPp')}
-            </p>
-          </div>
+          <h1 className="text-3xl font-bold">
+            {id && id !== 'new' ? 'Edit Post' : 'Create New Post'}
+          </h1>
         </div>
+        
         <div className="flex items-center gap-2">
-          <Badge variant={status === 'published' ? 'default' : 'secondary'}>
-            {status}
-          </Badge>
-          <Button onClick={handleSave} disabled={savePostMutation.isPending}>
+          <Button
+            variant="outline"
+            onClick={() => handleSave('draft')}
+            disabled={savePostMutation.isPending}
+          >
             <Save className="h-4 w-4 mr-2" />
-            {savePostMutation.isPending ? 'Saving...' : 'Save'}
+            Save Draft
           </Button>
-          {status === 'draft' && (
-            <Button onClick={handlePublishNow} disabled={savePostMutation.isPending}>
-              Publish Now
-            </Button>
-          )}
+          <Button
+            onClick={() => handleSave(selectedDate ? 'scheduled' : 'published')}
+            disabled={savePostMutation.isPending || !formData.title.trim() || !formData.content.trim()}
+          >
+            {selectedDate ? (
+              <>
+                <Clock className="h-4 w-4 mr-2" />
+                Schedule Post
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4 mr-2" />
+                Publish Now
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="content" className="flex items-center gap-2">
-            <Eye className="h-4 w-4" />
-            Content
-          </TabsTrigger>
-          <TabsTrigger value="media" className="flex items-center gap-2">
-            <Media className="h-4 w-4" />
-            Media
-          </TabsTrigger>
-          <TabsTrigger value="scheduling" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Scheduling
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Settings
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="content" className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Post Content</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Post Content
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="title">Title</Label>
                 <Input
                   id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  value={formData.title}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
                   placeholder="Enter post title..."
                 />
               </div>
               
               <div>
-                <Label htmlFor="body">Content</Label>
+                <Label htmlFor="content">Content</Label>
                 <Textarea
-                  id="body"
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  placeholder="What's on your mind?"
+                  id="content"
+                  value={formData.content}
+                  onChange={(e) => handleInputChange('content', e.target.value)}
+                  placeholder="Write your post content..."
                   rows={8}
                 />
               </div>
-              
-              <div>
-                <Label>Tags</Label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {tags.map((tag, index) => (
-                    <Badge key={index} variant="secondary" className="cursor-pointer" onClick={() => removeTag(tag)}>
-                      {tag} ×
-                    </Badge>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    placeholder="Add tag..."
-                    onKeyPress={(e) => e.key === 'Enter' && addTag()}
-                  />
-                  <Button onClick={addTag} variant="outline">
-                    <Tags className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="media" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Media Files ({mediaUrls.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Button
-                  onClick={() => setShowMediaManager(true)}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <Media className="h-4 w-4 mr-2" />
-                  Add Media Files
-                </Button>
-                
-                {mediaUrls.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {mediaUrls.map((url, index) => (
-                      <div key={index} className="relative group">
-                        <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                          <img
-                            src={url}
-                            alt={`Media ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => removeMediaUrl(url)}
-                        >
-                          ×
-                        </Button>
+          {/* Tabs for additional content */}
+          <Tabs defaultValue="media" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="media" className="flex items-center gap-2">
+                <Image className="h-4 w-4" />
+                Media
+              </TabsTrigger>
+              <TabsTrigger value="schedule" className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Schedule
+              </TabsTrigger>
+              <TabsTrigger value="tags" className="flex items-center gap-2">
+                <Hash className="h-4 w-4" />
+                Tags
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="media">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Media Files</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <MediaManager
+                    mode="select"
+                    onSelectMedia={handleMediaSelect}
+                    maxSelection={10}
+                    allowedTypes={['image/*', 'video/*']}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="schedule">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Schedule Post</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={!!selectedDate}
+                      onCheckedChange={(checked) => {
+                        if (!checked) {
+                          setSelectedDate(undefined);
+                        } else {
+                          setSelectedDate(new Date());
+                        }
+                      }}
+                    />
+                    <Label>Schedule for later</Label>
+                  </div>
+                  
+                  {selectedDate && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Date</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="w-full justify-start">
+                              <CalendarIcon className="h-4 w-4 mr-2" />
+                              {selectedDate ? format(selectedDate, 'PPP') : 'Pick a date'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={selectedDate}
+                              onSelect={setSelectedDate}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
+                      
+                      <div>
+                        <Label>Time</Label>
+                        <Input
+                          type="time"
+                          value={selectedTime}
+                          onChange={(e) => setSelectedTime(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="tags">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tags & Hashtags</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      value={newTag}
+                      onChange={(e) => setNewTag(e.target.value)}
+                      placeholder="Add a tag..."
+                      onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
+                    />
+                    <Button onClick={handleAddTag} variant="outline">
+                      Add
+                    </Button>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {formData.tags.map((tag, index) => (
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="cursor-pointer"
+                        onClick={() => handleRemoveTag(tag)}
+                      >
+                        #{tag} ×
+                      </Badge>
                     ))}
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
 
-        <TabsContent value="scheduling" className="space-y-6">
+        {/* Sidebar */}
+        <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Post Scheduling</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Post Settings
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
+                <Label>Platform</Label>
+                <Select
+                  value={formData.platform}
+                  onValueChange={(value) => handleInputChange('platform', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="instagram">Instagram</SelectItem>
+                    <SelectItem value="twitter">Twitter</SelectItem>
+                    <SelectItem value="facebook">Facebook</SelectItem>
+                    <SelectItem value="linkedin">LinkedIn</SelectItem>
+                    <SelectItem value="tiktok">TikTok</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
                 <Label>Status</Label>
-                <Select value={status} onValueChange={(value: ContentStatus) => setStatus(value)}>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: ContentStatus) => handleInputChange('status', value)}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -336,103 +431,39 @@ export const PostEditor: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
-              {status === 'scheduled' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Schedule Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-start text-left font-normal">
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {scheduledDate ? format(scheduledDate, 'PPP') : 'Pick a date'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={scheduledDate}
-                          onSelect={setScheduledDate}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="time">Schedule Time</Label>
-                    <Input
-                      id="time"
-                      type="time"
-                      value={scheduledTime}
-                      onChange={(e) => setScheduledTime(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="settings" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Post Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label>Platform</Label>
-                <Select value={platform} onValueChange={(value: SocialPlatform) => setPlatform(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="instagram">Instagram</SelectItem>
-                    <SelectItem value="twitter">Twitter</SelectItem>
-                    <SelectItem value="facebook">Facebook</SelectItem>
-                    <SelectItem value="tiktok">TikTok</SelectItem>
-                    <SelectItem value="youtube">YouTube</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Post Information</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Created:</span>
-                    <p>{format(new Date(post.created_at), 'PPp')}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Last Updated:</span>
-                    <p>{format(new Date(post.updated_at), 'PPp')}</p>
-                  </div>
-                  {post.published_at && (
-                    <div>
-                      <span className="text-muted-foreground">Published:</span>
-                      <p>{format(new Date(post.published_at), 'PPp')}</p>
+          {/* Media Preview */}
+          {formData.media_urls.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Selected Media</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-2">
+                  {formData.media_urls.slice(0, 4).map((url, index) => (
+                    <div key={index} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                      <img
+                        src={url}
+                        alt={`Media ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                  {formData.media_urls.length > 4 && (
+                    <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+                      <span className="text-sm text-gray-500">
+                        +{formData.media_urls.length - 4} more
+                      </span>
                     </div>
                   )}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Media Manager Dialog */}
-      <Dialog open={showMediaManager} onOpenChange={setShowMediaManager}>
-        <DialogContent className="max-w-6xl">
-          <DialogHeader>
-            <DialogTitle>Media Manager</DialogTitle>
-          </DialogHeader>
-          <MediaManager
-            mode="select"
-            maxSelection={5}
-            onSelectMedia={handleMediaSelect}
-          />
-        </DialogContent>
-      </Dialog>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

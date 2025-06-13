@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -7,7 +8,7 @@ import Content from '@/pages/Content';
 import ContentCreatePage from '@/pages/Content/ContentCreatePage';
 import { ContentEditPage } from '@/pages/Content/ContentEditPage';
 import SocialConnect from '@/pages/SocialConnect';
-import AnalyticsDashboard from '@/pages/AnalyticsDashboard';
+import AnalyticsDashboard from '@/pages/Analytics/AnalyticsDashboard';
 import SettingsPage from '@/pages/SettingsPage';
 import PricingPage from '@/pages/PricingPage';
 import HomePage from '@/pages/HomePage';

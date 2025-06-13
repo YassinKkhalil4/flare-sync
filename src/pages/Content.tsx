@@ -6,7 +6,7 @@ import RealPostList from '@/components/content/RealPostList';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Calendar, BarChart3, Clock, FileText, Media, Settings } from 'lucide-react';
+import { Plus, Calendar, BarChart3, Clock, FileText, Image, Settings } from 'lucide-react';
 
 const Content: React.FC = () => {
   const navigate = useNavigate();
@@ -137,7 +137,7 @@ const Content: React.FC = () => {
               onClick={() => navigate('/media-manager')}
               className="h-20 flex flex-col gap-2"
             >
-              <Media className="h-6 w-6" />
+              <Image className="h-6 w-6" />
               <span>Media Manager</span>
             </Button>
             <Button 
