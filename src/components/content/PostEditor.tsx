@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -28,7 +27,7 @@ import {
   Settings
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { realContentService } from '@/services/realContentService';
+import { RealContentService } from '@/services/realContentService';
 import { useAuth } from '@/context/AuthContext';
 
 type ContentStatus = 'draft' | 'scheduled' | 'published' | 'failed';
@@ -73,7 +72,7 @@ export const PostEditor: React.FC = () => {
   // Fetch existing post if editing
   const { data: existingPost, isLoading } = useQuery({
     queryKey: ['post', id],
-    queryFn: () => id ? realContentService.getPost(id) : null,
+    queryFn: () => id ? RealContentService.getPost(id) : null,
     enabled: !!id && id !== 'new',
   });
 
@@ -113,9 +112,9 @@ export const PostEditor: React.FC = () => {
       };
 
       if (id && id !== 'new') {
-        return realContentService.updatePost(id, postData);
+        return RealContentService.updatePost(id, postData);
       } else {
-        return realContentService.createPost(postData);
+        return RealContentService.createPost(postData);
       }
     },
     onSuccess: () => {

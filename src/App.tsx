@@ -9,14 +9,14 @@ import ContentCreatePage from '@/pages/Content/ContentCreatePage';
 import { ContentEditPage } from '@/pages/Content/ContentEditPage';
 import SocialConnect from '@/pages/SocialConnect';
 import AnalyticsDashboard from '@/pages/Analytics/AnalyticsDashboard';
-import SettingsPage from '@/pages/SettingsPage';
-import PricingPage from '@/pages/PricingPage';
-import HomePage from '@/pages/HomePage';
-import AccountPage from '@/pages/AccountPage';
-import { CaptionGenerator } from '@/pages/CaptionGenerator';
-import { EngagementPredictor } from '@/pages/EngagementPredictor';
+import Settings from '@/pages/Settings';
+import Plans from '@/pages/Plans';
+import Index from '@/pages/Index';
+import Dashboard from '@/pages/Dashboard';
+import { CaptionGenerator } from '@/pages/Content/CaptionGeneratorPage';
+import { EngagementPredictor } from '@/pages/Content/EngagementPredictorPage';
 import { ScheduledPosts } from '@/components/content/ScheduledPosts';
-import { ContentCalendar } from '@/pages/ContentCalendar';
+import { ContentCalendar } from '@/pages/Content/ContentCalendarPage';
 import PostDetail from '@/components/content/PostDetail';
 import { MediaManager } from '@/components/media/MediaManager';
 import { PostEditor } from '@/components/content/PostEditor';
@@ -28,10 +28,10 @@ function App() {
         <QueryClientProvider client={new QueryClient()}>
           <Toaster />
           <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/account" element={<AccountPage />} />
-            <Route path="/pricing" element={<PricingPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/plans" element={<Plans />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/social-connect" element={<SocialConnect />} />
             <Route path="/analytics" element={<AnalyticsDashboard />} />
             <Route path="/caption-generator" element={<CaptionGenerator />} />
