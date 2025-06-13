@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -38,9 +37,17 @@ const PostDetail: React.FC = () => {
         .single();
 
       if (error) throw error;
-      return data as ContentPost & {
+      
+      // Transform the data to include tags in the expected format
+      const transformedData = {
+        ...data,
+        tags: data.content_post_tags?.map((item: any) => item.content_tags) || []
+      } as ContentPost & {
         content_post_tags?: { content_tags: { id: string; name: string } }[];
+        tags: { id: string; name: string }[];
       };
+
+      return transformedData;
     },
     enabled: !!id,
   });
@@ -125,7 +132,7 @@ const PostDetail: React.FC = () => {
     );
   }
 
-  const tags = post.content_post_tags?.map(item => item.content_tags) || [];
+  const tags = post.tags || [];
 
   return (
     <div className="container mx-auto py-8 space-y-6">

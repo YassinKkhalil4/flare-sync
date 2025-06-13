@@ -6,30 +6,10 @@ import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Bell, CheckCircle, X, Trash2 } from 'lucide-react';
+import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Bell, 
-  BellOff, 
-  Check, 
-  Trash2, 
-  Loader2, 
-  DollarSign, 
-  MessageCircle, 
-  UserPlus,
-  Calendar
-} from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-
-interface Notification {
-  id: string;
-  user_id: string;
-  type: 'deal_offer' | 'deal_accepted' | 'deal_rejected' | 'message' | 'payment' | 'system';
-  title: string;
-  message: string;
-  read: boolean;
-  data?: any;
-  created_at: string;
-}
+import { Notification } from '@/types/database';
 
 export const NotificationCenter: React.FC = () => {
   const { user } = useAuth();
@@ -40,13 +20,12 @@ export const NotificationCenter: React.FC = () => {
     queryKey: ['notifications', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      
+
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as Notification[];
@@ -58,31 +37,19 @@ export const NotificationCenter: React.FC = () => {
     mutationFn: async (notificationId: string) => {
       const { error } = await supabase
         .from('notifications')
-        .update({ read: true })
-        .eq('id', notificationId)
-        .eq('user_id', user?.id);
+        .update({ is_read: true })
+        .eq('id', notificationId);
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
-  });
-
-  const markAllAsReadMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('user_id', user?.id)
-        .eq('read', false);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    onError: () => {
       toast({
-        title: 'All notifications marked as read',
+        title: 'Error',
+        description: 'Failed to mark notification as read',
+        variant: 'destructive',
       });
     },
   });
@@ -92,8 +59,7 @@ export const NotificationCenter: React.FC = () => {
       const { error } = await supabase
         .from('notifications')
         .delete()
-        .eq('id', notificationId)
-        .eq('user_id', user?.id);
+        .eq('id', notificationId);
 
       if (error) throw error;
     },
@@ -101,67 +67,72 @@ export const NotificationCenter: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast({
         title: 'Notification deleted',
+        description: 'The notification has been removed',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete notification',
+        variant: 'destructive',
       });
     },
   });
 
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'deal_offer':
-      case 'deal_accepted':
-      case 'deal_rejected':
-        return DollarSign;
-      case 'message':
-        return MessageCircle;
-      case 'payment':
-        return DollarSign;
-      case 'system':
-        return Bell;
-      default:
-        return Bell;
-    }
-  };
+  const markAllAsReadMutation = useMutation({
+    mutationFn: async () => {
+      if (!user?.id) return;
+      
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
 
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case 'deal_offer':
-        return 'bg-blue-100 text-blue-800';
-      case 'deal_accepted':
-        return 'bg-green-100 text-green-800';
-      case 'deal_rejected':
-        return 'bg-red-100 text-red-800';
-      case 'message':
-        return 'bg-purple-100 text-purple-800';
-      case 'payment':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast({
+        title: 'All notifications marked as read',
+        description: 'Your notification center has been cleared',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to mark all notifications as read',
+        variant: 'destructive',
+      });
+    },
+  });
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading notifications...</span>
+      <div className="space-y-4">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <h2 className="text-2xl font-bold">Notifications</h2>
           {unreadCount > 0 && (
-            <Badge variant="secondary">
-              {unreadCount} unread
-            </Badge>
+            <Badge variant="secondary">{unreadCount} unread</Badge>
           )}
         </div>
-        
         {unreadCount > 0 && (
           <Button
             variant="outline"
@@ -169,11 +140,7 @@ export const NotificationCenter: React.FC = () => {
             onClick={() => markAllAsReadMutation.mutate()}
             disabled={markAllAsReadMutation.isPending}
           >
-            {markAllAsReadMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <Check className="h-4 w-4 mr-2" />
-            )}
+            <CheckCircle className="h-4 w-4 mr-2" />
             Mark all as read
           </Button>
         )}
@@ -181,71 +148,77 @@ export const NotificationCenter: React.FC = () => {
 
       {notifications.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center">
-            <BellOff className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">No notifications yet</h3>
+          <CardContent className="p-8 text-center">
+            <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">No notifications</h3>
             <p className="text-muted-foreground">
-              You'll see notifications here when there's activity on your account.
+              You're all caught up! Notifications will appear here when you have new activity.
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {notifications.map((notification) => {
-            const Icon = getNotificationIcon(notification.type);
-            
-            return (
-              <Card 
-                key={notification.id} 
-                className={`transition-all hover:shadow-md ${
-                  !notification.read ? 'border-l-4 border-l-primary bg-muted/30' : ''
-                }`}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-full ${getNotificationColor(notification.type)}`}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className="font-medium text-sm">{notification.title}</h4>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
-                          </span>
-                          
-                          {!notification.read && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => markAsReadMutation.mutate(notification.id)}
-                              disabled={markAsReadMutation.isPending}
-                            >
-                              <Check className="h-3 w-3" />
-                            </Button>
+        <div className="space-y-2">
+          {notifications.map((notification) => (
+            <Card
+              key={notification.id}
+              className={`transition-all ${
+                !notification.is_read
+                  ? 'border-blue-200 bg-blue-50/50'
+                  : 'hover:shadow-sm'
+              }`}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-start gap-3">
+                      {notification.image_url && (
+                        <img
+                          src={notification.image_url}
+                          alt=""
+                          className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium text-sm">{notification.title}</h4>
+                          {!notification.is_read && (
+                            <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
                           )}
-                          
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteNotificationMutation.mutate(notification.id)}
-                            disabled={deleteNotificationMutation.isPending}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
                         </div>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {notification.message}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(notification.created_at), 'MMM d, yyyy h:mm a')}
+                        </p>
                       </div>
-                      
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {notification.message}
-                      </p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                  
+                  <div className="flex items-center gap-1 ml-2">
+                    {!notification.is_read && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => markAsReadMutation.mutate(notification.id)}
+                        disabled={markAsReadMutation.isPending}
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteNotificationMutation.mutate(notification.id)}
+                      disabled={deleteNotificationMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
     </div>

@@ -46,6 +46,9 @@ export interface ContentPost {
   metrics: any | null;
   created_at: string;
   updated_at: string;
+  platform_post_id: string | null;
+  reviewer_id: string | null;
+  reviewer_notes: string | null;
   tags?: ContentTag[];
 }
 

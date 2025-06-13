@@ -102,6 +102,57 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_deals: {
+        Row: {
+          brand_id: string
+          brand_logo: string | null
+          brand_name: string
+          budget: number
+          created_at: string
+          creator_id: string
+          deadline: string | null
+          deliverables: string[] | null
+          description: string | null
+          id: string
+          requirements: string[] | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          brand_id: string
+          brand_logo?: string | null
+          brand_name: string
+          budget: number
+          created_at?: string
+          creator_id: string
+          deadline?: string | null
+          deliverables?: string[] | null
+          description?: string | null
+          id?: string
+          requirements?: string[] | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          brand_id?: string
+          brand_logo?: string | null
+          brand_name?: string
+          budget?: number
+          created_at?: string
+          creator_id?: string
+          deadline?: string | null
+          deliverables?: string[] | null
+          description?: string | null
+          id?: string
+          requirements?: string[] | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       content_approval_flows: {
         Row: {
           created_at: string | null
@@ -210,8 +261,10 @@ export type Database = {
           created_at: string | null
           id: string
           media_urls: string[] | null
+          metrics: Json | null
           platform: string
           platform_post_id: string | null
+          published_at: string | null
           reviewer_id: string | null
           reviewer_notes: string | null
           scheduled_for: string | null
@@ -225,8 +278,10 @@ export type Database = {
           created_at?: string | null
           id?: string
           media_urls?: string[] | null
+          metrics?: Json | null
           platform: string
           platform_post_id?: string | null
+          published_at?: string | null
           reviewer_id?: string | null
           reviewer_notes?: string | null
           scheduled_for?: string | null
@@ -240,8 +295,10 @@ export type Database = {
           created_at?: string | null
           id?: string
           media_urls?: string[] | null
+          metrics?: Json | null
           platform?: string
           platform_post_id?: string | null
+          published_at?: string | null
           reviewer_id?: string | null
           reviewer_notes?: string | null
           scheduled_for?: string | null
@@ -585,27 +642,48 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string | null
+          email: string | null
           full_name: string | null
           id: string
+          location: string | null
+          onboarded: boolean | null
+          plan: string | null
+          role: string | null
           updated_at: string | null
           username: string | null
+          website: string | null
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string | null
+          email?: string | null
           full_name?: string | null
           id: string
+          location?: string | null
+          onboarded?: boolean | null
+          plan?: string | null
+          role?: string | null
           updated_at?: string | null
           username?: string | null
+          website?: string | null
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string | null
+          email?: string | null
           full_name?: string | null
           id?: string
+          location?: string | null
+          onboarded?: boolean | null
+          plan?: string | null
+          role?: string | null
           updated_at?: string | null
           username?: string | null
+          website?: string | null
         }
         Relationships: []
       }
