@@ -532,6 +532,56 @@ export type Database = {
           },
         ]
       }
+      post_analytics: {
+        Row: {
+          comments: number | null
+          created_at: string
+          engagement_rate: number | null
+          id: string
+          impressions: number | null
+          likes: number | null
+          post_id: string | null
+          reach: number | null
+          shares: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comments?: number | null
+          created_at?: string
+          engagement_rate?: number | null
+          id?: string
+          impressions?: number | null
+          likes?: number | null
+          post_id?: string | null
+          reach?: number | null
+          shares?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comments?: number | null
+          created_at?: string
+          engagement_rate?: number | null
+          id?: string
+          impressions?: number | null
+          likes?: number | null
+          post_id?: string | null
+          reach?: number | null
+          shares?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_analytics_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "content_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -563,10 +613,13 @@ export type Database = {
         Row: {
           content: string
           created_at: string | null
+          error_message: string | null
           id: string
           media_urls: string[] | null
+          metadata: Json | null
           platform: string
           platform_post_id: string | null
+          post_id: string | null
           published_at: string | null
           scheduled_for: string
           social_profile_id: string | null
@@ -577,10 +630,13 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string | null
+          error_message?: string | null
           id?: string
           media_urls?: string[] | null
+          metadata?: Json | null
           platform: string
           platform_post_id?: string | null
+          post_id?: string | null
           published_at?: string | null
           scheduled_for: string
           social_profile_id?: string | null
@@ -591,10 +647,13 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string | null
+          error_message?: string | null
           id?: string
           media_urls?: string[] | null
+          metadata?: Json | null
           platform?: string
           platform_post_id?: string | null
+          post_id?: string | null
           published_at?: string | null
           scheduled_for?: string
           social_profile_id?: string | null
@@ -603,6 +662,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "scheduled_posts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "content_posts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "scheduled_posts_social_profile_id_fkey"
             columns: ["social_profile_id"]

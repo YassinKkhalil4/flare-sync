@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,7 +13,7 @@ export const AnalyticsDashboard: React.FC = () => {
   const [timeRange, setTimeRange] = useState('7d');
 
   const { data: analytics, isLoading } = useQuery({
-    queryKey: ['analytics', user?.id, timeRange],
+    queryKey: ['post-analytics', user?.id, timeRange],
     queryFn: async () => {
       if (!user?.id) return null;
       
@@ -20,13 +21,13 @@ export const AnalyticsDashboard: React.FC = () => {
         .from('post_analytics')
         .select(`
           *,
-          posts (
+          content_posts (
             title,
             platform,
             created_at
           )
         `)
-        .eq('posts.user_id', user.id)
+        .eq('user_id', user.id)
         .gte('created_at', getDateRange(timeRange))
         .order('created_at', { ascending: false });
 

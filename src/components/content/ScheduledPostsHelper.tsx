@@ -1,8 +1,24 @@
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { ScheduledPost } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
+
+// Updated ScheduledPost interface to match database schema
+interface ScheduledPost {
+  id: string;
+  user_id: string;
+  content: string;
+  media_urls: string[] | null;
+  platform: string;
+  scheduled_for: string;
+  status: string;
+  error_message: string | null;
+  post_id: string | null;
+  metadata: any;
+  created_at: string;
+  updated_at: string;
+}
 
 // Export the useScheduler hook directly
 export const useScheduler = (userId: string) => {

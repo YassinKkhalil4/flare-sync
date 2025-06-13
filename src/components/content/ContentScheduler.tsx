@@ -4,11 +4,26 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { ScheduledPost } from '@/types/database';
 import { LoadingSpinner } from '@/components/social/LoadingSpinner';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+
+// Updated ScheduledPost interface to match database schema
+interface ScheduledPost {
+  id: string;
+  user_id: string;
+  content: string;
+  media_urls: string[] | null;
+  platform: string;
+  scheduled_for: string;
+  status: string;
+  error_message: string | null;
+  post_id: string | null;
+  metadata: any;
+  created_at: string;
+  updated_at: string;
+}
 
 // Custom hook for fetching scheduled posts
 const useScheduler = (userId: string) => {
@@ -125,7 +140,7 @@ const ContentScheduler: React.FC = () => {
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <h3 className="font-medium">
-                        {post.content?.substring(0, 50)}
+                        {post.metadata?.title || post.content?.substring(0, 50)}
                         {post.content && post.content.length > 50 ? '...' : ''}
                       </h3>
                       <p className="text-sm text-muted-foreground">

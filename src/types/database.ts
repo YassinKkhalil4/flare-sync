@@ -1,3 +1,4 @@
+
 // Database types for Supabase integration
 
 export interface Profile {
@@ -45,6 +46,13 @@ export interface ContentPost {
   metrics: any | null;
   created_at: string;
   updated_at: string;
+  tags?: ContentTag[];
+}
+
+export interface ContentTag {
+  id: string;
+  name: string;
+  created_at: string;
 }
 
 export interface ScheduledPost {
@@ -58,6 +66,20 @@ export interface ScheduledPost {
   error_message: string | null;
   post_id: string | null;
   metadata: any | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PostAnalytics {
+  id: string;
+  post_id: string;
+  user_id: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  reach: number;
+  impressions: number;
+  engagement_rate: number;
   created_at: string;
   updated_at: string;
 }

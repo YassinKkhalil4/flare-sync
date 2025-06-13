@@ -9,6 +9,22 @@ import { Calendar, Loader2, Play, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
+// Updated ScheduledPost interface to match database schema
+interface ScheduledPost {
+  id: string;
+  user_id: string;
+  content: string;
+  media_urls: string[] | null;
+  platform: string;
+  scheduled_for: string;
+  status: string;
+  error_message: string | null;
+  post_id: string | null;
+  metadata: any;
+  created_at: string;
+  updated_at: string;
+}
+
 export const ScheduledPosts = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -27,7 +43,7 @@ export const ScheduledPosts = () => {
         .order('scheduled_for', { ascending: true });
 
       if (error) throw error;
-      return data;
+      return data as ScheduledPost[];
     },
     enabled: !!user?.id,
   });
