@@ -17,6 +17,17 @@ export class RealContentService {
     return data;
   }
 
+  static async getPost(id: string): Promise<ContentPost> {
+    const { data, error } = await supabase
+      .from('content_posts')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
   static async updatePost(id: string, postData: Partial<ContentPost>): Promise<ContentPost> {
     const { data, error } = await supabase
       .from('content_posts')

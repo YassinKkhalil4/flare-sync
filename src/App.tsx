@@ -13,10 +13,10 @@ import Settings from '@/pages/Settings';
 import Plans from '@/pages/Plans';
 import Index from '@/pages/Index';
 import Dashboard from '@/pages/Dashboard';
-import { CaptionGenerator } from '@/pages/Content/CaptionGeneratorPage';
-import { EngagementPredictor } from '@/pages/Content/EngagementPredictorPage';
+import CaptionGeneratorPage from '@/pages/Content/CaptionGeneratorPage';
+import EngagementPredictorPage from '@/pages/Content/EngagementPredictorPage';
 import { ScheduledPosts } from '@/components/content/ScheduledPosts';
-import { ContentCalendar } from '@/pages/Content/ContentCalendarPage';
+import ContentCalendarPage from '@/pages/Content/ContentCalendarPage';
 import PostDetail from '@/components/content/PostDetail';
 import { MediaManager } from '@/components/media/MediaManager';
 import { PostEditor } from '@/components/content/PostEditor';
@@ -34,9 +34,9 @@ function App() {
             <Route path="/settings" element={<Settings />} />
             <Route path="/social-connect" element={<SocialConnect />} />
             <Route path="/analytics" element={<AnalyticsDashboard />} />
-            <Route path="/caption-generator" element={<CaptionGenerator />} />
-            <Route path="/engagement-predictor" element={<EngagementPredictor />} />
-            <Route path="/content/calendar" element={<ContentCalendar />} />
+            <Route path="/caption-generator" element={<CaptionGeneratorPage />} />
+            <Route path="/engagement-predictor" element={<EngagementPredictorPage />} />
+            <Route path="/content/calendar" element={<ContentCalendarPage />} />
             <Route path="/content/scheduled" element={<ScheduledPosts />} />
             <Route path="/content/detail/:id" element={<PostDetail />} />
             

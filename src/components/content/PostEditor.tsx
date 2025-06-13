@@ -81,13 +81,13 @@ export const PostEditor: React.FC = () => {
     if (existingPost) {
       setFormData({
         title: existingPost.title || '',
-        content: existingPost.content || '',
+        content: existingPost.body || '',
         platform: existingPost.platform || 'instagram',
         status: (existingPost.status as ContentStatus) || 'draft',
         scheduled_for: existingPost.scheduled_for,
-        tags: existingPost.tags || [],
+        tags: existingPost.tags?.map(tag => tag.name) || [],
         media_urls: existingPost.media_urls || [],
-        metadata: existingPost.metadata || {}
+        metadata: {}
       });
       
       if (existingPost.scheduled_for) {
@@ -104,8 +104,13 @@ export const PostEditor: React.FC = () => {
       if (!user?.id) throw new Error('User not authenticated');
       
       const postData = {
-        ...data,
         user_id: user.id,
+        title: data.title,
+        body: data.content,
+        platform: data.platform,
+        status: data.status,
+        media_urls: data.media_urls,
+        tags: data.tags.map(tag => ({ id: `tag_${tag}`, name: tag })),
         scheduled_for: selectedDate && formData.status === 'scheduled' 
           ? new Date(`${format(selectedDate, 'yyyy-MM-dd')} ${selectedTime}`).toISOString()
           : undefined
